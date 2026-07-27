@@ -1,0 +1,3 @@
+{
+  "extends": "@UnifiedAttendance/config/tsconfig.base.json"
+}

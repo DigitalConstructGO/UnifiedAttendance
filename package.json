@@ -1,0 +1,46 @@
+{
+  "name": "UnifiedAttendance",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:web": "turbo -F web dev",
+    "db:push": "turbo -F @UnifiedAttendance/db db:push",
+    "db:studio": "turbo -F @UnifiedAttendance/db db:studio",
+    "db:generate": "turbo -F @UnifiedAttendance/db db:generate",
+    "db:migrate": "turbo -F @UnifiedAttendance/db db:migrate",
+    "db:start": "turbo -F @UnifiedAttendance/db db:start",
+    "db:watch": "turbo -F @UnifiedAttendance/db db:watch",
+    "db:stop": "turbo -F @UnifiedAttendance/db db:stop",
+    "db:down": "turbo -F @UnifiedAttendance/db db:down",
+    "test": "pnpm --filter web test && pnpm --filter @UnifiedAttendance/api test",
+    "lint:eslint": "eslint ."
+  },
+  "dependencies": {
+    "@UnifiedAttendance/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@UnifiedAttendance/config": "workspace:*",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "catalog:",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
+    "turbo": "^2.10.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.64.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "overrides": {
+      "kysely": "0.28.17"
+    }
+  }
+}
