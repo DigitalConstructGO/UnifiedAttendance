@@ -1,6 +1,6 @@
 # UnifiedAttendance
 
-This project was created with [Better Fullstack](https://github.com/Marve10s/Better-Fullstack), a modern TypeScript stack that combines Next.js, Self, TRPC, and more.
+A modern TypeScript fullstack application built with Next.js, tRPC, and more.
 
 ## Features
 

@@ -36,12 +36,28 @@ lerna-debug.log*
 # Turbo
 .turbo
 
-# Better Fullstack
+
 .alchemy
 
 # Testing
 coverage
 .nyc_output
+
+
+.agents
+.claude
+AGENTS.md
+CLAUDE.md
+DESIGN.md
+PRODUCT.md
+.impeccable
+.gemini
+GEMINI.md
+.codex
+.cursor
+.cursorrules
+.continue
+skills-lock.json
 
 # Misc
 *.tgz

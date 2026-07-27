@@ -3,7 +3,19 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/.output/**", "**/.next/**", "**/coverage/**"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/.output/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      ".agents/**",
+      ".claude/**",
+      ".impeccable/**",
+      "**/*.d.ts",
+    ],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {

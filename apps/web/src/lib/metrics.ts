@@ -119,7 +119,7 @@ export async function startMetricsServer(): Promise<void> {
       try {
         res.setHeader("Content-Type", registry.contentType);
         res.end(await registry.metrics());
-      } catch (error) {
+      } catch {
         res.statusCode = 500;
         res.end("Error collecting metrics");
       }
