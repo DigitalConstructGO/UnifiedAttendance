@@ -11,6 +11,7 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
+    "rbac:seed": "tsx src/rbac/seed.ts",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.2",
     "next": "catalog:",
     "zod": "catalog:"
   },
@@ -30,6 +32,7 @@
     "@vitest/ui": "catalog:",
     "jsdom": "catalog:",
     "playwright": "catalog:",
+    "tsx": "^4.23.1",
     "typescript": "^6.0.3",
     "vitest": "catalog:"
   }
