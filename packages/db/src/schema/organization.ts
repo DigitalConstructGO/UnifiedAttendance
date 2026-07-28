@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -36,7 +37,7 @@ export const branches = pgTable("branches", {
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   address: text("address"),
-  timezone: text("timezone"),
+  timezone: text("timezone").notNull().default("Africa/Addis_Ababa"),
   status: branchStatus("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -53,7 +54,13 @@ export const branchWorkingDays = pgTable(
     openingTime: time("opening_time"),
     closingTime: time("closing_time"),
   },
-  (table) => [uniqueIndex("branch_working_days_branch_weekday_idx").on(table.branchId, table.weekday)],
+  (table) => [
+    uniqueIndex("branch_working_days_branch_weekday_idx").on(table.branchId, table.weekday),
+    check(
+      "branch_working_days_within_one_day",
+      sql`${table.openingTime} is null or ${table.closingTime} is null or ${table.closingTime} > ${table.openingTime}`,
+    ),
+  ],
 );
 
 export const holidays = pgTable(

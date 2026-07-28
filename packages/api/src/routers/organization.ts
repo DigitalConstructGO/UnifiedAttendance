@@ -50,7 +50,7 @@ export const organizationRouter = router({
   }),
 
   createBranch: protectedProcedure
-    .input(z.object({ name: z.string().trim().min(1), code: z.string().trim().min(1), address: optionalText, timezone: optionalText }))
+    .input(z.object({ name: z.string().trim().min(1), code: z.string().trim().min(1), address: optionalText, timezone: z.string().trim().min(1).optional() }))
     .mutation(async ({ ctx, input }) => {
       await requirePermission(ctx, "organization:manage");
       const [branch] = await db.insert(branches).values(input).returning();
@@ -58,7 +58,7 @@ export const organizationRouter = router({
     }),
 
   updateBranch: protectedProcedure
-    .input(z.object({ id, name: z.string().trim().min(1).optional(), code: z.string().trim().min(1).optional(), address: optionalText, timezone: optionalText, status: z.enum(["active", "closed"]).optional() }))
+    .input(z.object({ id, name: z.string().trim().min(1).optional(), code: z.string().trim().min(1).optional(), address: optionalText, timezone: z.string().trim().min(1).optional(), status: z.enum(["active", "closed"]).optional() }))
     .mutation(async ({ ctx, input }) => {
       const [existing] = await db.select({ id: branches.id }).from(branches).where(eq(branches.id, input.id)).limit(1);
       if (!existing) notFound("Branch");

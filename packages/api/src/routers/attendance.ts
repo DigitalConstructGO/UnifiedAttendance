@@ -5,6 +5,7 @@ import { db } from "@UnifiedAttendance/db";
 import { attendanceDays, attendanceEvents, attendancePushBatches } from "@UnifiedAttendance/db/schema/index";
 
 import { protectedProcedure, router } from "../index";
+import { deriveAttendanceDay } from "../attendance/derive-day";
 import { employeeBranchOrThrow, requirePermission } from "./shared";
 
 const id = z.uuid();
@@ -25,6 +26,16 @@ export const attendanceRouter = router({
       await requirePermission(ctx, "attendance:read", await employeeBranchOrThrow(input.employeeId));
       const conditions = [eq(attendanceDays.employeeId, input.employeeId), input.from ? gte(attendanceDays.attendanceDate, input.from) : undefined, input.to ? lte(attendanceDays.attendanceDate, input.to) : undefined].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
       return db.select().from(attendanceDays).where(and(...conditions)).orderBy(desc(attendanceDays.attendanceDate)).limit(input.limit);
+    }),
+  recomputeDay: protectedProcedure
+    .input(z.object({ employeeId: id, date }))
+    .mutation(async ({ ctx, input }) => {
+      const branchId = await employeeBranchOrThrow(input.employeeId);
+      await requirePermission(ctx, "attendance:manage", branchId);
+      return deriveAttendanceDay({
+        employeeId: input.employeeId,
+        attendanceDate: input.date,
+      });
     }),
   pushBatches: protectedProcedure
     .input(z.object({ deviceId: id.optional(), limit: z.number().int().min(1).max(200).default(50) }))
