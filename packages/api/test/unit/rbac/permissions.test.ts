@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { hasPermission, isFixedRole, PERMISSIONS } from "../../../src/rbac/permissions";
+import { hasPermission, isRole } from "../../../src/rbac/permissions";
 
 describe("hasPermission", () => {
   it("allows an action when the user's Role grants its seeded permission", () => {
-    expect(hasPermission([PERMISSIONS.workforceRead], PERMISSIONS.workforceRead)).toBe(true);
+    expect(hasPermission(["workforce:read"], "workforce:read")).toBe(true);
   });
 
   it("denies an action when the user's Role does not grant its seeded permission", () => {
-    expect(hasPermission([PERMISSIONS.workforceRead], PERMISSIONS.workforceManage)).toBe(false);
+    expect(hasPermission(["workforce:read"], "workforce:manage")).toBe(false);
   });
 });
 
-describe("isFixedRole", () => {
+describe("isRole", () => {
   it("accepts only the application-defined roles", () => {
-    expect(isFixedRole("Super Administrator")).toBe(true);
-    expect(isFixedRole("HR")).toBe(true);
-    expect(isFixedRole("Custom payroll role")).toBe(false);
+    expect(isRole("Super Administrator")).toBe(true);
+    expect(isRole("HR")).toBe(true);
+    expect(isRole("Custom payroll role")).toBe(false);
   });
 });

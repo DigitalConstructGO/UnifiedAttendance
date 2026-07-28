@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@UnifiedAttendance/db";
 import { employees, permissions, rolePermissions, roles, userRoles } from "@UnifiedAttendance/db/schema/index";
 
-import { FIXED_ROLES, hasPermission, type Permission } from "../rbac/permissions";
+import { ROLES, hasPermission, type Permission } from "../rbac/permissions";
 
 import type { Context } from "../context";
 
@@ -45,13 +45,13 @@ export async function requireSuperAdmin(ctx: Context) {
     .where(
       and(
         eq(userRoles.userId, userId(ctx)),
-        eq(roles.name, FIXED_ROLES.superAdministrator),
+        eq(roles.name, ROLES.superAdministrator),
       ),
     )
     .limit(1);
 
   if (assignment.length === 0) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Super Administrator access required" });
+    throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access required" });
   }
 }
 

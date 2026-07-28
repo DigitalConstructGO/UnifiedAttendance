@@ -5,25 +5,14 @@ import { z } from "zod";
 import { db } from "@UnifiedAttendance/db";
 import { permissions, rolePermissions, roles, userRoles } from "@UnifiedAttendance/db/schema/index";
 
-import { FIXED_ROLES, isFixedRole, PERMISSIONS } from "../rbac/permissions";
+import { ROLES, isRole } from "../rbac/permissions";
 import { protectedProcedure, router } from "../index";
 import { requireSessionUser, requireSuperAdmin } from "./shared";
 
 const id = z.uuid();
-const permissionCode = z.enum([
-  PERMISSIONS.organizationRead,
-  PERMISSIONS.organizationManage,
-  PERMISSIONS.workforceRead,
-  PERMISSIONS.workforceManage,
-  PERMISSIONS.devicesRead,
-  PERMISSIONS.devicesManage,
-  PERMISSIONS.attendanceRead,
-  PERMISSIONS.correctionsRead,
-  PERMISSIONS.correctionsManage,
-  PERMISSIONS.correctionsReview,
-]);
+const permissionCode = z.string().min(1);
 
-const fixedRoleNames = Object.values(FIXED_ROLES);
+const roleNames = Object.values(ROLES);
 
 export const accessRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -48,7 +37,7 @@ export const accessRouter = router({
 
   roles: protectedProcedure.query(async ({ ctx }) => {
     await requireSuperAdmin(ctx);
-    return db.select().from(roles).where(inArray(roles.name, fixedRoleNames)).orderBy(roles.name);
+    return db.select().from(roles).where(inArray(roles.name, roleNames)).orderBy(roles.name);
   }),
 
   updateRolePermissions: protectedProcedure
@@ -56,15 +45,18 @@ export const accessRouter = router({
     .mutation(async ({ ctx, input }) => {
       await requireSuperAdmin(ctx);
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
-      if (!role || !isFixedRole(role.name)) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Fixed Role not found" });
+      if (!role || !isRole(role.name)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
       }
 
       const selectedPermissions = input.permissionCodes.length === 0
         ? []
         : await db.select().from(permissions).where(inArray(permissions.code, input.permissionCodes));
       if (selectedPermissions.length !== input.permissionCodes.length) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "The permission catalog has not been seeded" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "One or more permission codes are not in the seeded catalog",
+        });
       }
 
       await db.transaction(async (tx) => {
@@ -91,8 +83,8 @@ export const accessRouter = router({
     .mutation(async ({ ctx, input }) => {
       await requireSuperAdmin(ctx);
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
-      if (!role || !isFixedRole(role.name)) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Fixed Role not found" });
+      if (!role || !isRole(role.name)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
       }
       const assignedBy = requireSessionUser(ctx);
       const [assignment] = await db

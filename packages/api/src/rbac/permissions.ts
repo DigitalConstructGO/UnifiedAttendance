@@ -6,6 +6,7 @@ export const PERMISSIONS = {
   devicesRead: "devices:read",
   devicesManage: "devices:manage",
   attendanceRead: "attendance:read",
+  attendanceManage: "attendance:manage",
   correctionsRead: "corrections:read",
   correctionsManage: "corrections:manage",
   correctionsReview: "corrections:review",
@@ -13,19 +14,23 @@ export const PERMISSIONS = {
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
-export const FIXED_ROLES = {
+export function hasPermission(grantedPermissions: readonly string[], requiredPermission: Permission) {
+  return grantedPermissions.includes(requiredPermission);
+}
+
+export const ROLES = {
   superAdministrator: "Super Administrator",
   admin: "Admin",
   manager: "Manager",
   hr: "HR",
 } as const;
 
-export type FixedRole = (typeof FIXED_ROLES)[keyof typeof FIXED_ROLES];
+export const FIXED_ROLES = ROLES;
 
-export function isFixedRole(roleName: string): roleName is FixedRole {
-  return Object.values(FIXED_ROLES).includes(roleName as FixedRole);
+export type Role = (typeof ROLES)[keyof typeof ROLES];
+
+export function isRole(roleName: string): roleName is Role {
+  return Object.values(ROLES).includes(roleName as Role);
 }
 
-export function hasPermission(grantedPermissions: readonly string[], requiredPermission: Permission) {
-  return grantedPermissions.includes(requiredPermission);
-}
+export const isFixedRole = isRole;
