@@ -7,12 +7,14 @@ import { getBrand } from "@/lib/brand";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { loadAccess } from "@/lib/access-server";
+import { getSetupStatus } from "@/lib/setup-status";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [{ access }, brand] = await Promise.all([loadAccess(), getBrand()]);
+  const [{ access }, brand, setup] = await Promise.all([loadAccess(), getBrand(), getSetupStatus()]);
 
   // No Role means nothing in here is usable, so never render the shell around it.
   if (!access.role) redirect("/no-access");
+  if (!setup.complete) redirect("/setup");
 
   return (
     <AccessProvider access={access}>

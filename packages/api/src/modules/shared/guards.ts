@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
 import { employees, permissions, rolePermissions, roles, userRoles } from "@UnifiedAttendance/db/schema/index";
@@ -53,6 +53,11 @@ export async function requireSuperAdmin(ctx: Context) {
   if (assignment.length === 0) {
     forbidden("Administrator access required");
   }
+}
+
+export async function requireAdministrator(ctx: Context) {
+  const assignments = await db.select({ roleName: roles.name }).from(userRoles).innerJoin(roles, eq(userRoles.roleId, roles.id)).where(and(eq(userRoles.userId, userId(ctx)), inArray(roles.name, [ROLES.superAdministrator, ROLES.admin]))).limit(1);
+  if (assignments.length === 0) forbidden("Administrator access required");
 }
 
 export function requireSessionUser(ctx: Context) {

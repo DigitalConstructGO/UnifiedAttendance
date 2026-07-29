@@ -1,14 +1,10 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
-import { requireAccess } from "@/lib/access-server";
+import { redirect } from "next/navigation";
+
+import { OrganizationWorkspace } from "@/components/organization-workspace";
+import { loadAccess } from "@/lib/access-server";
 
 export default async function OrganizationPage() {
-  const { access } = await requireAccess("organization:read");
-
-  return (
-    <ModulePlaceholder
-      title="Organization"
-      description="Branches, working days and organization settings."
-      role={access.role}
-    />
-  );
+  const { access } = await loadAccess();
+  if (!access.role || !["Admin", "Super Administrator"].includes(access.role)) redirect("/no-access");
+  return <OrganizationWorkspace />;
 }

@@ -1,16 +1,17 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
 import { branchWorkingDays, branches, holidays, organizations } from "@UnifiedAttendance/db/schema/index";
 
 import { conflict, notFound } from "../../errors";
-import { requirePermission, requireSuperAdmin } from "../shared/guards";
+import { requireAdministrator, requirePermission, requireSuperAdmin } from "../shared/guards";
 
 import type {
   BranchIdInput,
   CreateBranchInput,
   CreateHolidayInput,
   CreateOrganizationInput,
+  BootstrapOrganizationInput,
   HolidayIdInput,
   ListHolidaysInput,
   ReplaceWorkingDaysInput,
@@ -33,6 +34,20 @@ export async function createOrganization(ctx: Context, input: CreateOrganization
   if (existing.length > 0) conflict("An organization already exists");
   const [organization] = await db.insert(organizations).values(input).returning();
   return organization;
+}
+
+export async function bootstrapOrganization(ctx: Context, input: BootstrapOrganizationInput) {
+  await requireAdministrator(ctx);
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(847291)`);
+    const [existing] = await tx.select({ id: organizations.id }).from(organizations).limit(1);
+    if (existing) conflict("An organization already exists");
+    const [organization] = await tx.insert(organizations).values({ name: input.organization.name, code: input.organization.code, timezone: "Africa/Addis_Ababa", logoUrl: null }).returning();
+    const [branch] = await tx.insert(branches).values({ name: input.branch.name, code: input.branch.code, address: input.branch.address, timezone: "Africa/Addis_Ababa" }).returning();
+    if (!organization || !branch) throw new Error("Bootstrap could not create the organization and branch");
+    const days = await tx.insert(branchWorkingDays).values(input.days.map((day) => ({ ...day, branchId: branch.id }))).returning();
+    return { organization, branch, days };
+  });
 }
 
 export async function updateOrganization(ctx: Context, input: UpdateOrganizationInput) {

@@ -51,5 +51,8 @@ export const DASHBOARD_NAV = [
 export type NavItem = (typeof DASHBOARD_NAV)[number];
 
 export function visibleNavItems(access: Access) {
-  return DASHBOARD_NAV.filter((item) => can(access, item.permission));
+  return DASHBOARD_NAV.filter((item) => {
+    if (item.label === "Organization" && access.role === "HR") return false;
+    return can(access, item.permission);
+  });
 }

@@ -8,6 +8,7 @@ export type Organization = JsonOf<Awaited<ReturnType<typeof service.getOrganizat
 export type Branch = JsonOf<Awaited<ReturnType<typeof service.listBranches>>>[number];
 export type WorkingDay = JsonOf<Awaited<ReturnType<typeof service.listWorkingDays>>>[number];
 export type Holiday = JsonOf<Awaited<ReturnType<typeof service.listHolidays>>>[number];
+export type BootstrapResult = JsonOf<Awaited<ReturnType<typeof service.bootstrapOrganization>>>;
 
 export const organizationKeys = {
   organization: ["organization"] as const,
@@ -18,6 +19,7 @@ export const organizationKeys = {
 };
 
 export const organizationApi = {
+  bootstrap: (input: z.input<typeof validations.bootstrapOrganizationInput>) => apiFetch<BootstrapResult>("/setup", { method: "POST", body: input }),
   get: (signal?: AbortSignal) => apiFetch<Organization>("/organization", { signal }),
   create: (input: z.input<typeof validations.createOrganizationInput>) =>
     apiFetch<Organization>("/organization", { method: "POST", body: input }),
