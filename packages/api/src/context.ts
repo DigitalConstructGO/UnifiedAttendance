@@ -1,5 +1,3 @@
-import type { NextRequest } from "next/server";
-
 import { auth } from "@UnifiedAttendance/auth";
 
 type Session = Awaited<ReturnType<typeof auth.api.getSession>>;
@@ -10,7 +8,7 @@ export function createInnerContext({ session }: { session: Session }) {
   };
 }
 
-export async function createContext(req: NextRequest) {
+export async function createContext(req: Request) {
   const session = await auth.api.getSession({
     headers: req.headers,
   });

@@ -1,16 +1,16 @@
 import { and, eq } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
 
 import { db } from "@UnifiedAttendance/db";
 import { employees, permissions, rolePermissions, roles, userRoles } from "@UnifiedAttendance/db/schema/index";
 
-import { ROLES, hasPermission, type Permission } from "../rbac/permissions";
+import { ROLES, hasPermission, type Permission } from "../../rbac/permissions";
+import { forbidden, notFound, unauthorized } from "../../errors";
 
-import type { Context } from "../context";
+import type { Context } from "../../context";
 
 function userId(ctx: Context) {
   if (!ctx.session) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    unauthorized();
   }
   return ctx.session.user.id;
 }
@@ -33,7 +33,7 @@ export async function requirePermission(
     );
 
   if (!hasPermission(grantedPermissions.map((grantedPermission) => grantedPermission.code), permission)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: `Missing permission: ${permission}` });
+    forbidden(`Missing permission: ${permission}`);
   }
 }
 
@@ -51,16 +51,12 @@ export async function requireSuperAdmin(ctx: Context) {
     .limit(1);
 
   if (assignment.length === 0) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access required" });
+    forbidden("Administrator access required");
   }
 }
 
 export function requireSessionUser(ctx: Context) {
   return userId(ctx);
-}
-
-export function notFound(resource: string): never {
-  throw new TRPCError({ code: "NOT_FOUND", message: `${resource} not found` });
 }
 
 export async function employeeBranchOrThrow(employeeId: string) {
@@ -72,3 +68,5 @@ export async function employeeBranchOrThrow(employeeId: string) {
   if (!employee) notFound("Employee");
   return employee.branchId;
 }
+
+export { notFound };
