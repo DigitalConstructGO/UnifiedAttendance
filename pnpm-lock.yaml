@@ -9,12 +9,6 @@ catalogs:
     '@playwright/test':
       specifier: ^1.61.1
       version: 1.62.0
-    '@trpc/client':
-      specifier: ^11.18.0
-      version: 11.18.0
-    '@trpc/server':
-      specifier: ^11.18.0
-      version: 11.18.0
     '@types/node':
       specifier: ^26.1.1
       version: 26.1.1
@@ -96,6 +90,9 @@ importers:
       '@UnifiedAttendance/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@UnifiedAttendance/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@UnifiedAttendance/env':
         specifier: workspace:*
         version: link:../../packages/env
@@ -114,6 +111,12 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.2.8
         version: 5.3.0
+      '@fontsource-variable/plus-jakarta-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/space-grotesk':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@react-email/components':
         specifier: ^1.0.12
         version: 1.0.12(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -126,15 +129,6 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@trpc/client':
-        specifier: 'catalog:'
-        version: 11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server':
-        specifier: 'catalog:'
-        version: 11.18.0(typescript@5.9.3)
-      '@trpc/tanstack-react-query':
-        specifier: ^11.18.0
-        version: 11.18.0(@tanstack/react-query@5.101.4(react@19.2.8))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(react@19.2.8)(typescript@5.9.3)
       ai:
         specifier: ^7.0.31
         version: 7.0.37(zod@4.4.3)
@@ -143,7 +137,7 @@ importers:
         version: 1.0.0
       better-auth:
         specifier: 'catalog:'
-        version: 1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.8)
+        version: 1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.8)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -295,12 +289,6 @@ importers:
       '@UnifiedAttendance/env':
         specifier: workspace:*
         version: link:../env
-      '@trpc/client':
-        specifier: 'catalog:'
-        version: 11.18.0(@trpc/server@11.18.0(typescript@6.0.3))(typescript@6.0.3)
-      '@trpc/server':
-        specifier: 'catalog:'
-        version: 11.18.0(typescript@6.0.3)
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -364,7 +352,7 @@ importers:
         version: 1.6.25(@better-auth/core@1.6.25(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.4)(kysely@0.28.17)(nanostores@1.4.1))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))
       better-auth:
         specifier: 'catalog:'
-        version: 1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.8)
+        version: 1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.8)
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -1399,6 +1387,12 @@ packages:
 
   '@fontsource-variable/inter@5.3.0':
     resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@fontsource-variable/plus-jakarta-sans@5.3.0':
+    resolution: {integrity: sha512-/l/4r0yyWK9JzAlmA0LiYgGgmJe/Gswt4jTJEzr5QhJfwMbvJZDmYWyW0M4X7yCK69BajMVlV/Lx8g7WDc1+sw==}
+
+  '@fontsource-variable/space-grotesk@5.3.0':
+    resolution: {integrity: sha512-2IxmvfB08i9vnGB3Ym/AXvhRE+8XOjWMXIyDum03c+tPwH0FUoMNQfGpU8NXPxjbws0Vvss3AH0Zqt4oJBBAdw==}
 
   '@grpc/grpc-js@1.14.4':
     resolution: {integrity: sha512-k9Dj3DV/itK9D06Y8f190Qgop7/Ui+D0njFV3LHMPwPT75DpXLQohE9Wmz0QElrJnzsjB7KPWiKJbOl7IPDArQ==}
@@ -2984,29 +2978,6 @@ packages:
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
-
-  '@trpc/client@11.18.0':
-    resolution: {integrity: sha512-wOqeg3Fvl25V1ZisQhUD3K8G60ZJDlSGJNSyeXrLH24xAo5w6GSR2Kzb1cSNY9Y+IQ2YZvYGZstBU+V/ulo/ow==}
-    hasBin: true
-    peerDependencies:
-      '@trpc/server': 11.18.0
-      typescript: '>=5.7.2'
-
-  '@trpc/server@11.18.0':
-    resolution: {integrity: sha512-JAvXOuNTxgXjIDfQaOvDq1j66LMNfDJUH1IU7Slfn8EvRv2EkH6ehu3A7zpYhjO0syHHiYg77v2lG2JFJgvw7Q==}
-    hasBin: true
-    peerDependencies:
-      typescript: '>=5.7.2'
-
-  '@trpc/tanstack-react-query@11.18.0':
-    resolution: {integrity: sha512-dm5xIlN0SEzJAbQ34EHdb1Kgd/zWZ63ZMviQEw3WCWCIPz8MjLKAhquncPcn+YxFUJa+Qi4qatdGFymmM4HmAQ==}
-    hasBin: true
-    peerDependencies:
-      '@tanstack/react-query': ^5.80.3
-      '@trpc/client': 11.18.0
-      '@trpc/server': 11.18.0
-      react: '>=18.2.0'
-      typescript: '>=5.7.2'
 
   '@ts-morph/common@0.27.0':
     resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
@@ -7155,6 +7126,10 @@ snapshots:
 
   '@fontsource-variable/inter@5.3.0': {}
 
+  '@fontsource-variable/plus-jakarta-sans@5.3.0': {}
+
+  '@fontsource-variable/space-grotesk@5.3.0': {}
+
   '@grpc/grpc-js@1.14.4':
     dependencies:
       '@grpc/proto-loader': 0.8.1
@@ -8586,32 +8561,6 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.1
 
-  '@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)':
-    dependencies:
-      '@trpc/server': 11.18.0(typescript@5.9.3)
-      typescript: 5.9.3
-
-  '@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@6.0.3))(typescript@6.0.3)':
-    dependencies:
-      '@trpc/server': 11.18.0(typescript@6.0.3)
-      typescript: 6.0.3
-
-  '@trpc/server@11.18.0(typescript@5.9.3)':
-    dependencies:
-      typescript: 5.9.3
-
-  '@trpc/server@11.18.0(typescript@6.0.3)':
-    dependencies:
-      typescript: 6.0.3
-
-  '@trpc/tanstack-react-query@11.18.0(@tanstack/react-query@5.101.4(react@19.2.8))(@trpc/client@11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.18.0(typescript@5.9.3))(react@19.2.8)(typescript@5.9.3)':
-    dependencies:
-      '@tanstack/react-query': 5.101.4(react@19.2.8)
-      '@trpc/client': 11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)
-      '@trpc/server': 11.18.0(typescript@5.9.3)
-      react: 19.2.8
-      typescript: 5.9.3
-
   '@ts-morph/common@0.27.0':
     dependencies:
       fast-glob: 3.3.3
@@ -9057,7 +9006,7 @@ snapshots:
     dependencies:
       tweetnacl: 0.14.5
 
-  better-auth@1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))(next@16.2.12(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.8):
+  better-auth@1.6.25(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.62.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.22.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.8):
     dependencies:
       '@better-auth/core': 1.6.25(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.4)(kysely@0.28.17)(nanostores@1.4.1)
       '@better-auth/drizzle-adapter': 1.6.25(@better-auth/core@1.6.25(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.4)(kysely@0.28.17)(nanostores@1.4.1))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(kysely@0.28.17)(pg@8.22.0))
