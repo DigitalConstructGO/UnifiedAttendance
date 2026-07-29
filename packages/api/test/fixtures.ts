@@ -1,8 +1,11 @@
 import { db } from "@UnifiedAttendance/db";
 import { sql } from "drizzle-orm";
 
+import { seedRbac } from "../scripts/seed";
+
 export async function resetDatabase() {
   await db.execute(sql.raw(`truncate table ${await tableList()} restart identity cascade`));
+  await seedRbac();
 }
 
 let cachedTableList: string | undefined;

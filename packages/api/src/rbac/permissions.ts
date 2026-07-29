@@ -25,12 +25,22 @@ export const ROLES = {
   hr: "HR",
 } as const;
 
-export const FIXED_ROLES = ROLES;
-
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export function isRole(roleName: string): roleName is Role {
   return Object.values(ROLES).includes(roleName as Role);
 }
 
-export const isFixedRole = isRole;
+export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+  [ROLES.superAdministrator]: Object.values(PERMISSIONS),
+  [ROLES.admin]: Object.values(PERMISSIONS),
+  [ROLES.hr]: [
+    "organization:read",
+    "workforce:read",
+    "workforce:manage",
+    "attendance:read",
+    "corrections:read",
+    "corrections:review",
+  ],
+  [ROLES.manager]: ["workforce:read", "attendance:read", "corrections:read", "corrections:review"],
+};

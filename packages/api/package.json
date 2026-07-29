@@ -11,15 +11,14 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "rbac:seed": "tsx src/rbac/seed.ts",
+    "rbac:seed": "tsx scripts/seed.ts",
+    "rbac:seed-admin": "tsx scripts/seed-super-admin.ts",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@UnifiedAttendance/auth": "workspace:*",
     "@UnifiedAttendance/db": "workspace:*",
     "@UnifiedAttendance/env": "workspace:*",
-    "@trpc/client": "catalog:",
-    "@trpc/server": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.2",
     "next": "catalog:",
