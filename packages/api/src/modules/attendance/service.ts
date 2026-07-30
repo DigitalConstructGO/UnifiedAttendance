@@ -10,6 +10,7 @@ import {
   manualAttendanceEntries,
   people,
 } from "@UnifiedAttendance/db/schema/index";
+import { EMPLOYEE_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums";
 
 import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
@@ -88,7 +89,7 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     .where(
       and(
         eq(employmentPeriods.branchId, input.branchId),
-        eq(employmentPeriods.status, "active"),
+        eq(employmentPeriods.status, EMPLOYEE_STATUSES[0]),
         lte(employmentPeriods.effectiveFrom, input.date),
         or(isNull(employmentPeriods.effectiveTo), gte(employmentPeriods.effectiveTo, input.date)),
         input.departmentId ? eq(employmentPeriods.departmentId, input.departmentId) : undefined,

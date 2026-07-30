@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MANUAL_ATTENDANCE_ENTRY_KINDS } from "@UnifiedAttendance/db/schema/attendance-days";
 
 import { date, id, limit } from "./shared";
 
@@ -37,12 +38,15 @@ export const createManualAttendanceEntryInput = z
   .object({
     employeeId: id,
     attendanceDate: date,
-    kind: z.enum(["check_in", "check_out", "mark_present", "mark_absent"]),
+    kind: z.enum(MANUAL_ATTENDANCE_ENTRY_KINDS),
     occurredAt: z.coerce.date().optional(),
     reason: z.string().trim().min(3).max(1_000),
   })
   .superRefine((value, issue) => {
-    if ((value.kind === "check_in" || value.kind === "check_out") && !value.occurredAt) {
+    if (
+      (value.kind === "check_in" || value.kind === "check_out") &&
+      !value.occurredAt
+    ) {
       issue.addIssue({
         code: "custom",
         path: ["occurredAt"],

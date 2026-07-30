@@ -1,126 +1,21 @@
-import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, lt } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
 import {
   attendanceCorrections,
   attendanceDays,
   attendanceEvents,
-  branches,
-  branchWorkingDays,
-  employmentPeriods,
-  employees,
-  holidays,
   manualAttendanceEntries,
 } from "@UnifiedAttendance/db/schema/index";
 
-function minutesAfter(actual: Date, expected: Date) {
-  return Math.max(0, Math.floor((actual.getTime() - expected.getTime()) / 60_000));
-}
+import { loadDayContext } from "./day-context";
+import { attendanceOutcome, minutesAfter } from "./day-window";
+import { applyCorrections, applyManualEntries, type PunchTimes } from "./overlays";
 
-function attendanceOutcome(firstIn: Date | null, lastOut: Date | null, hasEvents: boolean) {
-  if (firstIn && lastOut) return "present";
-  if (firstIn || lastOut) return "partial";
-  return hasEvents ? "unknown" : "absent";
-}
-
-async function branchDayWindow(options: {
-  attendanceDate: string;
-  timezone: string;
-  openingTime: string | null;
-  closingTime: string | null;
-}) {
-  const { attendanceDate, timezone, openingTime, closingTime } = options;
-
-  const { rows } = await db.execute<{
-    day_start: number;
-    day_end: number;
-    expected_start: number | null;
-    expected_end: number | null;
-  }>(sql`
-    select
-      extract(epoch from ((${attendanceDate}::date)::timestamp at time zone ${timezone}))::float8
-        as day_start,
-      extract(epoch from ((${attendanceDate}::date + 1)::timestamp at time zone ${timezone}))::float8
-        as day_end,
-      case when ${openingTime}::time is null then null
-           else extract(epoch from ((${attendanceDate}::date + ${openingTime}::time) at time zone ${timezone}))::float8
-      end as expected_start,
-      case when ${closingTime}::time is null then null
-           else extract(epoch from ((${attendanceDate}::date + ${closingTime}::time) at time zone ${timezone}))::float8
-      end as expected_end
-  `);
-
-  const row = rows[0];
-  if (!row) throw new Error(`Could not resolve ${attendanceDate} in ${timezone}`);
-
-  const instant = (seconds: number | null) => (seconds === null ? null : new Date(seconds * 1000));
-  return {
-    dayStart: new Date(row.day_start * 1000),
-    dayEnd: new Date(row.day_end * 1000),
-    expectedStart: instant(row.expected_start),
-    expectedEnd: instant(row.expected_end),
-  };
-}
-
+/** Recomputes one employee-day from events, manual entries, and approved corrections. */
 export async function deriveAttendanceDay(options: { employeeId: string; attendanceDate: string }) {
   const { employeeId, attendanceDate } = options;
-
-  const weekday = new Date(`${attendanceDate}T00:00:00Z`).getUTCDay();
-
-  const [employee] = await db
-    .select({ branchId: employees.branchId })
-    .from(employees)
-    .where(eq(employees.id, employeeId))
-    .limit(1);
-  if (!employee) throw new Error(`Employee ${employeeId} not found`);
-  const [employment] = await db
-    .select()
-    .from(employmentPeriods)
-    .where(
-      and(
-        eq(employmentPeriods.employeeId, employeeId),
-        lte(employmentPeriods.effectiveFrom, attendanceDate),
-        or(
-          isNull(employmentPeriods.effectiveTo),
-          gte(employmentPeriods.effectiveTo, attendanceDate),
-        ),
-      ),
-    )
-    .limit(1);
-  // Existing installations may have employees created before the backfill migration runs.
-  const branchId = employment?.branchId ?? employee.branchId;
-  const [branch] = await db
-    .select({ timezone: branches.timezone })
-    .from(branches)
-    .where(eq(branches.id, branchId))
-    .limit(1);
-  if (!branch) throw new Error(`Branch ${branchId} not found`);
-
-  const [workingDay] = await db
-    .select()
-    .from(branchWorkingDays)
-    .where(and(eq(branchWorkingDays.branchId, branchId), eq(branchWorkingDays.weekday, weekday)))
-    .limit(1);
-
-  const dayWindow = await branchDayWindow({
-    attendanceDate,
-    timezone: branch.timezone,
-    openingTime: workingDay?.openingTime ?? null,
-    closingTime: workingDay?.closingTime ?? null,
-  });
-
-  const [holiday] = await db
-    .select({ id: holidays.id })
-    .from(holidays)
-    .where(
-      and(
-        eq(holidays.holidayDate, attendanceDate),
-        or(eq(holidays.branchId, branchId), isNull(holidays.branchId)),
-      ),
-    )
-    .limit(1);
-
-  const dayType = holiday ? "holiday" : workingDay?.isWorkingDay ? "working_day" : "weekend";
+  const { dayType, dayWindow } = await loadDayContext({ employeeId, attendanceDate });
 
   const events = await db
     .select()
@@ -157,60 +52,16 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
     )
     .orderBy(asc(manualAttendanceEntries.createdAt));
 
-  let firstIn = events.find((event) => event.direction === "in")?.occurredAt ?? null;
-  let lastOut =
-    [...events].reverse().find((event) => event.direction === "out")?.occurredAt ?? null;
-  let outcomeOverride: "absent" | "present" | null = null;
-  let latenessExcused = false;
-
-  for (const entry of manualEntries) {
-    switch (entry.kind) {
-      case "check_in":
-        if (entry.occurredAt && (!firstIn || entry.occurredAt < firstIn))
-          firstIn = entry.occurredAt;
-        outcomeOverride = null;
-        break;
-      case "check_out":
-        if (entry.occurredAt && (!lastOut || entry.occurredAt > lastOut))
-          lastOut = entry.occurredAt;
-        outcomeOverride = null;
-        break;
-      case "mark_absent":
-        firstIn = null;
-        lastOut = null;
-        outcomeOverride = "absent";
-        break;
-      case "mark_present":
-        outcomeOverride = "present";
-        break;
-    }
-  }
-
-  for (const correction of corrections) {
-    switch (correction.type) {
-      case "add_check_in":
-      case "adjust_check_in":
-        firstIn = correction.proposedTime ?? firstIn;
-        outcomeOverride = null;
-        break;
-      case "add_check_out":
-      case "adjust_check_out":
-        lastOut = correction.proposedTime ?? lastOut;
-        outcomeOverride = null;
-        break;
-      case "mark_absent":
-        firstIn = null;
-        lastOut = null;
-        outcomeOverride = "absent";
-        break;
-      case "mark_present":
-        outcomeOverride = "present";
-        break;
-      case "excuse_lateness":
-        latenessExcused = true;
-        break;
-    }
-  }
+  const fromEvents: PunchTimes = {
+    firstIn: events.find((event) => event.direction === "in")?.occurredAt ?? null,
+    lastOut: [...events].reverse().find((event) => event.direction === "out")?.occurredAt ?? null,
+    outcomeOverride: null,
+    latenessExcused: false,
+  };
+  const { firstIn, lastOut, outcomeOverride, latenessExcused } = applyCorrections(
+    applyManualEntries(fromEvents, manualEntries),
+    corrections,
+  );
 
   const outcome = outcomeOverride ?? attendanceOutcome(firstIn, lastOut, events.length > 0);
 
