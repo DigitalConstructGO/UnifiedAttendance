@@ -13,6 +13,7 @@ export * from "./corrections";
 export * from "./devices";
 export * from "./organization";
 export * from "./workforce";
+export * from "./queries";
 
 /** One entry point for callers: `api.workforce.departments()`. */
 export const api = {
