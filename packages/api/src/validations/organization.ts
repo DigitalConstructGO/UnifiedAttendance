@@ -1,11 +1,33 @@
 import { z } from "zod";
 
+import {
+  BRANCH_STATUSES,
+  DEFAULT_TIME_ZONE,
+  ORGANIZATION_STATUSES,
+} from "@UnifiedAttendance/db/schema/organization";
+
 import { date, id, nullableText, nullableUrl, text, time } from "./shared";
+
+export const timeZone = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => {
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: value });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "Use a valid IANA timezone" },
+  );
 
 export const createOrganizationInput = z.object({
   name: text,
   code: text,
-  timezone: text.default("Africa/Addis_Ababa"),
+  timezone: timeZone.default(DEFAULT_TIME_ZONE),
   logoUrl: nullableUrl,
 });
 
@@ -20,6 +42,7 @@ const identifier = z
 export const bootstrapOrganizationInput = z.object({
   organization: z.object({ name: text, code: identifier }),
   branch: z.object({ name: text, code: identifier, address: text }),
+  timezone: timeZone.default(DEFAULT_TIME_ZONE),
   days: z
     .array(
       z.object({
@@ -46,9 +69,9 @@ export const updateOrganizationInput = z.object({
   id,
   name: text.optional(),
   code: identifier.optional(),
-  timezone: text.optional(),
+  timezone: timeZone.optional(),
   logoUrl: nullableUrl,
-  status: z.enum(["active", "suspended"]).optional(),
+  status: z.enum(ORGANIZATION_STATUSES).optional(),
 });
 
 /** Branch routes nest (`/branches/:branchId/working-days`), so every level names the segment alike. */
@@ -58,7 +81,7 @@ export const createBranchInput = z.object({
   name: text,
   code: identifier,
   address: nullableText,
-  timezone: text.optional(),
+  timezone: timeZone.optional(),
 });
 
 export const updateBranchInput = z.object({
@@ -66,8 +89,8 @@ export const updateBranchInput = z.object({
   name: text.optional(),
   code: identifier.optional(),
   address: nullableText,
-  timezone: text.optional(),
-  status: z.enum(["active", "closed"]).optional(),
+  timezone: timeZone.optional(),
+  status: z.enum(BRANCH_STATUSES).optional(),
 });
 
 export const workingDaysInput = z.object({ branchId: id });

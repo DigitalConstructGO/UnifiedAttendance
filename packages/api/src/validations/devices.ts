@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ATTENDANCE_DEVICE_STATUSES } from "@UnifiedAttendance/db/schema/attendance-devices";
 
 import { date, id, nullableText, text } from "./shared";
 
@@ -22,7 +23,7 @@ export const updateDeviceInput = z.object({
   serialNumber: text.optional(),
   ipAddress: nullableText,
   firmwareVersion: nullableText,
-  status: z.enum(["active", "inactive"]).optional(),
+  status: z.enum(ATTENDANCE_DEVICE_STATUSES).optional(),
 });
 
 export const listIdentitiesInput = z.object({ employeeId: id });

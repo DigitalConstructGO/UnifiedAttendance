@@ -64,7 +64,8 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
     "corrections:manage",
     await employeeBranchOrThrow(current.employeeId),
   );
-  if (current.status !== "pending") conflict("Only pending corrections can be changed");
+  if (current.status !== "pending")
+    conflict("Only pending corrections can be changed");
   if (current.requestedBy !== requireSessionUser(ctx))
     forbidden("Only the requester can change a correction");
   const [correction] = await db
@@ -89,7 +90,8 @@ export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInpu
   );
   const reviewer = requireSessionUser(ctx);
   if (current.requestedBy === reviewer) forbidden("A requester cannot review their own correction");
-  if (current.status !== "pending") conflict("Correction has already been reviewed");
+  if (current.status !== "pending")
+    conflict("Correction has already been reviewed");
   const [correction] = await db
     .update(attendanceCorrections)
     .set({
