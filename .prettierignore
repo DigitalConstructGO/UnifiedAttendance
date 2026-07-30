@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.next
+.output
+.turbo
+*.tsbuildinfo
+
+# Generated
+pnpm-lock.yaml
+coverage
+packages/db/src/migrations
+**/*.d.ts
+
+# Agent / editor scratch
+.agents
+.claude
+.impeccable
+.gemini
+.codex
+.cursor
+.continue
+skills-lock.json
+docs/reviews

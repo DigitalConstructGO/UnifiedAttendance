@@ -1,4 +1,5 @@
 import eslint from "@eslint/js";
+import configPrettier from "eslint-config-prettier";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -23,5 +24,18 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },
+    rules: {
+      // A leading underscore is the "deliberately unused" signal.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
   },
+  // Must stay last: turns off the ESLint rules Prettier owns.
+  configPrettier,
 );
