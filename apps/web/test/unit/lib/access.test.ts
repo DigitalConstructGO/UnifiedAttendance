@@ -48,7 +48,7 @@ describe("visibleNavItems", () => {
     ]);
 
     expect(visibleNavItems(access).map((item) => item.href)).toEqual([
-      "/dashboard/workforce",
+      "/dashboard/employees",
       "/dashboard/attendance",
     ]);
   });

@@ -1,7 +1,14 @@
-import { WorkforceWorkspace } from "@/components/workforce-workspace";
-import { requireAccess } from "@/lib/access-server";
+import { redirect } from "next/navigation";
 
-export default async function WorkforcePage() {
-  await requireAccess("workforce:read");
-  return <WorkforceWorkspace />;
+export default async function WorkforcePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>;
+}) {
+  const requestedSection = (await searchParams).section;
+  redirect(
+    requestedSection
+      ? `/dashboard/employees?section=${encodeURIComponent(requestedSection)}`
+      : "/dashboard/employees",
+  );
 }

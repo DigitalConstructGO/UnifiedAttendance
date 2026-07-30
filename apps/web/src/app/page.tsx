@@ -148,7 +148,7 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-2 border-t border-white/8 text-[0.6875rem] sm:grid-cols-4">
-              {["Workforce", "Schedules", "Corrections", "Reports"].map((capability) => (
+              {["Employees", "Schedules", "Corrections", "Reports"].map((capability) => (
                 <span
                   key={capability}
                   className="border-white/8 px-4 py-3 text-center text-sidebar-foreground/65 not-last:border-r"

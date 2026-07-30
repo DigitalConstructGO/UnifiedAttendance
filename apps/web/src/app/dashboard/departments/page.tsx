@@ -1,7 +1,5 @@
-import { DepartmentWorkspace } from "@/components/department-workspace";
-import { requireAccess } from "@/lib/access-server";
+import { redirect } from "next/navigation";
 
 export default async function DepartmentsPage() {
-  await requireAccess("workforce:read");
-  return <DepartmentWorkspace />;
+  redirect("/dashboard/employees?section=departments");
 }
