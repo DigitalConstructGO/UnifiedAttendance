@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
 import {
@@ -7,8 +7,10 @@ import {
   attendanceEvents,
   branches,
   branchWorkingDays,
+  employmentPeriods,
   employees,
   holidays,
+  manualAttendanceEntries,
 } from "@UnifiedAttendance/db/schema/index";
 
 function minutesAfter(actual: Date, expected: Date) {
@@ -66,13 +68,33 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
   const weekday = new Date(`${attendanceDate}T00:00:00Z`).getUTCDay();
 
   const [employee] = await db
-    .select({ branchId: employees.branchId, timezone: branches.timezone })
+    .select({ branchId: employees.branchId })
     .from(employees)
-    .innerJoin(branches, eq(employees.branchId, branches.id))
     .where(eq(employees.id, employeeId))
     .limit(1);
   if (!employee) throw new Error(`Employee ${employeeId} not found`);
-  const { branchId } = employee;
+  const [employment] = await db
+    .select()
+    .from(employmentPeriods)
+    .where(
+      and(
+        eq(employmentPeriods.employeeId, employeeId),
+        lte(employmentPeriods.effectiveFrom, attendanceDate),
+        or(
+          isNull(employmentPeriods.effectiveTo),
+          gte(employmentPeriods.effectiveTo, attendanceDate),
+        ),
+      ),
+    )
+    .limit(1);
+  // Existing installations may have employees created before the backfill migration runs.
+  const branchId = employment?.branchId ?? employee.branchId;
+  const [branch] = await db
+    .select({ timezone: branches.timezone })
+    .from(branches)
+    .where(eq(branches.id, branchId))
+    .limit(1);
+  if (!branch) throw new Error(`Branch ${branchId} not found`);
 
   const [workingDay] = await db
     .select()
@@ -82,7 +104,7 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
 
   const dayWindow = await branchDayWindow({
     attendanceDate,
-    timezone: employee.timezone,
+    timezone: branch.timezone,
     openingTime: workingDay?.openingTime ?? null,
     closingTime: workingDay?.closingTime ?? null,
   });
@@ -124,11 +146,45 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
     )
     .orderBy(asc(attendanceCorrections.reviewedAt));
 
+  const manualEntries = await db
+    .select()
+    .from(manualAttendanceEntries)
+    .where(
+      and(
+        eq(manualAttendanceEntries.employeeId, employeeId),
+        eq(manualAttendanceEntries.attendanceDate, attendanceDate),
+      ),
+    )
+    .orderBy(asc(manualAttendanceEntries.createdAt));
+
   let firstIn = events.find((event) => event.direction === "in")?.occurredAt ?? null;
   let lastOut =
     [...events].reverse().find((event) => event.direction === "out")?.occurredAt ?? null;
   let outcomeOverride: "absent" | "present" | null = null;
   let latenessExcused = false;
+
+  for (const entry of manualEntries) {
+    switch (entry.kind) {
+      case "check_in":
+        if (entry.occurredAt && (!firstIn || entry.occurredAt < firstIn))
+          firstIn = entry.occurredAt;
+        outcomeOverride = null;
+        break;
+      case "check_out":
+        if (entry.occurredAt && (!lastOut || entry.occurredAt > lastOut))
+          lastOut = entry.occurredAt;
+        outcomeOverride = null;
+        break;
+      case "mark_absent":
+        firstIn = null;
+        lastOut = null;
+        outcomeOverride = "absent";
+        break;
+      case "mark_present":
+        outcomeOverride = "present";
+        break;
+    }
+  }
 
   for (const correction of corrections) {
     switch (correction.type) {
@@ -164,6 +220,10 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
   }
   const earlyDepartureMinutes =
     lastOut && dayWindow.expectedEnd ? minutesAfter(dayWindow.expectedEnd, lastOut) : null;
+  const workedMinutes =
+    firstIn && lastOut
+      ? Math.max(0, Math.floor((lastOut.getTime() - firstIn.getTime()) / 60_000))
+      : null;
 
   const values = {
     employeeId,
@@ -172,6 +232,7 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
     outcome,
     firstIn,
     lastOut,
+    workedMinutes,
     lateMinutes,
     earlyDepartureMinutes,
     missingCheckIn: !firstIn,

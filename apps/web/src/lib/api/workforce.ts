@@ -9,6 +9,9 @@ export type Position = JsonOf<Awaited<ReturnType<typeof service.listPositions>>>
 export type Cosigner = JsonOf<Awaited<ReturnType<typeof service.listCosigners>>>[number];
 export type EmployeeRow = JsonOf<Awaited<ReturnType<typeof service.listEmployees>>>[number];
 export type EmployeeWrite = JsonOf<Awaited<ReturnType<typeof service.createEmployee>>>;
+export type EmploymentPeriod = JsonOf<
+  Awaited<ReturnType<typeof service.listEmploymentPeriods>>
+>[number];
 
 export const workforceKeys = {
   departments: ["departments"] as const,
@@ -16,6 +19,7 @@ export const workforceKeys = {
   cosigners: ["cosigners"] as const,
   employees: (branchId: string) => ["employees", { branchId }] as const,
   employee: (id: string) => ["employees", id] as const,
+  employmentPeriods: (id: string) => ["employees", id, "employment-periods"] as const,
 };
 
 export const workforceApi = {
@@ -49,4 +53,11 @@ export const workforceApi = {
     apiFetch<EmployeeWrite>("/employees", { method: "POST", body: input }),
   updateEmployee: ({ id, ...values }: z.input<typeof validations.updateEmployeeInput>) =>
     apiFetch<EmployeeWrite>(`/employees/${id}`, { method: "PATCH", body: values }),
+  employmentPeriods: (employeeId: string, signal?: AbortSignal) =>
+    apiFetch<EmploymentPeriod[]>(`/employees/${employeeId}/employment`, { signal }),
+  transitionEmployment: (input: z.input<typeof validations.transitionEmploymentInput>) =>
+    apiFetch<EmploymentPeriod>(`/employees/${input.employeeId}/employment`, {
+      method: "POST",
+      body: input,
+    }),
 };

@@ -1,15 +1,18 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
 import { db } from "@UnifiedAttendance/db";
 import {
   cosigners,
   departments,
+  employmentPeriods,
   employees,
   people,
   positions,
+  workforceDocuments,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { notFound } from "../../errors";
+import { badRequest, notFound } from "../../errors";
 import { requirePermission } from "../shared/guards";
 
 import type {
@@ -17,12 +20,15 @@ import type {
   CreateDepartmentInput,
   CreateEmployeeInput,
   CreatePositionInput,
+  CreateWorkforceDocumentInput,
+  ListEmploymentPeriodsInput,
   ListEmployeesInput,
   ResourceIdInput,
   UpdateCosignerInput,
   UpdateDepartmentInput,
   UpdateEmployeeInput,
   UpdatePositionInput,
+  TransitionEmploymentInput,
 } from "../../validations/workforce";
 import type { Context } from "../../context";
 
@@ -30,6 +36,34 @@ async function employeeOrThrow(employeeId: string) {
   const [employee] = await db.select().from(employees).where(eq(employees.id, employeeId)).limit(1);
   if (!employee) notFound("Employee");
   return employee;
+}
+
+function previousDate(date: string) {
+  const value = new Date(`${date}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
+}
+
+/** The assignment in force on a local calendar date. */
+export async function employmentAt(employeeId: string, date: string) {
+  const periods = await db
+    .select()
+    .from(employmentPeriods)
+    .where(eq(employmentPeriods.employeeId, employeeId))
+    .orderBy(asc(employmentPeriods.effectiveFrom));
+  return periods.find(
+    (period) => period.effectiveFrom <= date && (!period.effectiveTo || period.effectiveTo >= date),
+  );
+}
+
+async function openEmploymentOrThrow(employeeId: string) {
+  const periods = await db
+    .select()
+    .from(employmentPeriods)
+    .where(eq(employmentPeriods.employeeId, employeeId));
+  const open = periods.find((period) => period.effectiveTo === null);
+  if (!open) notFound("Open employment period");
+  return open;
 }
 
 export async function listDepartments(ctx: Context) {
@@ -154,7 +188,14 @@ export async function getEmployee(ctx: Context, input: ResourceIdInput) {
     .leftJoin(departments, eq(employees.departmentId, departments.id))
     .leftJoin(positions, eq(employees.positionId, positions.id))
     .where(eq(employees.id, input.id));
-  return result;
+  const periods = await db
+    .select({ period: employmentPeriods, department: departments, position: positions })
+    .from(employmentPeriods)
+    .leftJoin(departments, eq(employmentPeriods.departmentId, departments.id))
+    .leftJoin(positions, eq(employmentPeriods.positionId, positions.id))
+    .where(eq(employmentPeriods.employeeId, input.id))
+    .orderBy(asc(employmentPeriods.effectiveFrom));
+  return { ...result, periods };
 }
 
 export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
@@ -175,11 +216,33 @@ export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
       })
       .returning();
     if (!employee) throw new Error("Employee creation failed");
-    return { employee, person };
+    const [period] = await tx
+      .insert(employmentPeriods)
+      .values({
+        employeeId: employee.id,
+        branchId: input.employee.branchId,
+        departmentId: input.employee.departmentId ?? null,
+        positionId: input.employee.positionId ?? null,
+        employmentType: input.employee.employmentType,
+        status: "active",
+        effectiveFrom: input.employee.hireDate,
+      })
+      .returning();
+    return { employee, person, period };
   });
 }
 
 export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
+  const assignmentFields = [
+    "branchId",
+    "departmentId",
+    "positionId",
+    "employmentType",
+    "status",
+  ] as const;
+  if (input.employee && assignmentFields.some((field) => input.employee?.[field] !== undefined)) {
+    badRequest("Use an effective-dated employment transition to change an assignment or status");
+  }
   const current = await employeeOrThrow(input.id);
   await requirePermission(ctx, "workforce:manage", current.branchId);
   if (input.employee?.branchId && input.employee.branchId !== current.branchId)
@@ -209,4 +272,145 @@ export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
         : [current];
     return { employee, person: person ?? null };
   });
+}
+
+/** Starts a new effective-dated assignment without rewriting prior employment history. */
+export async function transitionEmployment(ctx: Context, input: TransitionEmploymentInput) {
+  const employee = await employeeOrThrow(input.employeeId);
+  const current = await openEmploymentOrThrow(input.employeeId);
+  await requirePermission(ctx, "workforce:manage", current.branchId);
+  if (input.branchId !== current.branchId) {
+    await requirePermission(ctx, "workforce:manage", input.branchId);
+  }
+  if (input.effectiveFrom <= current.effectiveFrom) {
+    throw new Error("An employment transition must take effect after the current period begins");
+  }
+
+  return db.transaction(async (tx) => {
+    await tx
+      .update(employmentPeriods)
+      .set({ effectiveTo: previousDate(input.effectiveFrom) })
+      .where(eq(employmentPeriods.id, current.id));
+    const [period] = await tx
+      .insert(employmentPeriods)
+      .values({
+        employeeId: employee.id,
+        branchId: input.branchId,
+        departmentId: input.departmentId ?? null,
+        positionId: input.positionId ?? null,
+        employmentType: input.employmentType,
+        status: input.status,
+        effectiveFrom: input.effectiveFrom,
+      })
+      .returning();
+    await tx
+      .update(employees)
+      .set({
+        branchId: input.branchId,
+        departmentId: input.departmentId ?? null,
+        positionId: input.positionId ?? null,
+        employmentType: input.employmentType,
+        status: input.status,
+      })
+      .where(eq(employees.id, employee.id));
+    return period;
+  });
+}
+
+export async function listEmploymentPeriods(ctx: Context, input: ListEmploymentPeriodsInput) {
+  const employee = await employeeOrThrow(input.employeeId);
+  await requirePermission(ctx, "workforce:read", employee.branchId);
+  return db
+    .select()
+    .from(employmentPeriods)
+    .where(eq(employmentPeriods.employeeId, input.employeeId))
+    .orderBy(asc(employmentPeriods.effectiveFrom));
+}
+
+/** Creates private metadata first; the web route returns the corresponding signed upload URL. */
+export async function createWorkforceDocument(ctx: Context, input: CreateWorkforceDocumentInput) {
+  if (input.personId) {
+    const [employee] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.personId, input.personId))
+      .limit(1);
+    await requirePermission(ctx, "workforce:manage", employee?.branchId);
+  } else {
+    await requirePermission(ctx, "workforce:manage");
+  }
+  const owner = input.personId ?? input.cosignerId!;
+  const [document] = await db
+    .insert(workforceDocuments)
+    .values({
+      personId: input.personId ?? null,
+      cosignerId: input.cosignerId ?? null,
+      kind: input.kind,
+      storageKey: `workforce/${owner}/${input.kind}/${randomUUID()}`,
+      contentType: input.contentType,
+      contentLength: input.contentLength,
+    })
+    .returning();
+  return document;
+}
+
+export async function finalizeWorkforceDocument(ctx: Context, documentId: string) {
+  const [document] = await db
+    .select()
+    .from(workforceDocuments)
+    .where(eq(workforceDocuments.id, documentId))
+    .limit(1);
+  if (!document) notFound("Workforce document");
+  if (document.personId) {
+    const [employee] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.personId, document.personId))
+      .limit(1);
+    await requirePermission(ctx, "workforce:manage", employee?.branchId);
+  } else {
+    await requirePermission(ctx, "workforce:manage");
+  }
+  const [finalized] = await db
+    .update(workforceDocuments)
+    .set({ finalizedAt: new Date() })
+    .where(eq(workforceDocuments.id, documentId))
+    .returning();
+  return finalized;
+}
+
+export async function getWorkforceDocument(ctx: Context, documentId: string) {
+  const [document] = await db
+    .select()
+    .from(workforceDocuments)
+    .where(eq(workforceDocuments.id, documentId))
+    .limit(1);
+  if (!document) notFound("Workforce document");
+  if (document.personId) {
+    const [employee] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.personId, document.personId))
+      .limit(1);
+    await requirePermission(ctx, "workforce:read", employee?.branchId);
+  } else {
+    await requirePermission(ctx, "workforce:read");
+  }
+  return document;
+}
+
+export async function deleteWorkforceDocument(ctx: Context, documentId: string) {
+  const document = await getWorkforceDocument(ctx, documentId);
+  if (document.personId) {
+    const [employee] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.personId, document.personId))
+      .limit(1);
+    await requirePermission(ctx, "workforce:manage", employee?.branchId);
+  } else {
+    await requirePermission(ctx, "workforce:manage");
+  }
+  await db.delete(workforceDocuments).where(eq(workforceDocuments.id, documentId));
+  return document;
 }

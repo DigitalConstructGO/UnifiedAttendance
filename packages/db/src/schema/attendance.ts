@@ -139,6 +139,12 @@ export const attendanceOutcome = pgEnum("attendance_outcome", [
   "absent",
   "unknown",
 ]);
+export const manualAttendanceEntryKind = pgEnum("manual_attendance_entry_kind", [
+  "check_in",
+  "check_out",
+  "mark_present",
+  "mark_absent",
+]);
 
 export const attendanceDays = pgTable(
   "attendance_days",
@@ -175,6 +181,32 @@ export const attendanceDays = pgTable(
       sql`(${table.workedMinutes} is null or ${table.workedMinutes} >= 0)
         and (${table.lateMinutes} is null or ${table.lateMinutes} >= 0)
         and (${table.earlyDepartureMinutes} is null or ${table.earlyDepartureMinutes} >= 0)`,
+    ),
+  ],
+);
+
+/** Manual entries are an auditable overlay, never a mutation of biometric data. */
+export const manualAttendanceEntries = pgTable(
+  "manual_attendance_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "restrict" }),
+    attendanceDate: date("attendance_date").notNull(),
+    kind: manualAttendanceEntryKind("kind").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }),
+    reason: text("reason").notNull(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("manual_attendance_entries_employee_date_idx").on(table.employeeId, table.attendanceDate),
+    check(
+      "manual_attendance_entries_time_required",
+      sql`${table.kind} not in ('check_in', 'check_out') or ${table.occurredAt} is not null`,
     ),
   ],
 );
@@ -266,6 +298,14 @@ export const attendanceEventsRelations = relations(attendanceEvents, ({ one }) =
 
 export const attendanceDaysRelations = relations(attendanceDays, ({ one }) => ({
   employee: one(employees, { fields: [attendanceDays.employeeId], references: [employees.id] }),
+}));
+
+export const manualAttendanceEntriesRelations = relations(manualAttendanceEntries, ({ one }) => ({
+  employee: one(employees, {
+    fields: [manualAttendanceEntries.employeeId],
+    references: [employees.id],
+  }),
+  creator: one(user, { fields: [manualAttendanceEntries.createdBy], references: [user.id] }),
 }));
 
 export const attendanceCorrectionsRelations = relations(attendanceCorrections, ({ one }) => ({

@@ -4,6 +4,7 @@ import { db } from "@UnifiedAttendance/db";
 import { attendanceCorrections, attendanceEvents } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, conflict, forbidden, notFound } from "../../errors";
+import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
 
 import type {
@@ -99,5 +100,11 @@ export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInpu
     })
     .where(eq(attendanceCorrections.id, input.id))
     .returning();
+  if (correction?.status === "approved") {
+    await deriveAttendanceDay({
+      employeeId: correction.employeeId,
+      attendanceDate: correction.attendanceDate,
+    });
+  }
   return correction;
 }

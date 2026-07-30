@@ -48,6 +48,15 @@ export const updateCosignerInput = createCosignerInput.partial().extend({ id });
 
 export const listEmployeesInput = z.object({ branchId: id });
 
+const employmentValues = z.object({
+  branchId: id,
+  departmentId: id.nullable().optional(),
+  positionId: id.nullable().optional(),
+  employmentType: z.enum(["permanent", "contract", "part_time", "intern"]),
+  status: z.enum(["active", "suspended", "terminated"]),
+  effectiveFrom: date,
+});
+
 export const createEmployeeInput = z.object({
   person: personInput,
   employee: z.object({
@@ -59,6 +68,48 @@ export const createEmployeeInput = z.object({
     hireDate: date,
   }),
 });
+
+export const transitionEmploymentInput = employmentValues.extend({ employeeId: id });
+
+export const listEmploymentPeriodsInput = z.object({ employeeId: id });
+
+export const createWorkforceDocumentInput = z
+  .object({
+    personId: id.optional(),
+    cosignerId: id.optional(),
+    kind: z.enum([
+      "profile_photo",
+      "national_id_front",
+      "national_id_back",
+      "workplace_id_front",
+      "workplace_id_back",
+    ]),
+    contentType: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
+    contentLength: z
+      .number()
+      .int()
+      .positive()
+      .max(10 * 1024 * 1024),
+  })
+  .refine((value) => Boolean(value.personId) !== Boolean(value.cosignerId), {
+    message: "A document must belong to exactly one person or cosigner",
+  })
+  .superRefine((value, issue) => {
+    if (value.kind === "profile_photo" && value.contentType === "application/pdf") {
+      issue.addIssue({
+        code: "custom",
+        path: ["contentType"],
+        message: "Profile photos must be images",
+      });
+    }
+    if (value.kind === "profile_photo" && value.contentLength > 5 * 1024 * 1024) {
+      issue.addIssue({
+        code: "custom",
+        path: ["contentLength"],
+        message: "Profile photos must be 5 MB or smaller",
+      });
+    }
+  });
 
 export const updateEmployeeInput = z.object({
   id,
@@ -86,3 +137,6 @@ export type UpdateCosignerInput = z.output<typeof updateCosignerInput>;
 export type ListEmployeesInput = z.output<typeof listEmployeesInput>;
 export type CreateEmployeeInput = z.output<typeof createEmployeeInput>;
 export type UpdateEmployeeInput = z.output<typeof updateEmployeeInput>;
+export type TransitionEmploymentInput = z.output<typeof transitionEmploymentInput>;
+export type ListEmploymentPeriodsInput = z.output<typeof listEmploymentPeriodsInput>;
+export type CreateWorkforceDocumentInput = z.output<typeof createWorkforceDocumentInput>;

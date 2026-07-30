@@ -9,6 +9,7 @@ import {
   branchWorkingDays,
   employees,
   holidays,
+  manualAttendanceEntries,
   people,
   user,
 } from "@UnifiedAttendance/db/schema/index";
@@ -226,6 +227,31 @@ describe("deriveAttendanceDay", () => {
     await expect(derive()).resolves.toMatchObject({
       outcome: "present",
       lateMinutes: 0,
+    });
+  });
+
+  it("combines an auditable manual check-out with an immutable device check-in", async () => {
+    const administratorId = "00000000-0000-4000-8000-000000000002";
+    await db.insert(user).values({
+      id: administratorId,
+      name: "Administrator",
+      email: "administrator@example.test",
+      emailVerified: true,
+    });
+    await addEvent("2026-03-02T09:00:00+03:00", "in");
+    await db.insert(manualAttendanceEntries).values({
+      employeeId,
+      attendanceDate: MONDAY,
+      kind: "check_out",
+      occurredAt: new Date("2026-03-02T17:00:00+03:00"),
+      reason: "Device was offline at closing time",
+      createdBy: administratorId,
+    });
+
+    await expect(derive()).resolves.toMatchObject({
+      outcome: "present",
+      workedMinutes: 480,
+      lastOut: new Date("2026-03-02T17:00:00+03:00"),
     });
   });
 
