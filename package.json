@@ -22,7 +22,10 @@
     "rbac:seed": "turbo -F @UnifiedAttendance/api rbac:seed",
     "rbac:seed-admin": "turbo -F @UnifiedAttendance/api rbac:seed-admin --",
     "test": "pnpm --filter web test && pnpm --filter @UnifiedAttendance/api test",
-    "lint:eslint": "eslint ."
+    "lint": "prettier --check . && eslint .",
+    "lint:eslint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@UnifiedAttendance/env": "workspace:*",
@@ -34,7 +37,10 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "catalog:",
     "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
     "globals": "^17.7.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "turbo": "^2.10.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0"
