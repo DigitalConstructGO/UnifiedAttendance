@@ -18,12 +18,17 @@ export const accessKeys = {
 
 export const accessApi = {
   me: (signal?: AbortSignal) => apiFetch<MyAccess>("/access/me", { signal }),
-  permissions: (signal?: AbortSignal) => apiFetch<PermissionRecord[]>("/access/permissions", { signal }),
+  permissions: (signal?: AbortSignal) =>
+    apiFetch<PermissionRecord[]>("/access/permissions", { signal }),
   roles: (signal?: AbortSignal) => apiFetch<RoleRecord[]>("/access/roles", { signal }),
-  assignments: (signal?: AbortSignal) => apiFetch<RoleAssignment[]>("/access/assignments", { signal }),
+  assignments: (signal?: AbortSignal) =>
+    apiFetch<RoleAssignment[]>("/access/assignments", { signal }),
 
   updateRolePermissions: (input: z.input<typeof validations.updateRolePermissionsInput>) =>
-    apiFetch<RoleRecord>(`/access/roles/${input.roleId}/permissions`, { method: "PUT", body: input }),
+    apiFetch<RoleRecord>(`/access/roles/${input.roleId}/permissions`, {
+      method: "PUT",
+      body: input,
+    }),
 
   assignRole: (input: z.input<typeof validations.assignRoleInput>) =>
     apiFetch<RoleAssignment>("/access/assignments", { method: "POST", body: input }),

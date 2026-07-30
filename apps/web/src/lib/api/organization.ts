@@ -19,7 +19,8 @@ export const organizationKeys = {
 };
 
 export const organizationApi = {
-  bootstrap: (input: z.input<typeof validations.bootstrapOrganizationInput>) => apiFetch<BootstrapResult>("/setup", { method: "POST", body: input }),
+  bootstrap: (input: z.input<typeof validations.bootstrapOrganizationInput>) =>
+    apiFetch<BootstrapResult>("/setup", { method: "POST", body: input }),
   get: (signal?: AbortSignal) => apiFetch<Organization>("/organization", { signal }),
   create: (input: z.input<typeof validations.createOrganizationInput>) =>
     apiFetch<Organization>("/organization", { method: "POST", body: input }),
@@ -27,7 +28,8 @@ export const organizationApi = {
     apiFetch<Organization>(`/organization/${id}`, { method: "PATCH", body: values }),
 
   branches: (signal?: AbortSignal) => apiFetch<Branch[]>("/branches", { signal }),
-  branch: (branchId: string, signal?: AbortSignal) => apiFetch<Branch>(`/branches/${branchId}`, { signal }),
+  branch: (branchId: string, signal?: AbortSignal) =>
+    apiFetch<Branch>(`/branches/${branchId}`, { signal }),
   createBranch: (input: z.input<typeof validations.createBranchInput>) =>
     apiFetch<Branch>("/branches", { method: "POST", body: input }),
   updateBranch: ({ branchId, ...values }: z.input<typeof validations.updateBranchInput>) =>
@@ -35,7 +37,10 @@ export const organizationApi = {
 
   workingDays: (branchId: string, signal?: AbortSignal) =>
     apiFetch<WorkingDay[]>(`/branches/${branchId}/working-days`, { signal }),
-  replaceWorkingDays: ({ branchId, ...values }: z.input<typeof validations.replaceWorkingDaysInput>) =>
+  replaceWorkingDays: ({
+    branchId,
+    ...values
+  }: z.input<typeof validations.replaceWorkingDaysInput>) =>
     apiFetch<WorkingDay[]>(`/branches/${branchId}/working-days`, { method: "PUT", body: values }),
 
   holidays: (branchId?: string | null, signal?: AbortSignal) =>

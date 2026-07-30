@@ -1,5 +1,8 @@
 import { deleteHoliday, updateHoliday } from "@UnifiedAttendance/api";
-import { holidayIdInput, updateHolidayInput } from "@UnifiedAttendance/api/validations/organization";
+import {
+  holidayIdInput,
+  updateHolidayInput,
+} from "@UnifiedAttendance/api/validations/organization";
 import { route } from "@/lib/route";
 
 export const PATCH = route({

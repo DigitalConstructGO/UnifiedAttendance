@@ -1,5 +1,8 @@
 import { listWorkingDays, replaceWorkingDays } from "@UnifiedAttendance/api";
-import { replaceWorkingDaysInput, workingDaysInput } from "@UnifiedAttendance/api/validations/organization";
+import {
+  replaceWorkingDaysInput,
+  workingDaysInput,
+} from "@UnifiedAttendance/api/validations/organization";
 import { route } from "@/lib/route";
 
 export const GET = route({

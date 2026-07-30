@@ -2,7 +2,10 @@ import { branchIdInput, updateBranchInput } from "@UnifiedAttendance/api/validat
 import { getBranch, updateBranch } from "@UnifiedAttendance/api";
 import { route } from "@/lib/route";
 
-export const GET = route({ input: branchIdInput, handler: ({ ctx, input }) => getBranch(ctx, input) });
+export const GET = route({
+  input: branchIdInput,
+  handler: ({ ctx, input }) => getBranch(ctx, input),
+});
 
 export const PATCH = route({
   input: updateBranchInput,

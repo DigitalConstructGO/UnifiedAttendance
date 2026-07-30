@@ -1,5 +1,8 @@
 import { createEmployee, listEmployees } from "@UnifiedAttendance/api";
-import { createEmployeeInput, listEmployeesInput } from "@UnifiedAttendance/api/validations/workforce";
+import {
+  createEmployeeInput,
+  listEmployeesInput,
+} from "@UnifiedAttendance/api/validations/workforce";
 import { route } from "@/lib/route";
 
 export const GET = route({

@@ -5,6 +5,7 @@ import { loadAccess } from "@/lib/access-server";
 
 export default async function OrganizationPage() {
   const { access } = await loadAccess();
-  if (!access.role || !["Admin", "Super Administrator"].includes(access.role)) redirect("/no-access");
+  if (!access.role || !["Admin", "Super Administrator"].includes(access.role))
+    redirect("/no-access");
   return <OrganizationWorkspace />;
 }

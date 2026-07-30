@@ -16,8 +16,8 @@ export function ModulePlaceholder({
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="text-muted-foreground text-sm">
-        You are viewing this as <span className="text-foreground font-medium">{role}</span>.
+      <CardContent className="text-sm text-muted-foreground">
+        You are viewing this as <span className="font-medium text-foreground">{role}</span>.
       </CardContent>
     </Card>
   );

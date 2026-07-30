@@ -1,6 +1,9 @@
 {
   "name": "UnifiedAttendance",
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.devcontainer.yml"],
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.devcontainer.yml"
+  ],
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/UnifiedAttendance",
   "runServices": ["devcontainer", "web", "db"],

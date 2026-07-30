@@ -24,7 +24,8 @@ export const workforceApi = {
     apiFetch<Department>("/departments", { method: "POST", body: input }),
   updateDepartment: ({ id, ...values }: z.input<typeof validations.updateDepartmentInput>) =>
     apiFetch<Department>(`/departments/${id}`, { method: "PATCH", body: values }),
-  deleteDepartment: (id: string) => apiFetch<Department>(`/departments/${id}`, { method: "DELETE" }),
+  deleteDepartment: (id: string) =>
+    apiFetch<Department>(`/departments/${id}`, { method: "DELETE" }),
 
   positions: (signal?: AbortSignal) => apiFetch<Position[]>("/positions", { signal }),
   createPosition: (input: z.input<typeof validations.createPositionInput>) =>
@@ -42,7 +43,8 @@ export const workforceApi = {
 
   employees: (branchId: string, signal?: AbortSignal) =>
     apiFetch<EmployeeRow[]>("/employees", { query: { branchId }, signal }),
-  employee: (id: string, signal?: AbortSignal) => apiFetch<EmployeeRow>(`/employees/${id}`, { signal }),
+  employee: (id: string, signal?: AbortSignal) =>
+    apiFetch<EmployeeRow>(`/employees/${id}`, { signal }),
   createEmployee: (input: z.input<typeof validations.createEmployeeInput>) =>
     apiFetch<EmployeeWrite>("/employees", { method: "POST", body: input }),
   updateEmployee: ({ id, ...values }: z.input<typeof validations.updateEmployeeInput>) =>

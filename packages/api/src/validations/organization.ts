@@ -9,15 +9,37 @@ export const createOrganizationInput = z.object({
   logoUrl: nullableUrl,
 });
 
-const identifier = z.string().trim().min(2).max(20).regex(/^[a-z0-9-]+$/i, "Use 2–20 letters, numbers, or hyphens").transform((value) => value.toUpperCase());
+const identifier = z
+  .string()
+  .trim()
+  .min(2)
+  .max(20)
+  .regex(/^[a-z0-9-]+$/i, "Use 2–20 letters, numbers, or hyphens")
+  .transform((value) => value.toUpperCase());
 
 export const bootstrapOrganizationInput = z.object({
   organization: z.object({ name: text, code: identifier }),
   branch: z.object({ name: text, code: identifier, address: text }),
-  days: z.array(z.object({ weekday: z.coerce.number().int().min(0).max(6), isWorkingDay: z.boolean(), openingTime: time.nullable(), closingTime: time.nullable() })).length(7).superRefine((days, context) => {
-    if (new Set(days.map((day) => day.weekday)).size !== 7) context.addIssue({ code: "custom", message: "Include one entry for each day of the week" });
-    for (const day of days) if (day.isWorkingDay && (!day.openingTime || !day.closingTime)) context.addIssue({ code: "custom", message: "Working days need opening and closing times" });
-  }),
+  days: z
+    .array(
+      z.object({
+        weekday: z.coerce.number().int().min(0).max(6),
+        isWorkingDay: z.boolean(),
+        openingTime: time.nullable(),
+        closingTime: time.nullable(),
+      }),
+    )
+    .length(7)
+    .superRefine((days, context) => {
+      if (new Set(days.map((day) => day.weekday)).size !== 7)
+        context.addIssue({ code: "custom", message: "Include one entry for each day of the week" });
+      for (const day of days)
+        if (day.isWorkingDay && (!day.openingTime || !day.closingTime))
+          context.addIssue({
+            code: "custom",
+            message: "Working days need opening and closing times",
+          });
+    }),
 });
 
 export const updateOrganizationInput = z.object({
@@ -53,12 +75,14 @@ export const workingDaysInput = z.object({ branchId: id });
 export const replaceWorkingDaysInput = z.object({
   branchId: id,
   days: z
-    .array(z.object({
-      weekday: z.coerce.number().int().min(0).max(6),
-      isWorkingDay: z.boolean(),
-      openingTime: time.nullable().optional(),
-      closingTime: time.nullable().optional(),
-    }))
+    .array(
+      z.object({
+        weekday: z.coerce.number().int().min(0).max(6),
+        isWorkingDay: z.boolean(),
+        openingTime: time.nullable().optional(),
+        closingTime: time.nullable().optional(),
+      }),
+    )
     .length(7),
 });
 

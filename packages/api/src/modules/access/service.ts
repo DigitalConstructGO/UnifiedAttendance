@@ -45,9 +45,10 @@ export async function updateRolePermissions(ctx: Context, input: UpdateRolePermi
     notFound("Role");
   }
 
-  const selectedPermissions = input.permissionCodes.length === 0
-    ? []
-    : await db.select().from(permissions).where(inArray(permissions.code, input.permissionCodes));
+  const selectedPermissions =
+    input.permissionCodes.length === 0
+      ? []
+      : await db.select().from(permissions).where(inArray(permissions.code, input.permissionCodes));
   if (selectedPermissions.length !== input.permissionCodes.length) {
     badRequest("One or more permission codes are not in the seeded catalog");
   }
@@ -56,7 +57,10 @@ export async function updateRolePermissions(ctx: Context, input: UpdateRolePermi
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, role.id));
     if (selectedPermissions.length > 0) {
       await tx.insert(rolePermissions).values(
-        selectedPermissions.map((permission) => ({ roleId: role.id, permissionId: permission.id })),
+        selectedPermissions.map((permission) => ({
+          roleId: role.id,
+          permissionId: permission.id,
+        })),
       );
     }
   });
@@ -66,7 +70,13 @@ export async function updateRolePermissions(ctx: Context, input: UpdateRolePermi
 export async function listAssignments(ctx: Context) {
   await requireSuperAdmin(ctx);
   return db
-    .select({ userId: userRoles.userId, roleId: userRoles.roleId, roleName: roles.name, assignedAt: userRoles.assignedAt, assignedBy: userRoles.assignedBy })
+    .select({
+      userId: userRoles.userId,
+      roleId: userRoles.roleId,
+      roleName: roles.name,
+      assignedAt: userRoles.assignedAt,
+      assignedBy: userRoles.assignedBy,
+    })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id));
 }

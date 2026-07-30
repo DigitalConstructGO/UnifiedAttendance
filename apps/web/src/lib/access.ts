@@ -1,4 +1,9 @@
-import { PERMISSIONS, isRole, type Permission, type Role } from "@UnifiedAttendance/api/rbac/permissions";
+import {
+  PERMISSIONS,
+  isRole,
+  type Permission,
+  type Role,
+} from "@UnifiedAttendance/api/rbac/permissions";
 
 /** What the signed-in user may do, resolved once per page load. */
 export type Access = {
@@ -16,9 +21,7 @@ const KNOWN_PERMISSIONS = new Set<string>(Object.values(PERMISSIONS));
  * sitting in there — anything the application no longer defines is dropped rather than
  * trusted as a live Role or Permission.
  */
-export function toAccess(
-  rows: readonly { roleName: string; permission: string | null }[],
-): Access {
+export function toAccess(rows: readonly { roleName: string; permission: string | null }[]): Access {
   const [first] = rows;
   if (!first || !isRole(first.roleName)) return { role: null, permissions: [] };
 
@@ -26,8 +29,9 @@ export function toAccess(
     role: first.roleName,
     permissions: rows
       .map((row) => row.permission)
-      .filter((permission): permission is Permission =>
-        permission !== null && KNOWN_PERMISSIONS.has(permission),
+      .filter(
+        (permission): permission is Permission =>
+          permission !== null && KNOWN_PERMISSIONS.has(permission),
       ),
   };
 }

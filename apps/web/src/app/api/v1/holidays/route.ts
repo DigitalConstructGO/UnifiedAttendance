@@ -1,5 +1,8 @@
 import { createHoliday, listHolidays } from "@UnifiedAttendance/api";
-import { createHolidayInput, listHolidaysInput } from "@UnifiedAttendance/api/validations/organization";
+import {
+  createHolidayInput,
+  listHolidaysInput,
+} from "@UnifiedAttendance/api/validations/organization";
 import { route } from "@/lib/route";
 
 export const GET = route({

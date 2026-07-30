@@ -47,7 +47,10 @@ export function LoginTimeSignal() {
         <span className="absolute -top-[3px] right-0 size-[7px] rounded-full bg-white/35" />
       </div>
       <div className="mt-4 flex items-baseline justify-between">
-        <p className="font-numeric text-2xl font-semibold tracking-[-0.025em] text-white" aria-live="off">
+        <p
+          className="font-numeric text-2xl font-semibold tracking-[-0.025em] text-white"
+          aria-live="off"
+        >
           {now ? formatTime(now) : "--:--:--"}
         </p>
         <p className="text-xs text-sidebar-foreground/50">Local time</p>

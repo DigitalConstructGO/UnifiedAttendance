@@ -1,7 +1,13 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
-import { cosigners, departments, employees, people, positions } from "@UnifiedAttendance/db/schema/index";
+import {
+  cosigners,
+  departments,
+  employees,
+  people,
+  positions,
+} from "@UnifiedAttendance/db/schema/index";
 
 import { notFound } from "../../errors";
 import { requirePermission } from "../shared/guards";
@@ -33,22 +39,38 @@ export async function listDepartments(ctx: Context) {
 
 export async function createDepartment(ctx: Context, input: CreateDepartmentInput) {
   await requirePermission(ctx, "workforce:manage", input.branchId ?? undefined);
-  const [department] = await db.insert(departments).values({ ...input, branchId: input.branchId ?? null }).returning();
+  const [department] = await db
+    .insert(departments)
+    .values({ ...input, branchId: input.branchId ?? null })
+    .returning();
   return department;
 }
 
 export async function updateDepartment(ctx: Context, input: UpdateDepartmentInput) {
-  const [existing] = await db.select().from(departments).where(eq(departments.id, input.id)).limit(1);
+  const [existing] = await db
+    .select()
+    .from(departments)
+    .where(eq(departments.id, input.id))
+    .limit(1);
   if (!existing) notFound("Department");
   await requirePermission(ctx, "workforce:manage", existing.branchId ?? undefined);
-  if (input.branchId && input.branchId !== existing.branchId) await requirePermission(ctx, "workforce:manage", input.branchId);
+  if (input.branchId && input.branchId !== existing.branchId)
+    await requirePermission(ctx, "workforce:manage", input.branchId);
   const { id: departmentId, ...values } = input;
-  const [department] = await db.update(departments).set(values).where(eq(departments.id, departmentId)).returning();
+  const [department] = await db
+    .update(departments)
+    .set(values)
+    .where(eq(departments.id, departmentId))
+    .returning();
   return department;
 }
 
 export async function deleteDepartment(ctx: Context, input: ResourceIdInput) {
-  const [department] = await db.select().from(departments).where(eq(departments.id, input.id)).limit(1);
+  const [department] = await db
+    .select()
+    .from(departments)
+    .where(eq(departments.id, input.id))
+    .limit(1);
   if (!department) notFound("Department");
   await requirePermission(ctx, "workforce:manage", department.branchId ?? undefined);
   const [deleted] = await db.delete(departments).where(eq(departments.id, input.id)).returning();
@@ -69,7 +91,11 @@ export async function createPosition(ctx: Context, input: CreatePositionInput) {
 export async function updatePosition(ctx: Context, input: UpdatePositionInput) {
   await requirePermission(ctx, "workforce:manage");
   const { id: positionId, ...values } = input;
-  const [position] = await db.update(positions).set(values).where(eq(positions.id, positionId)).returning();
+  const [position] = await db
+    .update(positions)
+    .set(values)
+    .where(eq(positions.id, positionId))
+    .returning();
   return position ?? null;
 }
 
@@ -93,7 +119,11 @@ export async function createCosigner(ctx: Context, input: CreateCosignerInput) {
 export async function updateCosigner(ctx: Context, input: UpdateCosignerInput) {
   await requirePermission(ctx, "workforce:manage");
   const { id: cosignerId, ...values } = input;
-  const [cosigner] = await db.update(cosigners).set(values).where(eq(cosigners.id, cosignerId)).returning();
+  const [cosigner] = await db
+    .update(cosigners)
+    .set(values)
+    .where(eq(cosigners.id, cosignerId))
+    .returning();
   return cosigner ?? null;
 }
 
@@ -130,9 +160,20 @@ export async function getEmployee(ctx: Context, input: ResourceIdInput) {
 export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
   await requirePermission(ctx, "workforce:manage", input.employee.branchId);
   return db.transaction(async (tx) => {
-    const [person] = await tx.insert(people).values({ ...input.person, cosignerId: input.person.cosignerId ?? null }).returning();
+    const [person] = await tx
+      .insert(people)
+      .values({ ...input.person, cosignerId: input.person.cosignerId ?? null })
+      .returning();
     if (!person) throw new Error("Person creation failed");
-    const [employee] = await tx.insert(employees).values({ ...input.employee, personId: person.id, departmentId: input.employee.departmentId ?? null, positionId: input.employee.positionId ?? null }).returning();
+    const [employee] = await tx
+      .insert(employees)
+      .values({
+        ...input.employee,
+        personId: person.id,
+        departmentId: input.employee.departmentId ?? null,
+        positionId: input.employee.positionId ?? null,
+      })
+      .returning();
     if (!employee) throw new Error("Employee creation failed");
     return { employee, person };
   });
@@ -141,15 +182,31 @@ export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
 export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
   const current = await employeeOrThrow(input.id);
   await requirePermission(ctx, "workforce:manage", current.branchId);
-  if (input.employee?.branchId && input.employee.branchId !== current.branchId) await requirePermission(ctx, "workforce:manage", input.employee.branchId);
+  if (input.employee?.branchId && input.employee.branchId !== current.branchId)
+    await requirePermission(ctx, "workforce:manage", input.employee.branchId);
   return db.transaction(async (tx) => {
-    const [person] = input.person && Object.keys(input.person).length > 0
-      ? await tx.update(people).set(input.person).where(eq(people.id, current.personId)).returning()
-      : [undefined];
+    const [person] =
+      input.person && Object.keys(input.person).length > 0
+        ? await tx
+            .update(people)
+            .set(input.person)
+            .where(eq(people.id, current.personId))
+            .returning()
+        : [undefined];
     const { branchId, departmentId, positionId, ...employeeValues } = input.employee ?? {};
-    const [employee] = input.employee && Object.keys(input.employee).length > 0
-      ? await tx.update(employees).set({ ...employeeValues, ...(branchId === undefined ? {} : { branchId }), ...(departmentId === undefined ? {} : { departmentId }), ...(positionId === undefined ? {} : { positionId }) }).where(eq(employees.id, input.id)).returning()
-      : [current];
+    const [employee] =
+      input.employee && Object.keys(input.employee).length > 0
+        ? await tx
+            .update(employees)
+            .set({
+              ...employeeValues,
+              ...(branchId === undefined ? {} : { branchId }),
+              ...(departmentId === undefined ? {} : { departmentId }),
+              ...(positionId === undefined ? {} : { positionId }),
+            })
+            .where(eq(employees.id, input.id))
+            .returning()
+        : [current];
     return { employee, person: person ?? null };
   });
 }

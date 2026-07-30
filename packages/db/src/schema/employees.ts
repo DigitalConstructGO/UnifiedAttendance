@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  date,
-  index,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { date, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { branches } from "./organization";
 
@@ -18,13 +10,8 @@ export const employmentType = pgEnum("employment_type", [
   "part_time",
   "intern",
 ]);
-export const employeeStatus = pgEnum("employee_status", [
-  "active",
-  "suspended",
-  "terminated",
-]);
+export const employeeStatus = pgEnum("employee_status", ["active", "suspended", "terminated"]);
 export const activeStatus = pgEnum("active_status", ["active", "inactive"]);
-
 
 export const cosigners = pgTable("cosigners", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -37,7 +24,6 @@ export const cosigners = pgTable("cosigners", {
   workplaceIdBackUrl: text("workplace_id_back_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
 
 export const people = pgTable("people", {
   id: uuid("id").primaryKey().defaultRandom(),

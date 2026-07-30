@@ -14,7 +14,10 @@ export const PERMISSIONS = {
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
-export function hasPermission(grantedPermissions: readonly string[], requiredPermission: Permission) {
+export function hasPermission(
+  grantedPermissions: readonly string[],
+  requiredPermission: Permission,
+) {
   return grantedPermissions.includes(requiredPermission);
 }
 

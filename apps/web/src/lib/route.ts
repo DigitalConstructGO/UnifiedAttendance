@@ -51,7 +51,11 @@ export function route<TResult, TSchema extends ZodType = NoInput>(
         const raw = { ...(await readInput(request)), ...(await readParams(segment)) };
         const parsed = config.input.safeParse(raw);
         if (!parsed.success) {
-          throw new ApiError("UNPROCESSABLE_CONTENT", "Invalid input", z.treeifyError(parsed.error));
+          throw new ApiError(
+            "UNPROCESSABLE_CONTENT",
+            "Invalid input",
+            z.treeifyError(parsed.error),
+          );
         }
         handlerArgs.input = parsed.data;
       }
@@ -111,8 +115,5 @@ export function errorResponse(error: unknown): Response {
     );
   }
   console.error("Unhandled API error", error);
-  return json(
-    { error: { code: "INTERNAL_SERVER_ERROR", message: "Something went wrong" } },
-    500,
-  );
+  return json({ error: { code: "INTERNAL_SERVER_ERROR", message: "Something went wrong" } }, 500);
 }

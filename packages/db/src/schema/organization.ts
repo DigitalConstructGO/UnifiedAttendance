@@ -17,7 +17,6 @@ import {
 export const organizationStatus = pgEnum("organization_status", ["active", "suspended"]);
 export const branchStatus = pgEnum("branch_status", ["active", "closed"]);
 
-
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),

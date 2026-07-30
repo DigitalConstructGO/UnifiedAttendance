@@ -1,12 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  index,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 
@@ -15,7 +8,6 @@ export const roles = pgTable("roles", {
   name: text("name").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
 
 export const permissions = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -36,7 +28,6 @@ export const rolePermissions = pgTable(
   (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
 );
 
-
 export const userRoles = pgTable(
   "user_roles",
   {
@@ -50,9 +41,7 @@ export const userRoles = pgTable(
     assignedAt: timestamp("assigned_at").defaultNow().notNull(),
     assignedBy: text("assigned_by").references(() => user.id, { onDelete: "set null" }),
   },
-  (table) => [
-    index("user_roles_role_idx").on(table.roleId),
-  ],
+  (table) => [index("user_roles_role_idx").on(table.roleId)],
 );
 
 export const rolesRelations = relations(roles, ({ many }) => ({

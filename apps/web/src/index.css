@@ -145,7 +145,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply font-sans bg-background text-foreground;
+    @apply bg-background font-sans text-foreground;
     font-size: 13px;
     font-weight: 500;
     line-height: 1.55;
@@ -335,17 +335,42 @@
 }
 
 @keyframes home-path-fill {
-  0%, 8% { transform: scaleX(0); opacity: 0; }
-  16% { opacity: 1; }
-  82% { transform: scaleX(1); opacity: 1; }
-  100% { transform: scaleX(1); opacity: 0; }
+  0%,
+  8% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  16% {
+    opacity: 1;
+  }
+  82% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
 }
 
 @keyframes home-event-travel {
-  0%, 8% { transform: translate(-50%, -50%) scale(0.72); filter: saturate(0.8); }
-  16% { transform: translate(-50%, -50%) scale(1); }
-  82% { transform: translate(calc(100cqw - 2.25rem), -50%) scale(1); filter: saturate(1); }
-  92%, 100% { transform: translate(calc(100cqw - 2.25rem), -50%) scale(0.72); opacity: 0; }
+  0%,
+  8% {
+    transform: translate(-50%, -50%) scale(0.72);
+    filter: saturate(0.8);
+  }
+  16% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  82% {
+    transform: translate(calc(100cqw - 2.25rem), -50%) scale(1);
+    filter: saturate(1);
+  }
+  92%,
+  100% {
+    transform: translate(calc(100cqw - 2.25rem), -50%) scale(0.72);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 639px) {
@@ -372,17 +397,40 @@
 }
 
 @keyframes home-path-fill-mobile {
-  0%, 8% { transform: scaleY(0); opacity: 0; }
-  16% { opacity: 1; }
-  82% { transform: scaleY(1); opacity: 1; }
-  100% { transform: scaleY(1); opacity: 0; }
+  0%,
+  8% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  16% {
+    opacity: 1;
+  }
+  82% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
 }
 
 @keyframes home-event-travel-mobile {
-  0%, 8% { transform: translate(-50%, -50%) scale(0.72); }
-  16% { transform: translate(-50%, -50%) scale(1); }
-  82% { transform: translate(-50%, calc(100cqh - 2.25rem)) scale(1); }
-  92%, 100% { transform: translate(-50%, calc(100cqh - 2.25rem)) scale(0.72); opacity: 0; }
+  0%,
+  8% {
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+  16% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  82% {
+    transform: translate(-50%, calc(100cqh - 2.25rem)) scale(1);
+  }
+  92%,
+  100% {
+    transform: translate(-50%, calc(100cqh - 2.25rem)) scale(0.72);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

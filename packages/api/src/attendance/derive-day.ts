@@ -60,10 +60,7 @@ async function branchDayWindow(options: {
   };
 }
 
-export async function deriveAttendanceDay(options: {
-  employeeId: string;
-  attendanceDate: string;
-}) {
+export async function deriveAttendanceDay(options: { employeeId: string; attendanceDate: string }) {
   const { employeeId, attendanceDate } = options;
 
   const weekday = new Date(`${attendanceDate}T00:00:00Z`).getUTCDay();
@@ -80,12 +77,7 @@ export async function deriveAttendanceDay(options: {
   const [workingDay] = await db
     .select()
     .from(branchWorkingDays)
-    .where(
-      and(
-        eq(branchWorkingDays.branchId, branchId),
-        eq(branchWorkingDays.weekday, weekday),
-      ),
-    )
+    .where(and(eq(branchWorkingDays.branchId, branchId), eq(branchWorkingDays.weekday, weekday)))
     .limit(1);
 
   const dayWindow = await branchDayWindow({

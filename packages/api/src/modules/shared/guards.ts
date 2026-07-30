@@ -1,7 +1,13 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
-import { employees, permissions, rolePermissions, roles, userRoles } from "@UnifiedAttendance/db/schema/index";
+import {
+  employees,
+  permissions,
+  rolePermissions,
+  roles,
+  userRoles,
+} from "@UnifiedAttendance/db/schema/index";
 
 import { ROLES, hasPermission, type Permission } from "../../rbac/permissions";
 import { forbidden, notFound, unauthorized } from "../../errors";
@@ -15,24 +21,21 @@ function userId(ctx: Context) {
   return ctx.session.user.id;
 }
 
-export async function requirePermission(
-  ctx: Context,
-  permission: Permission,
-  _branchId?: string,
-) {
+export async function requirePermission(ctx: Context, permission: Permission, _branchId?: string) {
   const grantedPermissions = await db
     .select({ code: permissions.code })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
     .innerJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(
-      and(
-        eq(userRoles.userId, userId(ctx)),
-      ),
-    );
+    .where(and(eq(userRoles.userId, userId(ctx))));
 
-  if (!hasPermission(grantedPermissions.map((grantedPermission) => grantedPermission.code), permission)) {
+  if (
+    !hasPermission(
+      grantedPermissions.map((grantedPermission) => grantedPermission.code),
+      permission,
+    )
+  ) {
     forbidden(`Missing permission: ${permission}`);
   }
 }
@@ -42,12 +45,7 @@ export async function requireSuperAdmin(ctx: Context) {
     .select({ userId: userRoles.userId })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
-    .where(
-      and(
-        eq(userRoles.userId, userId(ctx)),
-        eq(roles.name, ROLES.superAdministrator),
-      ),
-    )
+    .where(and(eq(userRoles.userId, userId(ctx)), eq(roles.name, ROLES.superAdministrator)))
     .limit(1);
 
   if (assignment.length === 0) {
@@ -56,7 +54,17 @@ export async function requireSuperAdmin(ctx: Context) {
 }
 
 export async function requireAdministrator(ctx: Context) {
-  const assignments = await db.select({ roleName: roles.name }).from(userRoles).innerJoin(roles, eq(userRoles.roleId, roles.id)).where(and(eq(userRoles.userId, userId(ctx)), inArray(roles.name, [ROLES.superAdministrator, ROLES.admin]))).limit(1);
+  const assignments = await db
+    .select({ roleName: roles.name })
+    .from(userRoles)
+    .innerJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(
+      and(
+        eq(userRoles.userId, userId(ctx)),
+        inArray(roles.name, [ROLES.superAdministrator, ROLES.admin]),
+      ),
+    )
+    .limit(1);
   if (assignments.length === 0) forbidden("Administrator access required");
 }
 

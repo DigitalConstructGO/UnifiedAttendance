@@ -2,7 +2,15 @@ import { z } from "zod";
 
 import { date, id, text } from "./shared";
 
-const correctionType = z.enum(["add_check_in", "add_check_out", "adjust_check_in", "adjust_check_out", "mark_absent", "mark_present", "excuse_lateness"]);
+const correctionType = z.enum([
+  "add_check_in",
+  "add_check_out",
+  "adjust_check_in",
+  "adjust_check_out",
+  "mark_absent",
+  "mark_present",
+  "excuse_lateness",
+]);
 
 const timedTypes = ["add_check_in", "add_check_out", "adjust_check_in", "adjust_check_out"];
 
@@ -22,7 +30,11 @@ export const listCorrectionsInput = z.object({
 
 export const createCorrectionInput = correctionValues.superRefine((input, issue) => {
   if (timedTypes.includes(input.type) && !input.proposedTime) {
-    issue.addIssue({ code: "custom", path: ["proposedTime"], message: "A proposed time is required for this correction type" });
+    issue.addIssue({
+      code: "custom",
+      path: ["proposedTime"],
+      message: "A proposed time is required for this correction type",
+    });
   }
 });
 

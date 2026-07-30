@@ -11,7 +11,12 @@ export {
 } from "./errors";
 
 export { deriveAttendanceDay } from "./attendance/derive-day";
-export { requireAdministrator, requirePermission, requireSessionUser, requireSuperAdmin } from "./modules/shared/guards";
+export {
+  requireAdministrator,
+  requirePermission,
+  requireSessionUser,
+  requireSuperAdmin,
+} from "./modules/shared/guards";
 
 export * from "./modules/access/service";
 export * from "./modules/attendance/service";

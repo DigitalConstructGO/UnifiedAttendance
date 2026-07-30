@@ -1,5 +1,8 @@
 import { deleteDepartment, updateDepartment } from "@UnifiedAttendance/api";
-import { resourceIdInput, updateDepartmentInput } from "@UnifiedAttendance/api/validations/workforce";
+import {
+  resourceIdInput,
+  updateDepartmentInput,
+} from "@UnifiedAttendance/api/validations/workforce";
 import { route } from "@/lib/route";
 
 export const PATCH = route({

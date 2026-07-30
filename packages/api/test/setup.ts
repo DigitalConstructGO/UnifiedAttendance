@@ -9,7 +9,6 @@ import {
   type StartedDockerComposeEnvironment,
 } from "testcontainers";
 
-
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const COMPOSE_FILE = "docker-compose.test.yml";
 const MIGRATIONS_FOLDER = fileURLToPath(new URL("../../db/src/migrations", import.meta.url));

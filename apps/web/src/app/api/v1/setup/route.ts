@@ -3,4 +3,8 @@ import { bootstrapOrganizationInput } from "@UnifiedAttendance/api/validations/o
 
 import { route } from "@/lib/route";
 
-export const POST = route({ input: bootstrapOrganizationInput, status: 201, handler: ({ ctx, input }) => bootstrapOrganization(ctx, input) });
+export const POST = route({
+  input: bootstrapOrganizationInput,
+  status: 201,
+  handler: ({ ctx, input }) => bootstrapOrganization(ctx, input),
+});

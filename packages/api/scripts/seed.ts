@@ -15,7 +15,10 @@ export async function seedRbac() {
     }
 
     const roleId = new Map(
-      (await tx.select({ id: roles.id, name: roles.name }).from(roles)).map((role) => [role.name, role.id]),
+      (await tx.select({ id: roles.id, name: roles.name }).from(roles)).map((role) => [
+        role.name,
+        role.id,
+      ]),
     );
     const permissionId = new Map(
       (await tx.select({ id: permissions.id, code: permissions.code }).from(permissions)).map(

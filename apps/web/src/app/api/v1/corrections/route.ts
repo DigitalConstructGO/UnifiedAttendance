@@ -1,5 +1,8 @@
 import { createCorrection, listCorrections } from "@UnifiedAttendance/api";
-import { createCorrectionInput, listCorrectionsInput } from "@UnifiedAttendance/api/validations/corrections";
+import {
+  createCorrectionInput,
+  listCorrectionsInput,
+} from "@UnifiedAttendance/api/validations/corrections";
 import { route } from "@/lib/route";
 
 export const GET = route({

@@ -42,7 +42,6 @@ export const attendanceDevices = pgTable(
   (table) => [index("attendance_devices_branch_idx").on(table.branchId)],
 );
 
-
 export const employeeDeviceIdentities = pgTable(
   "employee_device_identities",
   {
@@ -73,7 +72,6 @@ export const attendanceEventDirection = pgEnum("attendance_event_direction", [
   "unknown",
 ]);
 
-
 export const attendanceEvents = pgTable(
   "attendance_events",
   {
@@ -97,7 +95,9 @@ export const attendanceEvents = pgTable(
       table.occurredAt,
     ),
     index("attendance_events_employee_time_idx").on(table.employeeId, table.occurredAt),
-    index("attendance_events_unmatched_idx").on(table.occurredAt).where(sql`${table.employeeId} is null`),
+    index("attendance_events_unmatched_idx")
+      .on(table.occurredAt)
+      .where(sql`${table.employeeId} is null`),
   ],
 );
 
@@ -139,7 +139,6 @@ export const attendanceOutcome = pgEnum("attendance_outcome", [
   "absent",
   "unknown",
 ]);
-
 
 export const attendanceDays = pgTable(
   "attendance_days",
@@ -196,7 +195,6 @@ export const attendanceCorrectionStatus = pgEnum("attendance_correction_status",
   "rejected",
 ]);
 
-
 export const attendanceCorrections = pgTable(
   "attendance_corrections",
   {
@@ -222,7 +220,9 @@ export const attendanceCorrections = pgTable(
   },
   (table) => [
     index("attendance_corrections_employee_date_idx").on(table.employeeId, table.attendanceDate),
-    index("attendance_corrections_status_idx").on(table.status).where(sql`${table.status} = 'pending'`),
+    index("attendance_corrections_status_idx")
+      .on(table.status)
+      .where(sql`${table.status} = 'pending'`),
     check(
       "attendance_corrections_reviewed_when_decided",
       sql`(${table.status} = 'pending' and ${table.reviewedBy} is null and ${table.reviewedAt} is null)

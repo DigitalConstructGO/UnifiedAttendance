@@ -25,7 +25,7 @@ describe("organization bootstrap input", () => {
     const result = bootstrapOrganizationInput.safeParse({
       organization: { name: "Acme", code: "ACME" },
       branch: { name: "Main", code: "HQ", address: "Addis Ababa" },
-      days: validDays.map((day, index) => index === 0 ? { ...day, closingTime: null } : day),
+      days: validDays.map((day, index) => (index === 0 ? { ...day, closingTime: null } : day)),
     });
 
     expect(result.success).toBe(false);

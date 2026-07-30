@@ -29,8 +29,7 @@ export async function seedSuperAdmin({
 
   const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email));
   const userId =
-    existing?.id ??
-    (await auth.api.signUpEmail({ body: { email, password, name } })).user.id;
+    existing?.id ?? (await auth.api.signUpEmail({ body: { email, password, name } })).user.id;
 
   // Nothing sends verification mail yet, so trust the operator running this script.
   await db.update(user).set({ emailVerified: true }).where(eq(user.id, userId));

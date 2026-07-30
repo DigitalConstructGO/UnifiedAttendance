@@ -1,5 +1,8 @@
 import { assignIdentity, listIdentities } from "@UnifiedAttendance/api";
-import { assignIdentityInput, listIdentitiesInput } from "@UnifiedAttendance/api/validations/devices";
+import {
+  assignIdentityInput,
+  listIdentitiesInput,
+} from "@UnifiedAttendance/api/validations/devices";
 import { route } from "@/lib/route";
 
 export const GET = route({
