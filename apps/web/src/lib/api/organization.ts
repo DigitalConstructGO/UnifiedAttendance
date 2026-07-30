@@ -1,14 +1,14 @@
 import type { z } from "zod";
-import type * as service from "@UnifiedAttendance/api/modules/organization/service";
+import type * as contracts from "@UnifiedAttendance/api/contracts/organization";
 import type * as validations from "@UnifiedAttendance/api/validations/organization";
 
 import { apiFetch, type JsonOf } from "./client";
 
-export type Organization = JsonOf<Awaited<ReturnType<typeof service.getOrganization>>>;
-export type Branch = JsonOf<Awaited<ReturnType<typeof service.listBranches>>>[number];
-export type WorkingDay = JsonOf<Awaited<ReturnType<typeof service.listWorkingDays>>>[number];
-export type Holiday = JsonOf<Awaited<ReturnType<typeof service.listHolidays>>>[number];
-export type BootstrapResult = JsonOf<Awaited<ReturnType<typeof service.bootstrapOrganization>>>;
+export type Organization = JsonOf<contracts.Organization> | null;
+export type Branch = JsonOf<contracts.Branch>;
+export type WorkingDay = JsonOf<contracts.WorkingDay>;
+export type Holiday = JsonOf<contracts.Holiday>;
+export type BootstrapResult = JsonOf<contracts.BootstrapResult>;
 
 export const organizationKeys = {
   organization: ["organization"] as const,
