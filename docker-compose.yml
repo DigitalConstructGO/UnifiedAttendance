@@ -4,18 +4,18 @@
 name: UnifiedAttendance
 
 services:
-  # web:
-  #   build:
-  #     context: ./apps/web
-  #     dockerfile: Dockerfile
-  #   container_name: UnifiedAttendance-web
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - NODE_ENV=production
-  #   restart: unless-stopped
-  #   networks:
-  #     - UnifiedAttendance-network
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: UnifiedAttendance-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - UnifiedAttendance-network
 
   db:
     image: postgres:16-alpine
