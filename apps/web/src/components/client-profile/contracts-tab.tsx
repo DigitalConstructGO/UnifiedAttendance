@@ -1,0 +1,85 @@
+import { FileSignature } from "lucide-react";
+
+import type { CommercialContractRow } from "@/lib/api";
+import { CONTRACT_STATUS_META, RENEWAL_MODE_LABELS } from "@/lib/client-presentation";
+import { ethiopianDate } from "@/lib/ethiopian-date";
+
+import { EmptyState, TabPanel } from "./tab-shell";
+
+export function ContractsTab({
+  contracts,
+  timeZone,
+}: {
+  contracts: CommercialContractRow[];
+  timeZone: string;
+}) {
+  if (contracts.length === 0) {
+    return (
+      <TabPanel>
+        <EmptyState
+          icon={<FileSignature className="size-5" aria-hidden="true" />}
+          title="No commercial contracts"
+          hint="Agreements signed with this client appear here with their term, renewal, and status."
+        />
+      </TabPanel>
+    );
+  }
+
+  return (
+    <TabPanel className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left text-xs" style={{ minWidth: "720px" }}>
+          <caption className="sr-only">Commercial contracts for this client</caption>
+          <thead className="bg-[var(--surface-subtle)] text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+            <tr>
+              <th scope="col" className="px-5 py-3.5">
+                Contract
+              </th>
+              <th scope="col" className="px-4 py-3.5">
+                Term
+              </th>
+              <th scope="col" className="px-4 py-3.5">
+                Renewal
+              </th>
+              <th scope="col" className="px-4 py-3.5">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {contracts.map(({ commercialContract: contract }) => {
+              const status = CONTRACT_STATUS_META[contract.status];
+              return (
+                <tr key={contract.id} className="border-t border-border">
+                  <td className="px-5 py-4">
+                    <p className="text-strong font-bold">{contract.contractCode}</p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      {contract.serviceName}
+                      {contract.billingCadence ? ` · ${contract.billingCadence}` : ""}
+                    </p>
+                  </td>
+                  <td className="px-4 py-4 text-muted-foreground">
+                    {ethiopianDate(contract.startsOn, timeZone)}
+                    <span aria-hidden="true"> → </span>
+                    <span className="sr-only">to </span>
+                    {ethiopianDate(contract.endsOn, timeZone)}
+                  </td>
+                  <td className="text-strong px-4 py-4 font-semibold">
+                    {RENEWAL_MODE_LABELS[contract.renewalMode]}
+                  </td>
+                  <td className="px-4 py-4">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${status.className}`}
+                    >
+                      {status.label}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </TabPanel>
+  );
+}

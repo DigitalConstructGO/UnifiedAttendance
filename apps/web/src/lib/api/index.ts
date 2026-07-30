@@ -1,6 +1,7 @@
 import { apiFetch } from "./client";
 import { accessApi, accessKeys } from "./access";
 import { attendanceApi, attendanceKeys } from "./attendance";
+import { clientKeys, clientsApi } from "./clients";
 import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
 import { organizationApi, organizationKeys } from "./organization";
@@ -9,6 +10,7 @@ import { workforceApi, workforceKeys } from "./workforce";
 export * from "./client";
 export * from "./access";
 export * from "./attendance";
+export * from "./clients";
 export * from "./corrections";
 export * from "./devices";
 export * from "./organization";
@@ -23,6 +25,7 @@ export const api = {
   workforce: workforceApi,
   devices: devicesApi,
   attendance: attendanceApi,
+  clients: clientsApi,
   corrections: correctionsApi,
 };
 
@@ -33,5 +36,6 @@ export const queryKeys = {
   workforce: workforceKeys,
   devices: devicesKeys,
   attendance: attendanceKeys,
+  clients: clientKeys,
   corrections: correctionsKeys,
 };

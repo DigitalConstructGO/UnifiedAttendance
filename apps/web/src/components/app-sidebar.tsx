@@ -1,12 +1,16 @@
 "use client";
 
 import {
+  Building,
   Building2,
   CalendarCheck2,
+  FileSignature,
   Gauge,
   Laptop2,
   LogOut,
+  ReceiptText,
   ShieldCheck,
+  UserRoundPlus,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -37,6 +41,10 @@ const moduleIcons = {
   Devices: Laptop2,
   Attendance: CalendarCheck2,
   Corrections: ShieldCheck,
+  Clients: Building,
+  "Leads & pipeline": UserRoundPlus,
+  Contracts: FileSignature,
+  Invoices: ReceiptText,
 };
 
 export function AppSidebar({ brand }: { brand: Brand }) {

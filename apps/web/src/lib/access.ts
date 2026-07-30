@@ -50,6 +50,10 @@ export const DASHBOARD_NAV = [
   { href: "/dashboard/devices", label: "Devices", permission: "devices:read" },
   { href: "/dashboard/attendance", label: "Attendance", permission: "attendance:read" },
   { href: "/dashboard/corrections", label: "Corrections", permission: "corrections:read" },
+  { href: "/dashboard/clients", label: "Clients", permission: "clients:read" },
+  { href: "/dashboard/clients/pipeline", label: "Leads & pipeline", permission: "clients:read" },
+  { href: "/dashboard/clients/contracts", label: "Contracts", permission: "clients:read" },
+  { href: "/dashboard/clients/invoices", label: "Invoices", permission: "clients:read" },
 ] as const satisfies readonly { href: string; label: string; permission: Permission }[];
 
 export type NavItem = (typeof DASHBOARD_NAV)[number];
