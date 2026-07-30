@@ -53,6 +53,7 @@ export const workforceApi = {
     apiFetch<EmployeeWrite>("/employees", { method: "POST", body: input }),
   updateEmployee: ({ id, ...values }: z.input<typeof validations.updateEmployeeInput>) =>
     apiFetch<EmployeeWrite>(`/employees/${id}`, { method: "PATCH", body: values }),
+  deleteEmployee: (id: string) => apiFetch<EmployeeRow>(`/employees/${id}`, { method: "DELETE" }),
   employmentPeriods: (employeeId: string, signal?: AbortSignal) =>
     apiFetch<EmploymentPeriod[]>(`/employees/${employeeId}/employment`, { signal }),
   transitionEmployment: (input: z.input<typeof validations.transitionEmploymentInput>) =>

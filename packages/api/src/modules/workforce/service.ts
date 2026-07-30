@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "@UnifiedAttendance/db";
 import {
+  attendanceCorrections,
+  attendanceEvents,
   cosigners,
   departments,
   employmentPeriods,
@@ -12,7 +14,7 @@ import {
   workforceDocuments,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { badRequest, notFound } from "../../errors";
+import { badRequest, conflict, notFound } from "../../errors";
 import { requirePermission } from "../shared/guards";
 
 import type {
@@ -271,6 +273,32 @@ export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
             .returning()
         : [current];
     return { employee, person: person ?? null };
+  });
+}
+
+/** Removes an employee identity only when it has no immutable attendance history. */
+export async function deleteEmployee(ctx: Context, input: ResourceIdInput) {
+  const employee = await employeeOrThrow(input.id);
+  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  const [event] = await db
+    .select({ id: attendanceEvents.id })
+    .from(attendanceEvents)
+    .where(eq(attendanceEvents.employeeId, input.id))
+    .limit(1);
+  const [correction] = await db
+    .select({ id: attendanceCorrections.id })
+    .from(attendanceCorrections)
+    .where(eq(attendanceCorrections.employeeId, input.id))
+    .limit(1);
+  if (event || correction) {
+    conflict(
+      "Employees with attendance history cannot be deleted; terminate their employment instead",
+    );
+  }
+  return db.transaction(async (tx) => {
+    const [deleted] = await tx.delete(employees).where(eq(employees.id, input.id)).returning();
+    await tx.delete(people).where(eq(people.id, employee.personId));
+    return deleted;
   });
 }
 

@@ -53,7 +53,7 @@ This file provides context about the project for AI assistants.
 - Caching: redis
 - Logging: pino
 - Observability: grafana
-- Workforce: effective-dated employment periods and private workforce documents
+- Workforce: effective-dated employment periods, dedicated department management, cosigners, and private workforce documents
 - Attendance: on-demand daily register and auditable manual attendance entries
 
 ## Project Structure

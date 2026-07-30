@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAccess } from "@/components/access-provider";
+import { CosignerManager } from "@/components/workforce-catalogs";
 
 function messageFor(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -117,6 +118,55 @@ export function WorkforceWorkspace() {
       });
       setPeriods(await workforceApi.employmentPeriods(selected.employee.id));
       setNotice("Employment transition saved.");
+      await loadDirectory();
+    } catch (cause) {
+      setError(messageFor(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateEmployee(form: HTMLFormElement) {
+    if (!selected) return;
+    const data = new FormData(form);
+    setBusy(true);
+    setError(null);
+    try {
+      await workforceApi.updateEmployee({
+        id: selected.employee.id,
+        person: {
+          firstName: String(data.get("firstName")),
+          lastName: String(data.get("lastName")),
+          phone: String(data.get("phone")) || null,
+          email: String(data.get("email")) || null,
+        },
+        employee: {
+          employeeCode: String(data.get("employeeCode")),
+          hireDate: String(data.get("hireDate")),
+        },
+      });
+      setNotice("Employee details updated.");
+      await loadDirectory();
+    } catch (cause) {
+      setError(messageFor(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteEmployee() {
+    if (
+      !selected ||
+      !window.confirm(`Delete ${selected.person.firstName} ${selected.person.lastName}?`)
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    try {
+      await workforceApi.deleteEmployee(selected.employee.id);
+      setSelected(null);
+      setPeriods([]);
+      setNotice("Employee deleted.");
       await loadDirectory();
     } catch (cause) {
       setError(messageFor(cause));
@@ -294,68 +344,122 @@ export function WorkforceWorkspace() {
                   ))}
                 </ol>
                 {manageable ? (
-                  <form
-                    className="grid gap-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void transitionEmployee(event.currentTarget);
-                    }}
-                  >
-                    <Input required type="date" name="effectiveFrom" />
-                    <select
-                      name="branchId"
-                      defaultValue={selected.employee.branchId}
-                      className="h-8 rounded-none border bg-background px-2 text-sm"
+                  <>
+                    <form
+                      className="grid gap-2 border-t pt-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void updateEmployee(event.currentTarget);
+                      }}
                     >
-                      {branches.map((branch) => (
-                        <option key={branch.id} value={branch.id}>
-                          {branch.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      name="departmentId"
-                      className="h-8 rounded-none border bg-background px-2 text-sm"
+                      <p className="text-sm font-medium">Employee details</p>
+                      <Input
+                        required
+                        name="firstName"
+                        defaultValue={selected.person.firstName}
+                        placeholder="First name"
+                      />
+                      <Input
+                        required
+                        name="lastName"
+                        defaultValue={selected.person.lastName}
+                        placeholder="Last name"
+                      />
+                      <Input
+                        name="phone"
+                        defaultValue={selected.person.phone ?? ""}
+                        placeholder="Phone"
+                      />
+                      <Input
+                        type="email"
+                        name="email"
+                        defaultValue={selected.person.email ?? ""}
+                        placeholder="Email"
+                      />
+                      <Input
+                        required
+                        name="employeeCode"
+                        defaultValue={selected.employee.employeeCode}
+                        placeholder="Employee code"
+                      />
+                      <Input
+                        required
+                        type="date"
+                        name="hireDate"
+                        defaultValue={selected.employee.hireDate}
+                      />
+                      <Button disabled={busy}>Save details</Button>
+                    </form>
+                    <form
+                      className="grid gap-2 border-t pt-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void transitionEmployee(event.currentTarget);
+                      }}
                     >
-                      <option value="">No department</option>
-                      {departments.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      name="positionId"
-                      className="h-8 rounded-none border bg-background px-2 text-sm"
+                      <Input required type="date" name="effectiveFrom" />
+                      <select
+                        name="branchId"
+                        defaultValue={selected.employee.branchId}
+                        className="h-8 rounded-none border bg-background px-2 text-sm"
+                      >
+                        {branches.map((branch) => (
+                          <option key={branch.id} value={branch.id}>
+                            {branch.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        name="departmentId"
+                        className="h-8 rounded-none border bg-background px-2 text-sm"
+                      >
+                        <option value="">No department</option>
+                        {departments.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        name="positionId"
+                        className="h-8 rounded-none border bg-background px-2 text-sm"
+                      >
+                        <option value="">No position</option>
+                        {positions.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.title}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        name="employmentType"
+                        defaultValue={selected.employee.employmentType}
+                        className="h-8 rounded-none border bg-background px-2 text-sm"
+                      >
+                        <option value="permanent">Permanent</option>
+                        <option value="contract">Contract</option>
+                        <option value="part_time">Part time</option>
+                        <option value="intern">Intern</option>
+                      </select>
+                      <select
+                        name="status"
+                        defaultValue="active"
+                        className="h-8 rounded-none border bg-background px-2 text-sm"
+                      >
+                        <option value="active">Active / transfer</option>
+                        <option value="suspended">Suspend</option>
+                        <option value="terminated">Terminate</option>
+                      </select>
+                      <Button disabled={busy}>Save dated transition</Button>
+                    </form>
+                    <Button
+                      variant="destructive"
+                      disabled={busy}
+                      onClick={() => void deleteEmployee()}
                     >
-                      <option value="">No position</option>
-                      {positions.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.title}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      name="employmentType"
-                      defaultValue={selected.employee.employmentType}
-                      className="h-8 rounded-none border bg-background px-2 text-sm"
-                    >
-                      <option value="permanent">Permanent</option>
-                      <option value="contract">Contract</option>
-                      <option value="part_time">Part time</option>
-                      <option value="intern">Intern</option>
-                    </select>
-                    <select
-                      name="status"
-                      defaultValue="active"
-                      className="h-8 rounded-none border bg-background px-2 text-sm"
-                    >
-                      <option value="active">Active / transfer</option>
-                      <option value="suspended">Suspend</option>
-                      <option value="terminated">Terminate</option>
-                    </select>
-                    <Button disabled={busy}>Save dated transition</Button>
-                  </form>
+                      Delete employee
+                    </Button>
+                  </>
                 ) : null}
               </>
             ) : (
@@ -366,6 +470,7 @@ export function WorkforceWorkspace() {
           </CardContent>
         </Card>
       </div>
+      {manageable ? <CosignerManager /> : null}
     </div>
   );
 }

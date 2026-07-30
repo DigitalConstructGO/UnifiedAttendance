@@ -47,6 +47,7 @@ export function can(access: Access, permission: Permission) {
 export const DASHBOARD_NAV = [
   { href: "/dashboard/organization", label: "Organization", permission: "organization:read" },
   { href: "/dashboard/workforce", label: "Workforce", permission: "workforce:read" },
+  { href: "/dashboard/departments", label: "Departments", permission: "workforce:read" },
   { href: "/dashboard/devices", label: "Devices", permission: "devices:read" },
   { href: "/dashboard/attendance", label: "Attendance", permission: "attendance:read" },
   { href: "/dashboard/corrections", label: "Corrections", permission: "corrections:read" },
