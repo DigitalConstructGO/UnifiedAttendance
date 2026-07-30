@@ -47,3 +47,7 @@ export function notFound(resource: string): never {
 export function conflict(message: string): never {
   throw new ApiError("CONFLICT", message);
 }
+
+export function unprocessableContent(message: string, details?: unknown): never {
+  throw new ApiError("UNPROCESSABLE_CONTENT", message, details);
+}

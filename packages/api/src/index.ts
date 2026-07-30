@@ -6,6 +6,7 @@ export {
   conflict,
   forbidden,
   notFound,
+  unprocessableContent,
   unauthorized,
   type ErrorCode,
 } from "./errors";
