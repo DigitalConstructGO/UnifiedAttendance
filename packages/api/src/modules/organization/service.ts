@@ -1,7 +1,12 @@
 import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
-import { branchWorkingDays, branches, holidays, organizations } from "@UnifiedAttendance/db/schema/index";
+import {
+  branchWorkingDays,
+  branches,
+  holidays,
+  organizations,
+} from "@UnifiedAttendance/db/schema/index";
 
 import { conflict, notFound } from "../../errors";
 import { requireAdministrator, requirePermission, requireSuperAdmin } from "../shared/guards";
@@ -28,6 +33,36 @@ export async function getOrganization(ctx: Context) {
   return organization ?? null;
 }
 
+/**
+ * How far first-run setup has got. Deliberately takes no Context and checks no
+ * permission: it gates the dashboard *before* authorization is meaningful, and a
+ * Manager holds no `organization:read`, so a guarded read here would deny exactly
+ * the users who need to be told the workspace is not configured yet.
+ */
+export async function getSetupStatus() {
+  const [organization] = await db.select({ id: organizations.id }).from(organizations).limit(1);
+  const [branch] = await db
+    .select({ id: branches.id })
+    .from(branches)
+    .orderBy(branches.createdAt)
+    .limit(1);
+
+  const days = branch
+    ? await db
+        .select({ weekday: branchWorkingDays.weekday })
+        .from(branchWorkingDays)
+        .where(eq(branchWorkingDays.branchId, branch.id))
+    : [];
+  const scheduleComplete = new Set(days.map((day) => day.weekday)).size === 7;
+
+  return {
+    complete: Boolean(organization && branch && scheduleComplete),
+    organizationExists: Boolean(organization),
+    branchExists: Boolean(branch),
+    scheduleComplete,
+  };
+}
+
 export async function createOrganization(ctx: Context, input: CreateOrganizationInput) {
   await requireSuperAdmin(ctx);
   const existing = await db.select({ id: organizations.id }).from(organizations).limit(1);
@@ -42,10 +77,30 @@ export async function bootstrapOrganization(ctx: Context, input: BootstrapOrgani
     await tx.execute(sql`select pg_advisory_xact_lock(847291)`);
     const [existing] = await tx.select({ id: organizations.id }).from(organizations).limit(1);
     if (existing) conflict("An organization already exists");
-    const [organization] = await tx.insert(organizations).values({ name: input.organization.name, code: input.organization.code, timezone: "Africa/Addis_Ababa", logoUrl: null }).returning();
-    const [branch] = await tx.insert(branches).values({ name: input.branch.name, code: input.branch.code, address: input.branch.address, timezone: "Africa/Addis_Ababa" }).returning();
-    if (!organization || !branch) throw new Error("Bootstrap could not create the organization and branch");
-    const days = await tx.insert(branchWorkingDays).values(input.days.map((day) => ({ ...day, branchId: branch.id }))).returning();
+    const [organization] = await tx
+      .insert(organizations)
+      .values({
+        name: input.organization.name,
+        code: input.organization.code,
+        timezone: "Africa/Addis_Ababa",
+        logoUrl: null,
+      })
+      .returning();
+    const [branch] = await tx
+      .insert(branches)
+      .values({
+        name: input.branch.name,
+        code: input.branch.code,
+        address: input.branch.address,
+        timezone: "Africa/Addis_Ababa",
+      })
+      .returning();
+    if (!organization || !branch)
+      throw new Error("Bootstrap could not create the organization and branch");
+    const days = await tx
+      .insert(branchWorkingDays)
+      .values(input.days.map((day) => ({ ...day, branchId: branch.id })))
+      .returning();
     return { organization, branch, days };
   });
 }
@@ -53,7 +108,11 @@ export async function bootstrapOrganization(ctx: Context, input: BootstrapOrgani
 export async function updateOrganization(ctx: Context, input: UpdateOrganizationInput) {
   await requirePermission(ctx, "organization:manage");
   const { id: organizationId, ...values } = input;
-  const [organization] = await db.update(organizations).set(values).where(eq(organizations.id, organizationId)).returning();
+  const [organization] = await db
+    .update(organizations)
+    .set(values)
+    .where(eq(organizations.id, organizationId))
+    .returning();
   return organization ?? null;
 }
 
@@ -76,40 +135,59 @@ export async function createBranch(ctx: Context, input: CreateBranchInput) {
 }
 
 export async function updateBranch(ctx: Context, input: UpdateBranchInput) {
-  const [existing] = await db.select({ id: branches.id }).from(branches).where(eq(branches.id, input.branchId)).limit(1);
+  const [existing] = await db
+    .select({ id: branches.id })
+    .from(branches)
+    .where(eq(branches.id, input.branchId))
+    .limit(1);
   if (!existing) notFound("Branch");
   await requirePermission(ctx, "organization:manage", existing.id);
   const { branchId, ...values } = input;
-  const [branch] = await db.update(branches).set(values).where(eq(branches.id, branchId)).returning();
+  const [branch] = await db
+    .update(branches)
+    .set(values)
+    .where(eq(branches.id, branchId))
+    .returning();
   return branch;
 }
 
 export async function listWorkingDays(ctx: Context, input: WorkingDaysInput) {
   await requirePermission(ctx, "organization:read", input.branchId);
-  return db.select().from(branchWorkingDays).where(eq(branchWorkingDays.branchId, input.branchId)).orderBy(branchWorkingDays.weekday);
+  return db
+    .select()
+    .from(branchWorkingDays)
+    .where(eq(branchWorkingDays.branchId, input.branchId))
+    .orderBy(branchWorkingDays.weekday);
 }
 
-export async function replaceWorkingDays(
-  ctx: Context,
-  input: ReplaceWorkingDaysInput,
-) {
+export async function replaceWorkingDays(ctx: Context, input: ReplaceWorkingDaysInput) {
   await requirePermission(ctx, "organization:manage", input.branchId);
   return db.transaction(async (tx) => {
     await tx.delete(branchWorkingDays).where(eq(branchWorkingDays.branchId, input.branchId));
-    return tx.insert(branchWorkingDays).values(input.days.map((day) => ({ ...day, branchId: input.branchId }))).returning();
+    return tx
+      .insert(branchWorkingDays)
+      .values(input.days.map((day) => ({ ...day, branchId: input.branchId })))
+      .returning();
   });
 }
 
 export async function listHolidays(ctx: Context, input: ListHolidaysInput) {
   await requirePermission(ctx, "organization:read", input.branchId ?? undefined);
   return input.branchId
-    ? db.select().from(holidays).where(eq(holidays.branchId, input.branchId)).orderBy(holidays.holidayDate)
+    ? db
+        .select()
+        .from(holidays)
+        .where(eq(holidays.branchId, input.branchId))
+        .orderBy(holidays.holidayDate)
     : db.select().from(holidays).orderBy(holidays.holidayDate);
 }
 
 export async function createHoliday(ctx: Context, input: CreateHolidayInput) {
   await requirePermission(ctx, "organization:manage", input.branchId ?? undefined);
-  const [holiday] = await db.insert(holidays).values({ ...input, branchId: input.branchId ?? null }).returning();
+  const [holiday] = await db
+    .insert(holidays)
+    .values({ ...input, branchId: input.branchId ?? null })
+    .returning();
   return holiday;
 }
 
@@ -118,7 +196,11 @@ export async function updateHoliday(ctx: Context, input: UpdateHolidayInput) {
   if (!existing) notFound("Holiday");
   await requirePermission(ctx, "organization:manage", existing.branchId ?? undefined);
   const { id: holidayId, ...values } = input;
-  const [holiday] = await db.update(holidays).set(values).where(eq(holidays.id, holidayId)).returning();
+  const [holiday] = await db
+    .update(holidays)
+    .set(values)
+    .where(eq(holidays.id, holidayId))
+    .returning();
   return holiday;
 }
 
@@ -126,6 +208,9 @@ export async function deleteHoliday(ctx: Context, input: HolidayIdInput) {
   const [existing] = await db.select().from(holidays).where(eq(holidays.id, input.id)).limit(1);
   if (!existing) notFound("Holiday");
   await requirePermission(ctx, "organization:manage", existing.branchId ?? undefined);
-  const [holiday] = await db.delete(holidays).where(and(eq(holidays.id, input.id))).returning();
+  const [holiday] = await db
+    .delete(holidays)
+    .where(and(eq(holidays.id, input.id)))
+    .returning();
   return holiday;
 }

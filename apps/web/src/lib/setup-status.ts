@@ -1,13 +1,9 @@
-import { eq } from "drizzle-orm";
-
-import { branchWorkingDays, branches, organizations } from "@UnifiedAttendance/db/schema/index";
-import { db } from "@UnifiedAttendance/db";
+import { getSetupStatus as loadSetupStatus } from "@UnifiedAttendance/api";
 import { cache } from "react";
 
-export const getSetupStatus = cache(async () => {
-  const [organization] = await db.select({ id: organizations.id }).from(organizations).limit(1);
-  const [branch] = await db.select({ id: branches.id }).from(branches).orderBy(branches.createdAt).limit(1);
-  const days = branch ? await db.select({ weekday: branchWorkingDays.weekday }).from(branchWorkingDays).where(eq(branchWorkingDays.branchId, branch.id)) : [];
-  const scheduleComplete = new Set(days.map((day) => day.weekday)).size === 7;
-  return { complete: Boolean(organization && branch && scheduleComplete), organizationExists: Boolean(organization), branchExists: Boolean(branch), scheduleComplete };
-});
+/**
+ * Cached per request, so the dashboard layout and the setup page can each ask
+ * without a second round trip. The query itself lives in the api package —
+ * apps/web owns HTTP, not database access.
+ */
+export const getSetupStatus = cache(loadSetupStatus);
