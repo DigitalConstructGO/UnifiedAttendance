@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import z from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const authErrorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (authError) authErrorRef.current?.focus();
+  }, [authError]);
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
@@ -134,7 +139,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
               {authError ? (
                 <div
+                  ref={authErrorRef}
                   role="alert"
+                  tabIndex={-1}
                   className="rounded-[11px] bg-destructive/8 px-3.5 py-3 text-xs leading-5 text-destructive ring-1 ring-destructive/20"
                 >
                   {authError}
