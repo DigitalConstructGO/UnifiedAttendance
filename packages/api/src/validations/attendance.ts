@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MANUAL_ATTENDANCE_ENTRY_KINDS } from "@UnifiedAttendance/db/schema/attendance-days";
 
 import { date, id, limit } from "./shared";
 
@@ -24,7 +25,42 @@ export const listPushBatchesInput = z.object({
   limit: limit(200, 50),
 });
 
+export const listDailyRegisterInput = z.object({
+  branchId: id,
+  date,
+  departmentId: id.optional(),
+  search: z.string().trim().max(120).optional(),
+  limit: limit(200, 50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const createManualAttendanceEntryInput = z
+  .object({
+    employeeId: id,
+    attendanceDate: date,
+    kind: z.enum(MANUAL_ATTENDANCE_ENTRY_KINDS),
+    occurredAt: z.coerce.date().optional(),
+    reason: z.string().trim().min(3).max(1_000),
+  })
+  .superRefine((value, issue) => {
+    if (
+      (value.kind === "check_in" || value.kind === "check_out") &&
+      !value.occurredAt
+    ) {
+      issue.addIssue({
+        code: "custom",
+        path: ["occurredAt"],
+        message: "A time is required for check-ins and check-outs",
+      });
+    }
+  });
+
+export const listManualAttendanceEntriesInput = z.object({ employeeId: id, date });
+
 export type ListEventsInput = z.output<typeof listEventsInput>;
 export type ListDaysInput = z.output<typeof listDaysInput>;
 export type RecomputeDayInput = z.output<typeof recomputeDayInput>;
 export type ListPushBatchesInput = z.output<typeof listPushBatchesInput>;
+export type ListDailyRegisterInput = z.output<typeof listDailyRegisterInput>;
+export type CreateManualAttendanceEntryInput = z.output<typeof createManualAttendanceEntryInput>;
+export type ListManualAttendanceEntriesInput = z.output<typeof listManualAttendanceEntriesInput>;

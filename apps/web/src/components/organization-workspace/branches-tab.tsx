@@ -4,7 +4,7 @@ import type React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Branch } from "@/lib/api/organization";
-import type { BranchDraft } from "./types";
+import type { BranchDraft } from "./workspace-model";
 
 type Props = {
   branches: Branch[];
@@ -27,7 +27,7 @@ export function BranchesTab({
     <section className="space-y-4">
       <form
         onSubmit={onSubmit}
-        className="grid gap-3 rounded-[18px] bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border sm:grid-cols-[1fr_9rem_1.5fr_auto] sm:items-end"
+        className="grid gap-3 rounded-[18px] bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border sm:grid-cols-2 xl:grid-cols-[1fr_9rem_1.4fr_1.2fr_auto] xl:items-end"
       >
         <BranchField
           label="Name"
@@ -48,6 +48,12 @@ export function BranchesTab({
           placeholder="Street, city, country"
           onChange={(address) => onDraftChange({ ...draft, address })}
         />
+        <BranchField
+          label="Timezone"
+          value={draft.timezone}
+          placeholder="Africa/Addis_Ababa"
+          onChange={(timezone) => onDraftChange({ ...draft, timezone })}
+        />
         <Button type="submit" className="h-8 rounded-[9px] font-bold" disabled={busy}>
           <Plus className="size-4" />
           {draft.id ? "Save" : "Add"}
@@ -64,6 +70,7 @@ export function BranchesTab({
                 <h2 className="text-strong font-heading font-bold">{branch.name}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {branch.code} · {branch.address}
+                  <span className="block">{branch.timezone}</span>
                 </p>
               </div>
               <span className="rounded-full bg-success/10 px-2 py-1 text-[0.6875rem] font-bold text-success">
@@ -87,6 +94,7 @@ export function BranchesTab({
                     name: branch.name,
                     code: branch.code,
                     address: branch.address ?? "",
+                    timezone: branch.timezone,
                   })
                 }
               >

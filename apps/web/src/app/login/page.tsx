@@ -47,8 +47,8 @@ export default async function LoginPage() {
             Every workday, accounted for.
           </h1>
           <p className="mt-6 max-w-md text-[0.9375rem] leading-7 text-sidebar-foreground/70">
-            Turn attendance records into clear, trustworthy operational decisions across your
-            workforce and branches.
+            Turn attendance records into clear, trustworthy operational decisions across every
+            employee and branch.
           </p>
           <LoginTimeSignal />
           <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold text-sidebar-foreground/80">

@@ -33,7 +33,7 @@ import { authClient } from "@/lib/auth-client";
 
 const moduleIcons = {
   Organization: Building2,
-  Workforce: UsersRound,
+  Employees: UsersRound,
   Devices: Laptop2,
   Attendance: CalendarCheck2,
   Corrections: ShieldCheck,

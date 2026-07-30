@@ -1,18 +1,12 @@
 import { z } from "zod";
+import {
+  ATTENDANCE_CORRECTION_STATUSES,
+  ATTENDANCE_CORRECTION_TYPES,
+} from "@UnifiedAttendance/db/schema/attendance-corrections";
 
 import { date, id, text } from "./shared";
 
-const correctionType = z.enum([
-  "add_check_in",
-  "add_check_out",
-  "adjust_check_in",
-  "adjust_check_out",
-  "mark_absent",
-  "mark_present",
-  "excuse_lateness",
-]);
-
-const timedTypes = ["add_check_in", "add_check_out", "adjust_check_in", "adjust_check_out"];
+const correctionType = z.enum(ATTENDANCE_CORRECTION_TYPES);
 
 export const correctionValues = z.object({
   employeeId: id,
@@ -25,11 +19,16 @@ export const correctionValues = z.object({
 
 export const listCorrectionsInput = z.object({
   employeeId: id,
-  status: z.enum(["pending", "approved", "rejected"]).optional(),
+  status: z.enum(ATTENDANCE_CORRECTION_STATUSES).optional(),
 });
 
 export const createCorrectionInput = correctionValues.superRefine((input, issue) => {
-  if (timedTypes.includes(input.type) && !input.proposedTime) {
+  if (
+    ["add_check_in", "add_check_out", "adjust_check_in", "adjust_check_out"].includes(
+      input.type,
+    ) &&
+    !input.proposedTime
+  ) {
     issue.addIssue({
       code: "custom",
       path: ["proposedTime"],

@@ -1,12 +1,12 @@
 import type { z } from "zod";
-import type * as service from "@UnifiedAttendance/api/modules/corrections/service";
+import type * as contracts from "@UnifiedAttendance/api/contracts/corrections";
 import type * as validations from "@UnifiedAttendance/api/validations/corrections";
 
 import { apiFetch, type JsonOf } from "./client";
 
-export type Correction = JsonOf<Awaited<ReturnType<typeof service.listCorrections>>>[number];
+export type Correction = JsonOf<contracts.Correction>;
 
-type ListQuery = { employeeId: string; status?: "pending" | "approved" | "rejected" };
+type ListQuery = { employeeId: string; status?: Correction["status"] };
 
 export const correctionsKeys = {
   list: (query: ListQuery) => ["corrections", query] as const,

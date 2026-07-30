@@ -82,7 +82,7 @@ export async function bootstrapOrganization(ctx: Context, input: BootstrapOrgani
       .values({
         name: input.organization.name,
         code: input.organization.code,
-        timezone: "Africa/Addis_Ababa",
+        timezone: input.timezone,
         logoUrl: null,
       })
       .returning();
@@ -92,7 +92,7 @@ export async function bootstrapOrganization(ctx: Context, input: BootstrapOrgani
         name: input.branch.name,
         code: input.branch.code,
         address: input.branch.address,
-        timezone: "Africa/Addis_Ababa",
+        timezone: input.timezone,
       })
       .returning();
     if (!organization || !branch)

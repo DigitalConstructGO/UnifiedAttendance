@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import type { SetupValues } from "./types";
+import type { SetupValues } from "./setup-model";
 
 export function BranchStep({
   value,

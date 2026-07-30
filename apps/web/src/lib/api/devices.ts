@@ -1,11 +1,11 @@
 import type { z } from "zod";
-import type * as service from "@UnifiedAttendance/api/modules/devices/service";
+import type * as contracts from "@UnifiedAttendance/api/contracts/devices";
 import type * as validations from "@UnifiedAttendance/api/validations/devices";
 
 import { apiFetch, type JsonOf } from "./client";
 
-export type Device = JsonOf<Awaited<ReturnType<typeof service.listDevices>>>[number];
-export type DeviceIdentity = JsonOf<Awaited<ReturnType<typeof service.listIdentities>>>[number];
+export type Device = JsonOf<contracts.Device>;
+export type DeviceIdentity = JsonOf<contracts.DeviceIdentity>;
 
 export const devicesKeys = {
   devices: (branchId: string) => ["devices", { branchId }] as const,

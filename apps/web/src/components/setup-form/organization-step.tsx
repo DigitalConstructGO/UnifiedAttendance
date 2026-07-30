@@ -1,12 +1,16 @@
 import { Input } from "@/components/ui/input";
-import type { SetupValues } from "./types";
+import type { SetupValues } from "./setup-model";
 
 export function OrganizationStep({
   value,
+  timeZone,
   onChange,
+  onTimeZoneChange,
 }: {
   value: SetupValues["organization"];
+  timeZone: string;
   onChange: (field: "name" | "code", value: string) => void;
+  onTimeZoneChange: (value: string) => void;
 }) {
   return (
     <section className="mt-2" aria-labelledby="organization-heading">
@@ -30,6 +34,19 @@ export function OrganizationStep({
             placeholder="e.g. Acme Services"
             className="h-11 rounded-[11px] bg-card"
           />
+        </label>
+        <label className="text-strong space-y-2 text-xs font-bold">
+          Attendance timezone
+          <Input
+            required
+            value={timeZone}
+            onChange={(event) => onTimeZoneChange(event.target.value)}
+            placeholder="e.g. Africa/Addis_Ababa"
+            className="h-11 rounded-[11px] bg-card"
+          />
+          <span className="block font-normal text-muted-foreground">
+            Use an IANA timezone. Branch schedules and attendance calculations use this value.
+          </span>
         </label>
         <label className="text-strong space-y-2 text-xs font-bold">
           Organization code

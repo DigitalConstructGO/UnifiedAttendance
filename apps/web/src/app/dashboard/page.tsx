@@ -19,9 +19,9 @@ const moduleMeta = {
     description: "Branches, working days and organization settings.",
     tone: "text-workflow bg-workflow/10",
   },
-  Workforce: {
+  Employees: {
     icon: UsersRound,
-    description: "Employees, departments and workforce records.",
+    description: "Employee records, departments and positions.",
     tone: "text-info bg-info/10",
   },
   Devices: {

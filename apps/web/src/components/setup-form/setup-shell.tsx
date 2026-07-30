@@ -2,16 +2,18 @@ import { ArrowLeft, ArrowRight, Check, Fingerprint, LoaderCircle } from "lucide-
 import type React from "react";
 
 import { BrandMark } from "@/components/brand-mark";
+import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
 import type { Brand } from "@/lib/brand";
-import { SETUP_STEPS } from "./types";
+import type { RequestErrorPresentation } from "@/lib/errors";
+import { SETUP_STEPS } from "./setup-model";
 
 type Props = {
   brand: Brand;
   step: number;
   canContinue: boolean;
   isSubmitting: boolean;
-  error: string | null;
+  error: RequestErrorPresentation | null;
   onStep: (step: number) => void;
   onBack: () => void;
   onContinue: () => void;
@@ -103,14 +105,7 @@ export function SetupShell({
               Step {step + 1} of {SETUP_STEPS.length}
             </p>
             {children}
-            {error ? (
-              <div
-                role="alert"
-                className="mt-5 rounded-[11px] bg-destructive/8 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/20"
-              >
-                {error}
-              </div>
-            ) : null}
+            {error ? <RequestErrorAlert error={error} className="mt-5" focusOnError /> : null}
           </div>
         </div>
       </form>

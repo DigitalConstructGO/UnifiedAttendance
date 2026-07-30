@@ -2,6 +2,7 @@
 
 import { Check, LoaderCircle } from "lucide-react";
 
+import { RequestErrorAlert } from "@/components/request-error-alert";
 import { BranchesTab } from "./branches-tab";
 import { HolidaysTab } from "./holidays-tab";
 import { OverviewTab } from "./overview-tab";
@@ -14,8 +15,12 @@ export function OrganizationWorkspace() {
 
   if (!workspace.organization) {
     return (
-      <div className="flex min-h-64 items-center justify-center">
-        <LoaderCircle className="animate-spin text-primary" aria-label="Loading organization" />
+      <div className="mx-auto flex min-h-64 w-full max-w-5xl items-center justify-center">
+        {workspace.error ? (
+          <RequestErrorAlert error={workspace.error} onRetry={workspace.retry} focusOnError />
+        ) : (
+          <LoaderCircle className="animate-spin text-primary" aria-label="Loading organization" />
+        )}
       </div>
     );
   }
@@ -35,27 +40,27 @@ export function OrganizationWorkspace() {
       <WorkspaceTabs activeTab={workspace.tab} onChange={workspace.selectTab} />
 
       {workspace.notice ? (
-        <div className="flex items-center gap-2 rounded-[11px] bg-success/8 px-4 py-3 text-sm text-success ring-1 ring-success/20">
+        <div
+          role="status"
+          className="flex items-center gap-2 rounded-[11px] bg-success/8 px-4 py-3 text-sm text-success ring-1 ring-success/20"
+        >
           <Check className="size-4" />
           {workspace.notice}
         </div>
       ) : null}
       {workspace.error ? (
-        <div
-          role="alert"
-          className="rounded-[11px] bg-destructive/8 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/20"
-        >
-          {workspace.error}
-        </div>
+        <RequestErrorAlert error={workspace.error} onRetry={workspace.retry} />
       ) : null}
 
       {workspace.tab === "overview" ? (
         <OverviewTab
           name={workspace.name}
           code={workspace.code}
+          timezone={workspace.timezone}
           busy={workspace.busy}
           onNameChange={workspace.setName}
           onCodeChange={workspace.setCode}
+          onTimezoneChange={workspace.setTimezone}
           onSave={workspace.saveOrganization}
         />
       ) : null}

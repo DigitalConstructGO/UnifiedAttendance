@@ -1,14 +1,7 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { AttendanceWorkspace } from "@/components/attendance";
 import { requireAccess } from "@/lib/access-server";
 
 export default async function AttendancePage() {
-  const { access } = await requireAccess("attendance:read");
-
-  return (
-    <ModulePlaceholder
-      title="Attendance"
-      description="Daily attendance records and derived days."
-      role={access.role}
-    />
-  );
+  await requireAccess("attendance:read");
+  return <AttendanceWorkspace />;
 }

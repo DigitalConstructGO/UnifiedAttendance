@@ -14,16 +14,20 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const organizationStatus = pgEnum("organization_status", ["active", "suspended"]);
-export const branchStatus = pgEnum("branch_status", ["active", "closed"]);
+export const DEFAULT_TIME_ZONE = "Africa/Addis_Ababa";
+export const ORGANIZATION_STATUSES = ["active", "suspended"] as const;
+export const BRANCH_STATUSES = ["active", "closed"] as const;
+
+export const organizationStatus = pgEnum("organization_status", ORGANIZATION_STATUSES);
+export const branchStatus = pgEnum("branch_status", BRANCH_STATUSES);
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
-  timezone: text("timezone").notNull().default("Africa/Addis_Ababa"),
+  timezone: text("timezone").notNull().default(DEFAULT_TIME_ZONE),
   logoUrl: text("logo_url"),
-  status: organizationStatus("status").notNull().default("active"),
+  status: organizationStatus("status").notNull().default(ORGANIZATION_STATUSES[0]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -36,8 +40,8 @@ export const branches = pgTable("branches", {
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   address: text("address"),
-  timezone: text("timezone").notNull().default("Africa/Addis_Ababa"),
-  status: branchStatus("status").notNull().default("active"),
+  timezone: text("timezone").notNull().default(DEFAULT_TIME_ZONE),
+  status: branchStatus("status").notNull().default(BRANCH_STATUSES[0]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

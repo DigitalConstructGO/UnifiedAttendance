@@ -1,23 +1,37 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bootstrapOrganizationInput } from "@UnifiedAttendance/api/validations/organization";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { Brand } from "@/lib/brand";
 import { organizationApi } from "@/lib/api/organization";
+import { presentRequestError } from "@/lib/errors";
 import { BranchStep } from "./branch-step";
 import { OrganizationStep } from "./organization-step";
 import { ReviewStep } from "./review-step";
 import { ScheduleStep } from "./schedule-step";
+import { canContinueSetup, defaultSetupValues, SETUP_STEPS } from "./setup-model";
 import { SetupShell } from "./setup-shell";
-import { canContinueSetup, defaultSetupValues, SETUP_STEPS } from "./types";
 
 export function SetupForm({ brand }: { brand: Brand }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
+
+  const bootstrap = useMutation({
+    mutationFn: organizationApi.bootstrap,
+    onSuccess: () => {
+      // Bootstrap creates the organization, its first branch, and the working
+      // week — nothing cached from before setup describes this workspace.
+      queryClient.clear();
+      router.replace("/dashboard");
+      router.refresh();
+    },
+  });
+
   const form = useForm({
     defaultValues: defaultSetupValues(),
     validators: {
@@ -27,18 +41,13 @@ export function SetupForm({ brand }: { brand: Brand }) {
       },
     },
     onSubmit: async ({ value }) => {
-      setError(null);
-      try {
-        await organizationApi.bootstrap(value);
-        router.replace("/dashboard");
-        router.refresh();
-      } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : "Setup could not be completed. Try again.",
-        );
-      }
+      await bootstrap.mutateAsync(value).catch(() => undefined);
     },
   });
+
+  const error = bootstrap.error
+    ? presentRequestError(bootstrap.error, "Setup could not be completed. Try again.")
+    : null;
 
   return (
     <form.Subscribe
@@ -56,7 +65,9 @@ export function SetupForm({ brand }: { brand: Brand }) {
           step === 0 ? (
             <OrganizationStep
               value={values.organization}
+              timeZone={values.timezone}
               onChange={(field, value) => form.setFieldValue(`organization.${field}`, value)}
+              onTimeZoneChange={(value) => form.setFieldValue("timezone", value)}
             />
           ) : step === 1 ? (
             <BranchStep
@@ -64,7 +75,7 @@ export function SetupForm({ brand }: { brand: Brand }) {
               onChange={(field, value) => form.setFieldValue(`branch.${field}`, value)}
             />
           ) : step === 2 ? (
-            <ScheduleStep days={values.days} onChange={updateDay} />
+            <ScheduleStep days={values.days} timeZone={values.timezone} onChange={updateDay} />
           ) : (
             <ReviewStep values={values} onEdit={setStep} />
           );

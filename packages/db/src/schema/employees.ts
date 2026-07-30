@@ -1,61 +1,23 @@
-import { relations } from "drizzle-orm";
-import { date, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { isNull, sql } from "drizzle-orm";
+import {
+  check,
+  date,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { branches } from "./organization";
-
-export const gender = pgEnum("gender", ["male", "female"]);
-export const employmentType = pgEnum("employment_type", [
-  "permanent",
-  "contract",
-  "part_time",
-  "intern",
-]);
-export const employeeStatus = pgEnum("employee_status", ["active", "suspended", "terminated"]);
-export const activeStatus = pgEnum("active_status", ["active", "inactive"]);
-
-export const cosigners = pgTable("cosigners", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  fullName: text("full_name").notNull(),
-  phone: text("phone"),
-  workplace: text("workplace"),
-  nationalIdFrontUrl: text("national_id_front_url"),
-  nationalIdBackUrl: text("national_id_back_url"),
-  workplaceIdFrontUrl: text("workplace_id_front_url"),
-  workplaceIdBackUrl: text("workplace_id_back_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const people = pgTable("people", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  firstName: text("first_name").notNull(),
-  middleName: text("middle_name"),
-  lastName: text("last_name").notNull(),
-  phone: text("phone"),
-  email: text("email"),
-  gender: gender("gender"),
-  profilePhotoUrl: text("profile_photo_url"),
-  nationalIdFrontUrl: text("national_id_front_url"),
-  nationalIdBackUrl: text("national_id_back_url"),
-  emergencyContactName: text("emergency_contact_name"),
-  emergencyContactPhone: text("emergency_contact_phone"),
-  cosignerId: uuid("cosigner_id").references(() => cosigners.id, { onDelete: "set null" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const departments = pgTable("departments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  /** Null means a company-level department. */
-  branchId: uuid("branch_id").references(() => branches.id, { onDelete: "set null" }),
-  name: text("name").notNull(),
-  status: activeStatus("status").notNull().default("active"),
-});
-
-export const positions = pgTable("positions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  title: text("title").notNull(),
-  description: text("description"),
-  status: activeStatus("status").notNull().default("active"),
-});
+import { departments, people, positions } from "./people";
+import {
+  EMPLOYEE_STATUSES,
+  EMPLOYMENT_TYPES,
+  employeeStatus,
+  employmentType,
+} from "./workforce-enums";
 
 export const employees = pgTable(
   "employees",
@@ -75,9 +37,9 @@ export const employees = pgTable(
       onDelete: "set null",
     }),
     employeeCode: text("employee_code").notNull().unique(),
-    employmentType: employmentType("employment_type").notNull().default("permanent"),
+    employmentType: employmentType("employment_type").notNull().default(EMPLOYMENT_TYPES[0]),
     hireDate: date("hire_date").notNull(),
-    status: employeeStatus("status").notNull().default("active"),
+    status: employeeStatus("status").notNull().default(EMPLOYEE_STATUSES[0]),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -86,21 +48,47 @@ export const employees = pgTable(
   ],
 );
 
-export const cosignersRelations = relations(cosigners, ({ many }) => ({
-  people: many(people),
-}));
-
-export const peopleRelations = relations(people, ({ one }) => ({
-  employee: one(employees, { fields: [people.id], references: [employees.personId] }),
-  cosigner: one(cosigners, { fields: [people.cosignerId], references: [cosigners.id] }),
-}));
-
-export const employeesRelations = relations(employees, ({ one }) => ({
-  person: one(people, { fields: [employees.personId], references: [people.id] }),
-  branch: one(branches, { fields: [employees.branchId], references: [branches.id] }),
-  department: one(departments, {
-    fields: [employees.departmentId],
-    references: [departments.id],
-  }),
-  position: one(positions, { fields: [employees.positionId], references: [positions.id] }),
-}));
+/**
+ * An effective-dated assignment. Employee keeps the stable staff identity;
+ * periods preserve where and how that person worked at any given date.
+ */
+export const employmentPeriods = pgTable(
+  "employment_periods",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "cascade" }),
+    branchId: uuid("branch_id")
+      .notNull()
+      .references(() => branches.id, { onDelete: "restrict" }),
+    departmentId: uuid("department_id").references(() => departments.id, {
+      onDelete: "set null",
+    }),
+    positionId: uuid("position_id").references(() => positions.id, { onDelete: "set null" }),
+    employmentType: employmentType("employment_type").notNull().default(EMPLOYMENT_TYPES[0]),
+    status: employeeStatus("status").notNull().default(EMPLOYEE_STATUSES[0]),
+    effectiveFrom: date("effective_from").notNull(),
+    effectiveTo: date("effective_to"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("employment_periods_employee_dates_idx").on(
+      table.employeeId,
+      table.effectiveFrom,
+      table.effectiveTo,
+    ),
+    index("employment_periods_branch_dates_idx").on(
+      table.branchId,
+      table.effectiveFrom,
+      table.effectiveTo,
+    ),
+    uniqueIndex("employment_periods_open_employee_idx")
+      .on(table.employeeId)
+      .where(isNull(table.effectiveTo)),
+    check(
+      "employment_periods_valid_range",
+      sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+    ),
+  ],
+);

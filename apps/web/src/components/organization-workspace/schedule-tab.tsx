@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Branch, WorkingDay } from "@/lib/api/organization";
-import { WEEK } from "./types";
+import { WEEK } from "./workspace-model";
 
 type Props = {
   branches: Branch[];

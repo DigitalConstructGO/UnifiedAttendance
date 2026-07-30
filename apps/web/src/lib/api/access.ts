@@ -1,13 +1,14 @@
 import type { z } from "zod";
-import type * as service from "@UnifiedAttendance/api/modules/access/service";
+import type * as contracts from "@UnifiedAttendance/api/contracts/access";
 import type * as validations from "@UnifiedAttendance/api/validations/access";
 
 import { apiFetch, type JsonOf } from "./client";
 
-export type MyAccess = JsonOf<Awaited<ReturnType<typeof service.getMyAccess>>>;
-export type PermissionRecord = JsonOf<Awaited<ReturnType<typeof service.listPermissions>>>[number];
-export type RoleRecord = JsonOf<Awaited<ReturnType<typeof service.listRoles>>>[number];
-export type RoleAssignment = JsonOf<Awaited<ReturnType<typeof service.listAssignments>>>[number];
+export type MyAccess = JsonOf<contracts.MyAccessEntry[]>;
+export type PermissionRecord = JsonOf<contracts.PermissionRecord>;
+export type RoleRecord = JsonOf<contracts.RoleRecord>;
+export type RoleAssignment = JsonOf<contracts.RoleAssignment>;
+export type RoleGrant = JsonOf<contracts.RoleGrant>;
 
 export const accessKeys = {
   me: ["access", "me"] as const,
@@ -31,5 +32,5 @@ export const accessApi = {
     }),
 
   assignRole: (input: z.input<typeof validations.assignRoleInput>) =>
-    apiFetch<RoleAssignment>("/access/assignments", { method: "POST", body: input }),
+    apiFetch<RoleGrant>("/access/assignments", { method: "POST", body: input }),
 };
