@@ -17,10 +17,6 @@ export class ApiRequestError extends Error {
   }
 }
 
-/**
- * What a value looks like once it has been through JSON — the dates the service
- * returns reach the client as strings, and the types say so.
- */
 export type JsonOf<T> = T extends Date
   ? string
   : T extends (infer Item)[]
@@ -48,7 +44,10 @@ function withQuery(path: string, query?: QueryParams) {
   return queryString ? `${BASE_PATH}${path}?${queryString}` : `${BASE_PATH}${path}`;
 }
 
-export async function apiFetch<TResult>(path: string, options: RequestOptions = {}): Promise<TResult> {
+export async function apiFetch<TResult>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<TResult> {
   const { method = "GET", body, query, signal } = options;
 
   const response = await fetch(withQuery(path, query), {
