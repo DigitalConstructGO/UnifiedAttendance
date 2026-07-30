@@ -2,6 +2,8 @@ import { z, type ZodType } from "zod";
 
 import { ApiError, createContext, isApiError, type Context } from "@UnifiedAttendance/api";
 
+import { createChildLogger } from "./logger";
+
 /** Next passes dynamic segments as a promise in the second handler argument. */
 type RouteSegment = { params?: Promise<Record<string, string | string[] | undefined>> };
 
@@ -40,6 +42,7 @@ export function route<TResult, TSchema extends ZodType = NoInput>(
   config: RouteConfig<TSchema, TResult>,
 ): RouteHandler {
   return async function handleRequest(request, segment) {
+    const requestId = crypto.randomUUID();
     try {
       const ctx = await createContext(request);
       if ((config.access ?? "session") === "session" && !ctx.session) {
@@ -61,9 +64,9 @@ export function route<TResult, TSchema extends ZodType = NoInput>(
       }
 
       const result = await (config.handler as (args: unknown) => Promise<TResult>)(handlerArgs);
-      return json(result ?? null, config.status ?? 200);
+      return json(result ?? null, config.status ?? 200, requestId);
     } catch (error) {
-      return errorResponse(error);
+      return errorResponse(error, requestId);
     }
   };
 }
@@ -99,21 +102,39 @@ async function readParams(segment: RouteSegment | undefined) {
   );
 }
 
-function json(body: unknown, status: number) {
+function json(body: unknown, status: number, requestId: string) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-request-id": requestId },
   });
 }
 
 /** The one place an exception becomes a response, so every route fails alike. */
-export function errorResponse(error: unknown): Response {
+export function errorResponse(error: unknown, requestId = crypto.randomUUID()): Response {
   if (isApiError(error)) {
     return json(
-      { error: { code: error.code, message: error.message, details: error.details } },
+      {
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          requestId,
+        },
+      },
       error.status,
+      requestId,
     );
   }
-  console.error("Unhandled API error", error);
-  return json({ error: { code: "INTERNAL_SERVER_ERROR", message: "Something went wrong" } }, 500);
+  createChildLogger({ requestId }).error({ err: error }, "Unhandled API error");
+  return json(
+    {
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong",
+        requestId,
+      },
+    },
+    500,
+    requestId,
+  );
 }
