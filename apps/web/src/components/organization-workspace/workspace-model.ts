@@ -1,17 +1,21 @@
 import type { Branch } from "@/lib/api/organization";
+import { detectedTimeZone, WEEKDAY_NAMES } from "@/lib/timezone";
 
 export type WorkspaceTab = "overview" | "branches" | "schedule" | "holidays";
 
-export type BranchDraft = Pick<Branch, "name" | "code"> & {
+export type BranchDraft = Pick<Branch, "name" | "code" | "timezone"> & {
   id?: string;
   address: string;
 };
 
-export const EMPTY_BRANCH_DRAFT: BranchDraft = {
-  name: "",
-  code: "",
-  address: "",
-};
+export function emptyBranchDraft(timezone = detectedTimeZone()): BranchDraft {
+  return {
+    name: "",
+    code: "",
+    address: "",
+    timezone,
+  };
+}
 
 export const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -20,4 +24,4 @@ export const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: "holidays", label: "Holidays" },
 ];
 
-export const WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+export const WEEK = WEEKDAY_NAMES;

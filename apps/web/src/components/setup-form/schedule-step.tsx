@@ -1,13 +1,16 @@
 import { Input } from "@/components/ui/input";
-import { WEEK, type SetupValues } from "./types";
+
+import { DEFAULT_CLOSING_TIME, DEFAULT_OPENING_TIME, WEEK, type SetupValues } from "./setup-model";
 
 type Day = SetupValues["days"][number];
 
 export function ScheduleStep({
   days,
+  timeZone,
   onChange,
 }: {
   days: SetupValues["days"];
+  timeZone: string;
   onChange: (index: number, values: Partial<Day>) => void;
 }) {
   return (
@@ -40,8 +43,12 @@ export function ScheduleStep({
                 onChange={(event) =>
                   onChange(index, {
                     isWorkingDay: event.target.checked,
-                    openingTime: event.target.checked ? day.openingTime || "08:00" : null,
-                    closingTime: event.target.checked ? day.closingTime || "17:00" : null,
+                    openingTime: event.target.checked
+                      ? day.openingTime || DEFAULT_OPENING_TIME
+                      : null,
+                    closingTime: event.target.checked
+                      ? day.closingTime || DEFAULT_CLOSING_TIME
+                      : null,
                   })
                 }
                 className="size-4 accent-primary"
@@ -74,7 +81,7 @@ export function ScheduleStep({
           </div>
         ))}
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">Timezone: Africa/Addis_Ababa</p>
+      <p className="mt-4 text-xs text-muted-foreground">Timezone: {timeZone}</p>
     </section>
   );
 }

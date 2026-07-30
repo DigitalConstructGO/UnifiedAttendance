@@ -1,4 +1,4 @@
-import { WORKSPACE_TABS, type WorkspaceTab } from "./types";
+import { WORKSPACE_TABS, type WorkspaceTab } from "./workspace-model";
 
 type Props = {
   activeTab: WorkspaceTab;

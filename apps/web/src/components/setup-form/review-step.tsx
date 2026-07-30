@@ -1,5 +1,5 @@
 import { ArrowRight, Building2, CalendarDays, MapPin, ShieldCheck } from "lucide-react";
-import type { SetupValues } from "./types";
+import type { SetupValues } from "./setup-model";
 
 export function ReviewStep({
   values,
@@ -27,7 +27,7 @@ export function ReviewStep({
       icon: CalendarDays,
       tone: "bg-primary/10 text-primary",
       title: `${values.days.filter((day) => day.isWorkingDay).length} working days`,
-      detail: "Attendance schedule · Africa/Addis_Ababa",
+      detail: `Attendance schedule · ${values.timezone}`,
       step: 2,
     },
   ];
