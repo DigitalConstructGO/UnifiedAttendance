@@ -1,22 +1,73 @@
 import type { z } from "zod";
-import type * as service from "@UnifiedAttendance/api/modules/workforce/service";
+import type * as contracts from "@UnifiedAttendance/api/contracts/workforce";
 import type * as validations from "@UnifiedAttendance/api/validations/workforce";
+import {
+  WORKFORCE_DOCUMENT_CONTENT_TYPES,
+  type WorkforceDocumentContentType,
+} from "@/lib/workforce-presentation";
 
 import { apiFetch, type JsonOf } from "./client";
 
-export type Department = JsonOf<Awaited<ReturnType<typeof service.listDepartments>>>[number];
-export type Position = JsonOf<Awaited<ReturnType<typeof service.listPositions>>>[number];
-export type Cosigner = JsonOf<Awaited<ReturnType<typeof service.listCosigners>>>[number];
-export type EmployeeRow = JsonOf<Awaited<ReturnType<typeof service.listEmployees>>>[number];
-export type EmployeeWrite = JsonOf<Awaited<ReturnType<typeof service.createEmployee>>>;
-export type EmploymentPeriod = JsonOf<
-  Awaited<ReturnType<typeof service.listEmploymentPeriods>>
->[number];
+export type Department = JsonOf<contracts.Department>;
+export type Position = JsonOf<contracts.Position>;
+export type Cosigner = JsonOf<contracts.Cosigner>;
+export type EmploymentContractRow = JsonOf<contracts.EmploymentContractRow>;
+export type EmployeeRow = JsonOf<contracts.EmployeeRow>;
+export type EmployeeWrite = JsonOf<contracts.EmployeeWrite>;
+export type EmploymentPeriod = JsonOf<contracts.EmploymentPeriod>;
+export type WorkforceDocument = JsonOf<contracts.WorkforceDocument>;
 
+type WorkforceDocumentKind = z.input<typeof validations.createWorkforceDocumentInput>["kind"];
+type WorkforceDocumentOwner =
+  { personId: string } | { cosignerId: string } | { employmentContractId: string };
+
+async function uploadWorkforceDocument(
+  owner: WorkforceDocumentOwner,
+  kind: WorkforceDocumentKind,
+  file: File,
+) {
+  const contentType = WORKFORCE_DOCUMENT_CONTENT_TYPES.find(
+    (value): value is WorkforceDocumentContentType => value === file.type,
+  );
+  if (!contentType) throw new Error(`${file.name} must be a JPG, PNG, WebP, or PDF file.`);
+  const prepared = await apiFetch<{ document: WorkforceDocument; uploadUrl: string }>(
+    "/workforce-documents",
+    {
+      method: "POST",
+      body: { ...owner, kind, contentType, contentLength: file.size },
+    },
+  );
+  try {
+    const uploaded = await fetch(prepared.uploadUrl, {
+      method: "PUT",
+      headers: { "content-type": contentType },
+      body: file,
+    });
+    if (!uploaded.ok) throw new Error(`S3 rejected ${file.name}.`);
+    return await apiFetch<WorkforceDocument>(`/workforce-documents/${prepared.document.id}`, {
+      method: "PATCH",
+    });
+  } catch (cause) {
+    await apiFetch(`/workforce-documents/${prepared.document.id}`, { method: "DELETE" }).catch(
+      () => undefined,
+    );
+    throw cause;
+  }
+}
+
+/**
+ * `contracts` and `employeesAll` are prefixes rather than queries: a write that
+ * can move a row between branches has to invalidate every branch's list, not
+ * just the one the caller happened to be looking at.
+ */
 export const workforceKeys = {
   departments: ["departments"] as const,
   positions: ["positions"] as const,
   cosigners: ["cosigners"] as const,
+  contracts: ["employment-contracts"] as const,
+  employmentContracts: (employeeId?: string) =>
+    ["employment-contracts", employeeId ?? "all"] as const,
+  employeesAll: ["employees"] as const,
   employees: (branchId: string) => ["employees", { branchId }] as const,
   employee: (id: string) => ["employees", id] as const,
   employmentPeriods: (id: string) => ["employees", id, "employment-periods"] as const,
@@ -44,6 +95,28 @@ export const workforceApi = {
   updateCosigner: ({ id, ...values }: z.input<typeof validations.updateCosignerInput>) =>
     apiFetch<Cosigner>(`/cosigners/${id}`, { method: "PATCH", body: values }),
   deleteCosigner: (id: string) => apiFetch<Cosigner>(`/cosigners/${id}`, { method: "DELETE" }),
+
+  employmentContracts: (employeeId?: string, signal?: AbortSignal) =>
+    apiFetch<EmploymentContractRow[]>("/employment-contracts", {
+      query: { employeeId },
+      signal,
+    }),
+  createEmploymentContract: (input: z.input<typeof validations.createEmploymentContractInput>) =>
+    apiFetch<EmploymentContractRow>("/employment-contracts", { method: "POST", body: input }),
+  updateEmploymentContract: ({
+    id,
+    ...values
+  }: z.input<typeof validations.updateEmploymentContractInput>) =>
+    apiFetch<EmploymentContractRow>(`/employment-contracts/${id}`, {
+      method: "PATCH",
+      body: values,
+    }),
+  deleteEmploymentContract: (id: string) =>
+    apiFetch<EmploymentContractRow["contract"]>(`/employment-contracts/${id}`, {
+      method: "DELETE",
+    }),
+
+  uploadDocument: uploadWorkforceDocument,
 
   employees: (branchId: string, signal?: AbortSignal) =>
     apiFetch<EmployeeRow[]>("/employees", { query: { branchId }, signal }),
