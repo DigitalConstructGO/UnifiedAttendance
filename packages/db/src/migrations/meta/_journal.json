@@ -36,6 +36,20 @@
       "when": 1785270000000,
       "tag": "0004_employment_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785412587109,
+      "tag": "0005_gigantic_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785413596540,
+      "tag": "0006_goofy_true_believers",
+      "breakpoints": true
     }
   ]
 }
