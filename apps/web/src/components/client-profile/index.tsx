@@ -1,70 +1,52 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ClipboardList,
-  FileText,
-  History,
-  LoaderCircle,
-  MessageSquare,
-  Phone,
-} from "lucide-react";
+import { ArrowLeft, LoaderCircle } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import type { ProjectStatus } from "@/lib/client-presentation";
 import { DEFAULT_TIME_ZONE } from "@/lib/timezone";
 
+import { ActivitiesTab } from "./activities-tab";
+import { AddContactDialog } from "./add-contact-dialog";
+import { AuditTab } from "./audit-tab";
 import { ContactsTab } from "./contacts-tab";
 import { ContractsTab } from "./contracts-tab";
+import { DocumentsTab } from "./documents-tab";
+import { InvoicesTab } from "./invoices-tab";
+import { NotesTab } from "./notes-tab";
 import { OverviewTab } from "./overview-tab";
+import { PaymentsTab } from "./payments-tab";
 import type { ClientTab } from "./profile-model";
 import { ProfileHeader } from "./profile-header";
 import { ProfileTabs } from "./profile-tabs";
 import { ProjectsTab } from "./projects-tab";
-import { PendingTab } from "./tab-shell";
+import { TabPanel } from "./tab-shell";
+import { TimelineTab } from "./timeline-tab";
 import { useClientProfile } from "./use-client-profile";
 
 export type { ClientTab } from "./profile-model";
-export { isClientTab } from "./profile-model";
 
-/** Tabs still waiting on their service, each with the copy that explains the gap. */
-const PENDING_TAB_CONTENT = {
-  documents: {
-    icon: <FileText className="size-5" aria-hidden="true" />,
-    title: "Documents are not available yet",
-    hint: "Versioned client files — contracts, proposals, registrations — will list here once the document service ships.",
-  },
-  activities: {
-    icon: <Phone className="size-5" aria-hidden="true" />,
-    title: "Activities are not available yet",
-    hint: "Recorded calls, meetings, emails, and site visits will list here once the activity service ships.",
-  },
-  notes: {
-    icon: <MessageSquare className="size-5" aria-hidden="true" />,
-    title: "Notes are not available yet",
-    hint: "Internal notes about this client, including pinned ones, will list here once the note service ships.",
-  },
-  timeline: {
-    icon: <ClipboardList className="size-5" aria-hidden="true" />,
-    title: "Timeline is not available yet",
-    hint: "The business-event history — proposals, contracts, invoices, payments — is a read model built from other records.",
-  },
-  audit: {
-    icon: <History className="size-5" aria-hidden="true" />,
-    title: "Audit log is not available yet",
-    hint: "The immutable record of who changed what, and when, will list here once the audit service ships.",
-  },
-} as const;
-
-export function ClientProfile({ clientId, tab }: { clientId: string; tab: ClientTab }) {
+export function ClientProfile({
+  clientId,
+  opportunityId,
+  tab,
+}: {
+  clientId: string;
+  opportunityId?: string;
+  tab: ClientTab;
+}) {
   const { can } = useAccess();
-  const profile = useClientProfile(clientId);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const profile = useClientProfile(clientId, tab, opportunityId);
   const manageable = can("clients:manage");
-  const projectStatuses = profile.projects.map((row) => row.project.status) as ProjectStatus[];
-  // Dates render in the managing branch's zone, falling back until the client loads.
+  const projectStatuses = (profile.client?.currentProjects ?? []).map(
+    (row) => row.project.status,
+  ) as ProjectStatus[];
   const timeZone = profile.client?.branch.timezone ?? DEFAULT_TIME_ZONE;
+  const opportunity = profile.opportunity?.client?.id === clientId ? profile.opportunity : null;
 
   return (
     <div className="mx-auto w-full max-w-[1240px] space-y-5">
@@ -92,29 +74,77 @@ export function ClientProfile({ clientId, tab }: { clientId: string; tab: Client
             <ProfileHeader
               client={profile.client}
               projectStatuses={projectStatuses}
+              opportunity={opportunity}
+              health={profile.health}
               timeZone={timeZone}
               manageable={manageable}
+              onAddContact={() => setContactDialogOpen(true)}
             />
-            <ProfileTabs clientId={clientId} active={tab} />
+            <ProfileTabs clientId={clientId} opportunityId={opportunityId} active={tab} />
           </div>
 
-          {tab === "overview" ? (
+          {profile.tabLoading ? (
+            <TabPanel>
+              <div className="grid min-h-56 place-items-center">
+                <LoaderCircle className="animate-spin text-primary" aria-label={`Loading ${tab}`} />
+              </div>
+            </TabPanel>
+          ) : null}
+
+          {!profile.tabLoading && tab === "overview" ? (
             <OverviewTab
               client={profile.client}
               projects={profile.projects}
+              invoices={profile.invoices}
               primaryContact={profile.primaryContact}
+              health={profile.health}
+              lastActivityAt={profile.lastActivityAt}
               timeZone={timeZone}
             />
           ) : null}
-          {tab === "contacts" ? <ContactsTab contacts={profile.contacts} /> : null}
-          {tab === "projects" ? (
+          {!profile.tabLoading && tab === "contacts" ? (
+            <ContactsTab contacts={profile.contacts} />
+          ) : null}
+          {!profile.tabLoading && tab === "projects" ? (
             <ProjectsTab projects={profile.projects} timeZone={timeZone} />
           ) : null}
-          {tab === "contracts" ? (
+          {!profile.tabLoading && tab === "contracts" ? (
             <ContractsTab contracts={profile.contracts} timeZone={timeZone} />
           ) : null}
-          {tab in PENDING_TAB_CONTENT ? (
-            <PendingTab {...PENDING_TAB_CONTENT[tab as keyof typeof PENDING_TAB_CONTENT]} />
+          {!profile.tabLoading && tab === "invoices" ? (
+            <InvoicesTab invoices={profile.invoices} timeZone={timeZone} />
+          ) : null}
+          {!profile.tabLoading && tab === "payments" ? (
+            <PaymentsTab
+              invoices={profile.invoices}
+              branchId={profile.client.branch.id}
+              timeZone={timeZone}
+            />
+          ) : null}
+          {!profile.tabLoading && tab === "documents" ? (
+            <DocumentsTab
+              clientId={clientId}
+              branchId={profile.client.branch.id}
+              opportunityId={opportunity?.opportunity.id}
+              documents={profile.documents}
+              timeZone={timeZone}
+            />
+          ) : null}
+          {!profile.tabLoading && tab === "activities" ? (
+            <ActivitiesTab activities={profile.activities} timeZone={timeZone} />
+          ) : null}
+          {!profile.tabLoading && tab === "notes" ? (
+            <NotesTab notes={profile.notes} timeZone={timeZone} />
+          ) : null}
+          {!profile.tabLoading && tab === "timeline" ? (
+            <TimelineTab timeline={profile.timeline} timeZone={timeZone} />
+          ) : null}
+          {!profile.tabLoading && tab === "audit" ? (
+            <AuditTab entries={profile.audit} timeZone={timeZone} />
+          ) : null}
+
+          {contactDialogOpen ? (
+            <AddContactDialog clientId={clientId} onClose={() => setContactDialogOpen(false)} />
           ) : null}
         </>
       ) : null}

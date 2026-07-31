@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-import type { ClientContact, ClientRow, ProjectRow } from "@/lib/api";
+import type {
+  ClientContact,
+  ClientProfile as ClientProfileProjection,
+  ClientRow,
+  InvoiceRow,
+  ProjectRow,
+} from "@/lib/api";
 import {
   CLIENT_PRIORITY_META,
   money,
@@ -10,6 +16,7 @@ import {
 } from "@/lib/client-presentation";
 import { ethiopianDate, ethiopianYear, relativeTime } from "@/lib/ethiopian-date";
 
+import { summarizeClientBilling } from "./profile-metrics";
 import { TabPanel } from "./tab-shell";
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -86,19 +93,34 @@ export function ProjectSummaryCard({
 export function OverviewTab({
   client,
   projects,
+  invoices,
   primaryContact,
+  health,
+  lastActivityAt,
   timeZone,
 }: {
   client: ClientRow;
   projects: ProjectRow[];
+  invoices: InvoiceRow[];
   primaryContact: ClientContact | null;
+  health: ClientProfileProjection["health"] | null;
+  lastActivityAt?: string | null;
   timeZone: string;
 }) {
   const record = client.client;
   const priority = record.priority ? CLIENT_PRIORITY_META[record.priority] : null;
+  const billing = summarizeClientBilling(invoices);
   const currentProjects = projects.filter(
     (row) => row.project.status === "in_progress" || row.project.status === "planning",
   );
+  const healthLabel =
+    health?.band === "healthy" ? "Healthy" : health?.band === "watch" ? "Watch" : "At risk";
+  const healthTone =
+    health?.band === "healthy"
+      ? "text-success"
+      : health?.band === "watch"
+        ? "text-warning"
+        : "text-destructive";
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
@@ -155,12 +177,47 @@ export function OverviewTab({
       </div>
 
       <div className="grid gap-5">
+        <section className="rounded-[16px] bg-sidebar p-6 text-sidebar-foreground shadow-[var(--shadow-card)]">
+          <h2 className="text-sm font-semibold text-sidebar-foreground/70">Lifetime revenue</h2>
+          <p className="mt-4 font-heading text-2xl font-bold">
+            {billing.lifetime && billing.currency
+              ? money(billing.lifetime, billing.currency)
+              : billing.currencyCount > 1
+                ? "Multiple currencies"
+                : "—"}
+          </p>
+          <dl className="mt-6 grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <dt className="text-sidebar-foreground/60">Collected</dt>
+              <dd className="mt-1 font-heading text-base font-bold text-primary">
+                {billing.collected && billing.currency
+                  ? money(billing.collected, billing.currency)
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sidebar-foreground/60">Outstanding</dt>
+              <dd className="mt-1 font-heading text-base font-bold text-warning">
+                {billing.outstanding && billing.currency
+                  ? money(billing.outstanding, billing.currency)
+                  : "—"}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
         <TabPanel className="p-6">
           <h2 className="text-strong font-heading text-base font-bold">Account health</h2>
           <dl className="mt-4 divide-y divide-border">
             <HealthRow label="Health score">
-              {/* Health is a derived read model; until it ships the row states that plainly. */}
-              <span className="text-muted-foreground">Not yet calculated</span>
+              {health ? (
+                <span className={`inline-flex items-center gap-1.5 ${healthTone}`}>
+                  <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+                  {healthLabel}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
             </HealthRow>
             <HealthRow label="Priority">
               {priority ? (
@@ -174,7 +231,7 @@ export function OverviewTab({
             <HealthRow label="Client type">{client.clientType.name}</HealthRow>
             <HealthRow label="Last activity">
               <span className="text-muted-foreground">
-                {relativeTime(record.updatedAt, timeZone)}
+                {relativeTime(lastActivityAt ?? record.updatedAt, timeZone)}
               </span>
             </HealthRow>
           </dl>

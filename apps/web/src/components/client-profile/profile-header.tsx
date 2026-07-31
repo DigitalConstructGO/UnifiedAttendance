@@ -1,17 +1,25 @@
-import { Briefcase, CalendarDays, MapPin, MoreHorizontal, UserPlus, UserRound } from "lucide-react";
+import {
+  Banknote,
+  Briefcase,
+  CalendarDays,
+  MapPin,
+  MoreHorizontal,
+  UserPlus,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import type { ClientRow } from "@/lib/api";
+import type {
+  ClientProfile as ClientProfileProjection,
+  ClientRow,
+  OpportunityRow,
+} from "@/lib/api";
 import { clientName, initials, personName, type ProjectStatus } from "@/lib/client-presentation";
 import { ethiopianDate } from "@/lib/ethiopian-date";
 
 import { clientTabHref } from "./profile-model";
 
-/**
- * The headline beside the client name. Per the domain model this is a read-model
- * precedence, not a stored field: an in-progress project outranks everything else.
- */
 function directoryStatus(projectStatuses: ProjectStatus[]) {
   if (projectStatuses.includes("in_progress")) return "Active project";
   if (projectStatuses.length > 0 && projectStatuses.every((status) => status === "completed"))
@@ -22,18 +30,38 @@ function directoryStatus(projectStatuses: ProjectStatus[]) {
 export function ProfileHeader({
   client,
   projectStatuses,
+  opportunity,
+  health,
   timeZone,
   manageable,
+  onAddContact,
 }: {
   client: ClientRow;
   projectStatuses: ProjectStatus[];
+  opportunity: OpportunityRow | null;
+  health: ClientProfileProjection["health"] | null;
   timeZone: string;
   manageable: boolean;
+  onAddContact: () => void;
 }) {
-  const headline = directoryStatus(projectStatuses);
+  const headline = opportunity?.pipelineStage.name ?? directoryStatus(projectStatuses);
+  const headlineTone =
+    opportunity?.pipelineStage.outcome === "lost"
+      ? "bg-destructive/10 text-destructive"
+      : opportunity?.pipelineStage.outcome === "won"
+        ? "bg-success/10 text-success"
+        : "bg-muted text-muted-foreground";
+  const healthLabel =
+    health?.band === "healthy" ? "Healthy" : health?.band === "watch" ? "Watch" : "At risk";
+  const healthTone =
+    health?.band === "healthy"
+      ? "text-success"
+      : health?.band === "watch"
+        ? "text-warning"
+        : "text-destructive";
 
   return (
-    <header className="rounded-[18px] bg-card px-6 pt-6 shadow-[var(--shadow-card)] ring-1 ring-border">
+    <header className="px-6 pt-6 pb-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           <span
@@ -48,8 +76,18 @@ export function ProfileHeader({
                 {clientName(client.client)}
               </h1>
               {headline ? (
-                <span className="rounded-full bg-success/10 px-2.5 py-1 text-[0.6875rem] font-bold text-success">
+                <span
+                  className={`rounded-md px-2.5 py-1 text-[0.6875rem] font-bold ${headlineTone}`}
+                >
                   {headline}
+                </span>
+              ) : null}
+              {health ? (
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-bold ${healthTone}`}
+                >
+                  <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+                  {healthLabel}
                 </span>
               ) : null}
             </div>
@@ -85,20 +123,32 @@ export function ProfileHeader({
         </div>
 
         {manageable ? (
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" className="h-10 rounded-[11px] px-4 font-bold">
-              <Link href={clientTabHref(client.client.id, "contacts")}>
-                <UserPlus aria-hidden="true" />
-                Add contact
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              asChild
+              className="h-10 rounded-[11px] bg-sidebar px-4 font-bold text-sidebar-foreground hover:bg-sidebar/90"
+            >
+              <Link href={clientTabHref(client.client.id, "payments", opportunity?.opportunity.id)}>
+                <Banknote aria-hidden="true" />
+                Record payment
               </Link>
             </Button>
             <Button
+              type="button"
               variant="outline"
-              size="icon"
-              className="size-10 rounded-[11px]"
-              aria-label="More client actions"
+              className="h-10 rounded-[11px] px-4 font-bold"
+              onClick={onAddContact}
             >
-              <MoreHorizontal aria-hidden="true" />
+              <UserPlus aria-hidden="true" />
+              Add contact
+            </Button>
+            <Button asChild variant="outline" size="icon" className="size-10 rounded-[11px]">
+              <Link
+                href={clientTabHref(client.client.id, "audit", opportunity?.opportunity.id)}
+                aria-label="Open client audit log"
+              >
+                <MoreHorizontal aria-hidden="true" />
+              </Link>
             </Button>
           </div>
         ) : null}

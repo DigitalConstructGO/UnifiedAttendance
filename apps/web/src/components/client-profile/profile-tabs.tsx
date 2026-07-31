@@ -2,7 +2,15 @@ import Link from "next/link";
 
 import { CLIENT_TAB_LABELS, CLIENT_TABS, clientTabHref, type ClientTab } from "./profile-model";
 
-export function ProfileTabs({ clientId, active }: { clientId: string; active: ClientTab }) {
+export function ProfileTabs({
+  clientId,
+  opportunityId,
+  active,
+}: {
+  clientId: string;
+  opportunityId?: string;
+  active: ClientTab;
+}) {
   return (
     <nav
       aria-label="Client sections"
@@ -14,7 +22,7 @@ export function ProfileTabs({ clientId, active }: { clientId: string; active: Cl
           return (
             <li key={tab}>
               <Link
-                href={clientTabHref(clientId, tab)}
+                href={clientTabHref(clientId, tab, opportunityId)}
                 aria-current={current ? "page" : undefined}
                 className={`inline-flex min-h-11 items-center border-b-2 px-3.5 text-xs font-semibold transition-colors ${
                   current
