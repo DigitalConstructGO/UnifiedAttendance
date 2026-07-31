@@ -50,6 +50,27 @@
       "when": 1785413596540,
       "tag": "0006_goofy_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785444648242,
+      "tag": "0007_heavy_lord_hawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785444745538,
+      "tag": "0008_goofy_shard",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785445345056,
+      "tag": "0009_bright_siren",
+      "breakpoints": true
     }
   ]
 }

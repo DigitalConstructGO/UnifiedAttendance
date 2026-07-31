@@ -2,11 +2,11 @@ import { queryOptions } from "@tanstack/react-query";
 
 import { accessApi, accessKeys } from "./access";
 import { attendanceApi, attendanceKeys } from "./attendance";
+import { clientKeys, clientsApi } from "./clients";
 import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
 import { organizationApi, organizationKeys } from "./organization";
 import { workforceApi, workforceKeys } from "./workforce";
-
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000;
 
@@ -177,6 +177,143 @@ export const correctionsQueries = {
     }),
 };
 
+type ListClientsQuery = Parameters<typeof clientsApi.list>[0];
+type ListOpportunitiesQuery = Parameters<typeof clientsApi.opportunities>[0];
+type ListProjectsQuery = Parameters<typeof clientsApi.projects>[0];
+type ListCommercialContractsQuery = Parameters<typeof clientsApi.commercialContracts>[0];
+type ListInvoicesQuery = Parameters<typeof clientsApi.invoices>[0];
+type ClientOverviewQuery = Parameters<typeof clientsApi.overview>[0];
+type ListActivitiesQuery = Parameters<typeof clientsApi.activities>[0];
+
+export const clientQueries = {
+  overview: (query: ClientOverviewQuery = {}) =>
+    queryOptions({
+      queryKey: clientKeys.overview(query),
+      queryFn: ({ signal }) => clientsApi.overview(query, signal),
+    }),
+  list: (query: ListClientsQuery = {}) =>
+    queryOptions({
+      queryKey: clientKeys.list(query),
+      queryFn: ({ signal }) => clientsApi.list(query, signal),
+    }),
+  detail: (id: string) =>
+    queryOptions({
+      queryKey: clientKeys.detail(id),
+      queryFn: ({ signal }) => clientsApi.get(id, signal),
+      enabled: id.length > 0,
+    }),
+  profile: (id: string, asOf?: string) =>
+    queryOptions({
+      queryKey: clientKeys.profile(id, asOf),
+      queryFn: ({ signal }) => clientsApi.profile(id, asOf, signal),
+      enabled: id.length > 0,
+    }),
+  timeline: (id: string, asOf?: string) =>
+    queryOptions({
+      queryKey: clientKeys.timeline(id, asOf),
+      queryFn: ({ signal }) => clientsApi.timeline(id, asOf, signal),
+      enabled: id.length > 0,
+    }),
+  audit: (id: string) =>
+    queryOptions({
+      queryKey: clientKeys.audit(id),
+      queryFn: ({ signal }) => clientsApi.audit(id, signal),
+      enabled: id.length > 0,
+    }),
+  ownerAssignments: (id: string) =>
+    queryOptions({
+      queryKey: clientKeys.ownerAssignments(id),
+      queryFn: ({ signal }) => clientsApi.ownerAssignments(id, signal),
+      enabled: id.length > 0,
+    }),
+  contacts: (clientId: string) =>
+    queryOptions({
+      queryKey: clientKeys.contacts(clientId),
+      queryFn: ({ signal }) => clientsApi.contacts({ clientId }, signal),
+      enabled: clientId.length > 0,
+    }),
+  opportunities: (query: ListOpportunitiesQuery = {}) =>
+    queryOptions({
+      queryKey: clientKeys.opportunities(query),
+      queryFn: ({ signal }) => clientsApi.opportunities(query, signal),
+    }),
+  opportunity: (id: string) =>
+    queryOptions({
+      queryKey: clientKeys.opportunity(id),
+      queryFn: ({ signal }) => clientsApi.opportunity(id, signal),
+      enabled: id.length > 0,
+    }),
+  stageTransitions: (opportunityId: string) =>
+    queryOptions({
+      queryKey: clientKeys.stageTransitions(opportunityId),
+      queryFn: ({ signal }) => clientsApi.stageTransitions(opportunityId, signal),
+      enabled: opportunityId.length > 0,
+    }),
+  projects: (query: ListProjectsQuery = {}) =>
+    queryOptions({
+      queryKey: clientKeys.projects(query),
+      queryFn: ({ signal }) => clientsApi.projects(query, signal),
+    }),
+  commercialContracts: (query: ListCommercialContractsQuery = {}) =>
+    queryOptions({
+      queryKey: clientKeys.commercialContracts(query),
+      queryFn: ({ signal }) => clientsApi.commercialContracts(query, signal),
+    }),
+  invoices: (query: ListInvoicesQuery = {}) =>
+    queryOptions({
+      queryKey: clientKeys.invoices(query),
+      queryFn: ({ signal }) => clientsApi.invoices(query, signal),
+    }),
+  invoice: (id: string) =>
+    queryOptions({
+      queryKey: clientKeys.invoice(id),
+      queryFn: ({ signal }) => clientsApi.invoice(id, signal),
+      enabled: id.length > 0,
+    }),
+  notes: (clientId: string) =>
+    queryOptions({
+      queryKey: clientKeys.notes(clientId),
+      queryFn: ({ signal }) => clientsApi.notes({ clientId }, signal),
+      enabled: clientId.length > 0,
+    }),
+  activities: (query: ListActivitiesQuery) =>
+    queryOptions({
+      queryKey: clientKeys.activities(query),
+      queryFn: ({ signal }) => clientsApi.activities(query, signal),
+      enabled: Boolean(query.clientId || query.opportunityId),
+    }),
+  documents: (clientId: string) =>
+    queryOptions({
+      queryKey: clientKeys.documents(clientId),
+      queryFn: ({ signal }) => clientsApi.documents({ clientId }, signal),
+      enabled: clientId.length > 0,
+    }),
+  industries: () =>
+    queryOptions({
+      queryKey: clientKeys.industries,
+      queryFn: ({ signal }) => clientsApi.industries(signal),
+      staleTime: CATALOG_STALE_TIME,
+    }),
+  clientTypes: () =>
+    queryOptions({
+      queryKey: clientKeys.clientTypes,
+      queryFn: ({ signal }) => clientsApi.clientTypes(signal),
+      staleTime: CATALOG_STALE_TIME,
+    }),
+  companySizes: () =>
+    queryOptions({
+      queryKey: clientKeys.companySizes,
+      queryFn: ({ signal }) => clientsApi.companySizes(signal),
+      staleTime: CATALOG_STALE_TIME,
+    }),
+  pipelineStages: () =>
+    queryOptions({
+      queryKey: clientKeys.pipelineStages,
+      queryFn: ({ signal }) => clientsApi.pipelineStages(signal),
+      staleTime: CATALOG_STALE_TIME,
+    }),
+};
+
 export const queries = {
   access: accessQueries,
   organization: organizationQueries,
@@ -184,4 +321,5 @@ export const queries = {
   devices: devicesQueries,
   attendance: attendanceQueries,
   corrections: correctionsQueries,
+  clients: clientQueries,
 };

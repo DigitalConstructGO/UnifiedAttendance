@@ -13,7 +13,9 @@
     "check-types": "tsc --noEmit",
     "rbac:seed": "tsx scripts/seed.ts",
     "rbac:seed-admin": "tsx scripts/seed-super-admin.ts",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "employees:seed": "tsx scripts/seed-employees.ts",
+    "clients:seed": "tsx scripts/seed-clients.ts"
   },
   "dependencies": {
     "@UnifiedAttendance/auth": "workspace:*",

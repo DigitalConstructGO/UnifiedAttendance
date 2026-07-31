@@ -14,12 +14,22 @@ const routeTitles: Record<string, string> = {
   "/dashboard/devices": "Devices",
   "/dashboard/attendance": "Attendance",
   "/dashboard/corrections": "Corrections",
+  "/dashboard/clients": "Client profile",
+  "/dashboard/clients/pipeline": "Leads & pipeline",
+  "/dashboard/clients/contracts": "Contracts",
+  "/dashboard/clients/invoices": "Invoices",
+  "/dashboard/clients/overview": "Client dashboard",
 };
 
 const routeContexts: Record<string, string> = {
   "/dashboard/employees": "Office / People directory",
   "/dashboard/workforce": "Office / People directory",
   "/dashboard/attendance": "Office / Daily register",
+  "/dashboard/clients": "Clients / Customer record",
+  "/dashboard/clients/pipeline": "Clients / Sales pipeline",
+  "/dashboard/clients/contracts": "Clients / Agreements",
+  "/dashboard/clients/invoices": "Clients / Billing",
+  "/dashboard/clients/overview": "Clients / Reporting",
 };
 
 export function DashboardHeader({ brand }: { brand: Brand }) {

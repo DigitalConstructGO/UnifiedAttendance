@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DASHBOARD_NAV, can, toAccess, visibleNavItems } from "@/lib/access";
+import { DASHBOARD_NAV, can, toAccess, visibleNavItems, visibleNavSections } from "@/lib/access";
 
 describe("toAccess", () => {
   it("collapses the one-row-per-permission shape into a single Access", () => {
@@ -48,8 +48,20 @@ describe("visibleNavItems", () => {
     ]);
 
     expect(visibleNavItems(access).map((item) => item.href)).toEqual([
-      "/dashboard/employees",
       "/dashboard/attendance",
+      "/dashboard/employees",
+    ]);
+  });
+
+  it("groups visible modules without rendering empty sections", () => {
+    const access = toAccess([
+      { roleName: "HR", permission: "attendance:read" },
+      { roleName: "HR", permission: "clients:read" },
+    ]);
+
+    expect(visibleNavSections(access).map((section) => section.label)).toEqual([
+      "Office",
+      "Clients",
     ]);
   });
 

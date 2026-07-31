@@ -1,12 +1,18 @@
 "use client";
 
 import {
+  Building,
   Building2,
   CalendarCheck2,
+  FileSignature,
   Gauge,
   Laptop2,
   LogOut,
+  type LucideIcon,
+  PieChart,
+  ReceiptText,
   ShieldCheck,
+  UserRoundPlus,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +34,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { visibleNavItems } from "@/lib/access";
+import { DASHBOARD_NAV, type NavLabel, visibleNavSections } from "@/lib/access";
 import { authClient } from "@/lib/auth-client";
 
 const moduleIcons = {
@@ -37,14 +43,40 @@ const moduleIcons = {
   Devices: Laptop2,
   Attendance: CalendarCheck2,
   Corrections: ShieldCheck,
-};
+  Dashboard: PieChart,
+  "All clients": Building,
+  "Leads & pipeline": UserRoundPlus,
+  Contracts: FileSignature,
+  Invoices: ReceiptText,
+} satisfies Record<NavLabel, LucideIcon>;
+
+const groupLabelClass =
+  "px-3 text-[0.625rem] font-bold tracking-[0.1em] text-sidebar-foreground/40 uppercase";
+
+const menuButtonClass =
+  "h-11 rounded-[11px] px-3 text-sidebar-foreground/75 hover:bg-white/7 hover:text-white data-[active=true]:bg-sidebar-accent data-[active=true]:text-white data-[active=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)]";
+
+/**
+ * `/dashboard/clients` is a prefix of every other client route, so a plain
+ * `startsWith` would light up All clients while you are on Invoices. Only the
+ * longest matching nav href wins.
+ */
+function isCurrent(pathname: string, href: string) {
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  return !DASHBOARD_NAV.some(
+    (other) =>
+      other.href.length > href.length &&
+      (pathname === other.href || pathname.startsWith(`${other.href}/`)),
+  );
+}
 
 export function AppSidebar({ brand }: { brand: Brand }) {
   const pathname = usePathname();
   const router = useRouter();
   const { role, permissions } = useAccess();
   const { data: session } = authClient.useSession();
-  const items = visibleNavItems({ role, permissions });
+  const sections = visibleNavSections({ role, permissions });
   const [signingOut, setSigningOut] = useState(false);
 
   async function signOut() {
@@ -98,11 +130,9 @@ export function AppSidebar({ brand }: { brand: Brand }) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent className="gap-4 px-2 py-3">
         <SidebarGroup className="p-0">
-          <SidebarGroupLabel className="px-3 text-[0.625rem] font-bold tracking-[0.1em] text-sidebar-foreground/40 uppercase">
-            Workspace
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className={groupLabelClass}>Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
               <SidebarMenuItem>
@@ -110,7 +140,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   asChild
                   tooltip="Overview"
                   isActive={pathname === "/dashboard"}
-                  className="h-11 rounded-[11px] px-3 text-sidebar-foreground/75 hover:bg-white/7 hover:text-white data-[active=true]:bg-sidebar-accent data-[active=true]:text-white data-[active=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)]"
+                  className={menuButtonClass}
                 >
                   <Link href="/dashboard">
                     <Gauge aria-hidden="true" />
@@ -118,27 +148,37 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {items.map((item) => {
-                const Icon = moduleIcons[item.label];
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.label}
-                      isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
-                      className="h-11 rounded-[11px] px-3 text-sidebar-foreground/75 hover:bg-white/7 hover:text-white data-[active=true]:bg-sidebar-accent data-[active=true]:text-white data-[active=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)]"
-                    >
-                      <Link href={item.href}>
-                        <Icon aria-hidden="true" />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {sections.map((section) => (
+          <SidebarGroup key={section.label} className="p-0">
+            <SidebarGroupLabel className={groupLabelClass}>{section.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                {section.items.map((item) => {
+                  const Icon = moduleIcons[item.label];
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.label}
+                        isActive={isCurrent(pathname, item.href)}
+                        className={menuButtonClass}
+                      >
+                        <Link href={item.href}>
+                          <Icon aria-hidden="true" />
+                          <span>{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">

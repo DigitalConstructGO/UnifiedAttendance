@@ -39,6 +39,31 @@ const moduleMeta = {
     description: "Review and manage attendance corrections.",
     tone: "text-destructive bg-destructive/8",
   },
+  Dashboard: {
+    icon: CheckCircle2,
+    description: "Revenue, outstanding balances and conversion for the client book.",
+    tone: "text-info bg-info/10",
+  },
+  "All clients": {
+    icon: Building2,
+    description: "Client relationships, owners, projects and billing.",
+    tone: "text-workflow bg-workflow/10",
+  },
+  "Leads & pipeline": {
+    icon: ArrowRight,
+    description: "Commercial opportunities organized by editable sales stage.",
+    tone: "text-info bg-info/10",
+  },
+  Contracts: {
+    icon: ShieldCheck,
+    description: "Commercial agreements and renewal terms.",
+    tone: "text-warning bg-warning/12",
+  },
+  Invoices: {
+    icon: CalendarCheck2,
+    description: "Issued amounts, payments and outstanding balances.",
+    tone: "text-success bg-success/10",
+  },
 };
 
 export default async function DashboardPage() {

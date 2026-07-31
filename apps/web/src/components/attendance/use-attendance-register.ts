@@ -99,6 +99,7 @@ export function useAttendanceRegister() {
       });
       form.reset();
     } catch {
+      return;
     }
   }
 

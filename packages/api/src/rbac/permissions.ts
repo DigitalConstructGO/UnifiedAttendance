@@ -10,6 +10,8 @@ export const PERMISSIONS = {
   correctionsRead: "corrections:read",
   correctionsManage: "corrections:manage",
   correctionsReview: "corrections:review",
+  clientsRead: "clients:read",
+  clientsManage: "clients:manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -44,6 +46,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "attendance:read",
     "corrections:read",
     "corrections:review",
+    "clients:read",
   ],
-  [ROLES.manager]: ["workforce:read", "attendance:read", "corrections:read", "corrections:review"],
+  [ROLES.manager]: [
+    "workforce:read",
+    "attendance:read",
+    "corrections:read",
+    "corrections:review",
+    "clients:read",
+  ],
 };

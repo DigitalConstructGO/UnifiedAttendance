@@ -22,6 +22,7 @@ export {
 export * from "./modules/access/service";
 export * from "./modules/attendance/service";
 export * from "./modules/corrections/service";
+export * from "./modules/clients/service";
 export * from "./modules/devices/service";
 export * from "./modules/organization/service";
 export * from "./modules/workforce/service";
