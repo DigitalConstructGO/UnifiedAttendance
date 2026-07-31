@@ -103,11 +103,14 @@ async function clientHealth(clientId: string, asOf: string) {
   }
   score = Math.max(0, score);
   return {
-    clientId,
-    score,
-    band: score >= 70 ? "healthy" : score >= 40 ? "watch" : "at_risk",
-    reasons,
-    calculatedAt: asOf,
+    health: {
+      clientId,
+      score,
+      band: score >= 70 ? "healthy" : score >= 40 ? "watch" : "at_risk",
+      reasons,
+      calculatedAt: asOf,
+    },
+    lastActivityAt: latestActivity?.occurredAt ?? null,
   };
 }
 
@@ -115,7 +118,7 @@ export async function getClientProfile(ctx: Context, input: ClientProjectionInpu
   const details = await getClient(ctx, { id: input.id });
   const organization = await currentOrganizationOrThrow();
   const asOf = input.asOf ?? localBusinessDate(organization.timezone);
-  const [[primaryContact], currentProjects, health] = await Promise.all([
+  const [[primaryContact], currentProjects, activityHealth] = await Promise.all([
     db
       .select()
       .from(clientContacts)
@@ -136,7 +139,8 @@ export async function getClientProfile(ctx: Context, input: ClientProjectionInpu
     currentProjects: currentProjects.filter(
       ({ project }) => project.status === "planning" || project.status === "in_progress",
     ),
-    health,
+    health: activityHealth.health,
+    lastActivityAt: activityHealth.lastActivityAt,
   };
 }
 

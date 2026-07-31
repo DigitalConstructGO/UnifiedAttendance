@@ -267,12 +267,25 @@ export const clientsApi = {
         },
       },
     );
-    const uploaded = await fetch(prepared.uploadUrl, {
-      method: "PUT",
-      headers: { "content-type": contentType },
-      body: file,
-    });
-    if (!uploaded.ok) throw new Error(`S3 rejected ${file.name}.`);
+    try {
+      const uploaded = await fetch(prepared.uploadUrl, {
+        method: "PUT",
+        headers: { "content-type": contentType },
+        body: file,
+      });
+      if (!uploaded.ok) throw new Error(`S3 rejected ${file.name}.`);
+    } catch (cause) {
+      try {
+        await apiFetch(`/client-documents/${prepared.document.id}`, { method: "DELETE" });
+      } catch (cleanupCause) {
+        throw new AggregateError(
+          [cause, cleanupCause],
+          `Uploading ${file.name} failed and its prepared record could not be removed.`,
+          { cause: cleanupCause },
+        );
+      }
+      throw cause;
+    }
     return prepared;
   },
   uploadDocumentVersion: async (metadata: ClientDocumentVersionMetadata, file: File) => {

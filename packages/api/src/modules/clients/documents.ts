@@ -249,3 +249,31 @@ export async function createClientDocumentVersion(
   });
   return getClientDocument(ctx, { id: documentId });
 }
+
+export async function deleteClientDocument(ctx: Context, input: ClientResourceIdInput) {
+  const document = await documentOrThrow(input.id);
+  const client = await clientOrThrow(document.clientId);
+  await requirePermission(ctx, "clients:manage", client.branchId);
+  const actorUserId = requireSessionUser(ctx);
+
+  return db.transaction(async (tx) => {
+    const [deleted] = await tx
+      .delete(clientDocuments)
+      .where(eq(clientDocuments.id, document.id))
+      .returning();
+    if (!deleted) throw new Error("Client Document deletion failed");
+    await tx.insert(clientAuditEntries).values({
+      organizationId: client.organizationId,
+      clientId: client.id,
+      actorUserId,
+      action: "client_document.upload_cancelled",
+      entityType: "client_document",
+      entityId: document.id,
+      changeSummary: {
+        logicalDocumentId: document.logicalDocumentId,
+        version: document.version,
+      },
+    });
+    return deleted;
+  });
+}
