@@ -39,7 +39,12 @@ const moduleMeta = {
     description: "Review and manage attendance corrections.",
     tone: "text-destructive bg-destructive/8",
   },
-  Clients: {
+  Dashboard: {
+    icon: CheckCircle2,
+    description: "Revenue, outstanding balances and conversion for the client book.",
+    tone: "text-info bg-info/10",
+  },
+  "All clients": {
     icon: Building2,
     description: "Client relationships, owners, projects and billing.",
     tone: "text-workflow bg-workflow/10",
