@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { hasPermission, isRole } from "../../../src/rbac/permissions";
+import {
+  hasPermission,
+  isRole,
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  ROLES,
+} from "../../../src/rbac/permissions";
 
 describe("hasPermission", () => {
   it("allows an action when the user's Role grants its seeded permission", () => {
@@ -18,4 +24,13 @@ describe("isRole", () => {
     expect(isRole("HR")).toBe(true);
     expect(isRole("Custom payroll role")).toBe(false);
   });
+});
+
+describe("Client CRM access", () => {
+  it.each([ROLES.superAdministrator, ROLES.admin, ROLES.hr])(
+    "grants %s permission to view Client and lead details",
+    (role) => {
+      expect(ROLE_PERMISSIONS[role]).toContain(PERMISSIONS.clientsRead);
+    },
+  );
 });
