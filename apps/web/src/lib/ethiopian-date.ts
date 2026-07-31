@@ -1,6 +1,5 @@
 import { DEFAULT_TIME_ZONE } from "./timezone";
 
-
 const ETHIOPIAN_MONTHS = [
   "Meskerem",
   "Tikimt",
@@ -42,7 +41,6 @@ function toDate(value: Date | string) {
   return new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value);
 }
 
-/** `3 Meskerem 2017 E.C.` — the product's standard date rendering. */
 export function ethiopianDate(
   value: Date | string | null | undefined,
   timeZone = DEFAULT_TIME_ZONE,
@@ -54,7 +52,6 @@ export function ethiopianDate(
   return `${day} ${ETHIOPIAN_MONTHS[month - 1] ?? month} ${year} ${ERA_SUFFIX}`;
 }
 
-/** Year alone, for a founding year that never had a day. */
 export function ethiopianYear(
   year: number | null | undefined,
   calendar: string | null | undefined,
@@ -70,10 +67,6 @@ const RELATIVE_UNITS = [
   { limit: 604800, divisor: 86400, unit: "day" },
 ] as const;
 
-/**
- * `5 hours ago` for anything recent, falling back to the Ethiopian date once a
- * relative phrase stops being more useful than the date itself.
- */
 export function relativeTime(
   value: Date | string | null | undefined,
   timeZone = DEFAULT_TIME_ZONE,
@@ -90,7 +83,6 @@ export function relativeTime(
   return formatter.format(-Math.round(elapsedSeconds / match.divisor), match.unit);
 }
 
-/** `09:14` in the branch's zone, for audit rows that pair a date with a clock time. */
 export function clockTime(value: Date | string | null | undefined, timeZone = DEFAULT_TIME_ZONE) {
   if (!value) return "";
   const date = toDate(value);

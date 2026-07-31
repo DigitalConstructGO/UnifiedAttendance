@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-/** The white panel every tab's content sits on. */
 export function TabPanel({
   children,
   className = "",
@@ -39,11 +38,6 @@ export function EmptyState({
   );
 }
 
-/**
- * Stands in for a tab whose service has not shipped. It keeps the tab in the
- * navigation and on the page so the layout is final; only the body swaps when
- * the query arrives.
- */
 export function PendingTab({
   icon,
   title,

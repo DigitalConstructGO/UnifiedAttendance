@@ -1,14 +1,7 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { ClientOverview } from "@/components/client-overview";
 import { requireAccess } from "@/lib/access-server";
 
 export default async function ClientOverviewPage() {
-  const { access } = await requireAccess("clients:read");
-
-  return (
-    <ModulePlaceholder
-      title="Client dashboard"
-      description="Invoiced and collected revenue, outstanding balances, active projects, and lead conversion. Awaiting the reporting read models."
-      role={access.role}
-    />
-  );
+  await requireAccess("clients:read");
+  return <ClientOverview />;
 }

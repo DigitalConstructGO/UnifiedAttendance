@@ -37,7 +37,6 @@ export type ClientDocumentKind = (typeof CLIENT_DOCUMENT_KINDS)[number];
 export const FOUNDING_CALENDARS = ["gregorian", "ethiopian"] as const;
 export type FoundingCalendar = (typeof FOUNDING_CALENDARS)[number];
 
-/** Tone classes reuse the workspace's semantic colours rather than raw palette values. */
 type Tone = { label: string; className: string };
 
 export const PROJECT_STATUS_META = {
@@ -103,6 +102,19 @@ export function directoryStatusTone(kind: string, label?: string): Tone {
   }
 }
 
+const INDUSTRY_DOT_TONES = [
+  "bg-warning",
+  "bg-workflow",
+  "bg-success",
+  "bg-info",
+  "bg-destructive",
+] as const;
+
+export function industryTone(name: string) {
+  const seed = Array.from(name).reduce((total, character) => total + character.charCodeAt(0), 0);
+  return INDUSTRY_DOT_TONES[seed % INDUSTRY_DOT_TONES.length]!;
+}
+
 export const ACTIVITY_TYPE_LABELS = {
   call: "Call",
   meeting: "Meeting",
@@ -117,7 +129,6 @@ export const DOCUMENT_KIND_LABELS = {
   nda: "NDA",
   invoice: "Invoice",
 } as const satisfies Record<ClientDocumentKind, string>;
-
 
 export function money(amount: string | number | null | undefined, currency = "ETB") {
   if (amount === null || amount === undefined || amount === "") return "—";
