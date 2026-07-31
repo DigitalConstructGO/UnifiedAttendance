@@ -43,10 +43,7 @@ export const createManualAttendanceEntryInput = z
     reason: z.string().trim().min(3).max(1_000),
   })
   .superRefine((value, issue) => {
-    if (
-      (value.kind === "check_in" || value.kind === "check_out") &&
-      !value.occurredAt
-    ) {
+    if ((value.kind === "check_in" || value.kind === "check_out") && !value.occurredAt) {
       issue.addIssue({
         code: "custom",
         path: ["occurredAt"],

@@ -1,6 +1,5 @@
 import { and, asc, eq, gte, lt } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   attendanceCorrections,
   attendanceDays,
@@ -12,12 +11,16 @@ import { loadDayContext } from "./day-context";
 import { attendanceOutcome, minutesAfter } from "./day-window";
 import { applyCorrections, applyManualEntries, type PunchTimes } from "./overlays";
 
-/** Recomputes one employee-day from events, manual entries, and approved corrections. */
-export async function deriveAttendanceDay(options: { employeeId: string; attendanceDate: string }) {
-  const { employeeId, attendanceDate } = options;
-  const { dayType, dayWindow } = await loadDayContext({ employeeId, attendanceDate });
+import type { Context } from "../context";
 
-  const events = await db
+export async function deriveAttendanceDay(
+  ctx: Context,
+  options: { employeeId: string; attendanceDate: string },
+) {
+  const { employeeId, attendanceDate } = options;
+  const { dayType, dayWindow } = await loadDayContext(ctx, { employeeId, attendanceDate });
+
+  const events = await ctx.db
     .select()
     .from(attendanceEvents)
     .where(
@@ -29,7 +32,7 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
     )
     .orderBy(asc(attendanceEvents.occurredAt));
 
-  const corrections = await db
+  const corrections = await ctx.db
     .select()
     .from(attendanceCorrections)
     .where(
@@ -41,7 +44,7 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
     )
     .orderBy(asc(attendanceCorrections.reviewedAt));
 
-  const manualEntries = await db
+  const manualEntries = await ctx.db
     .select()
     .from(manualAttendanceEntries)
     .where(
@@ -91,7 +94,7 @@ export async function deriveAttendanceDay(options: { employeeId: string; attenda
     hasApprovedCorrection: corrections.length > 0,
   } as const;
 
-  const [day] = await db
+  const [day] = await ctx.db
     .insert(attendanceDays)
     .values(values)
     .onConflictDoUpdate({

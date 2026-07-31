@@ -1,6 +1,5 @@
 import { and, asc, count, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   branches,
   clientAuditEntries,
@@ -14,6 +13,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, conflict } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { getClientDirectoryMetrics } from "./directory";
 import {
@@ -41,8 +41,8 @@ const clientSelection = {
   ownerPerson: people,
 };
 
-function clientQuery() {
-  return db
+function clientQuery(ctx: Context) {
+  return ctx.db
     .select(clientSelection)
     .from(clients)
     .innerJoin(branches, eq(clients.branchId, branches.id))
@@ -61,15 +61,15 @@ function shapeClient(row: Awaited<ReturnType<typeof clientQuery>>[number]) {
 export async function createClient(ctx: Context, input: CreateClientInput) {
   await requirePermission(ctx, "clients:manage", input.branchId);
   const actorUserId = requireSessionUser(ctx);
-  const organization = await currentOrganizationOrThrow();
-  await validateClientReferences({ organizationId: organization.id, ...input });
+  const organization = await currentOrganizationOrThrow(ctx);
+  await validateClientReferences(ctx, { organizationId: organization.id, ...input });
   const relationshipStartedOn =
     input.relationshipStartedOn ?? localBusinessDate(organization.timezone);
 
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+  return withTransaction(ctx, async (ctx) => {
+    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
     const year = relationshipStartedOn.slice(0, 4);
-    const [row] = await tx
+    const [row] = await ctx.db
       .select({ value: count() })
       .from(clients)
       .where(
@@ -79,7 +79,7 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
         ),
       );
     const clientCode = `CLI-${year}-${String((row?.value ?? 0) + 1).padStart(6, "0")}`;
-    const [client] = await tx
+    const [client] = await ctx.db
       .insert(clients)
       .values({
         organizationId: organization.id,
@@ -95,7 +95,7 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
       })
       .returning();
     if (!client) throw new Error("Client creation failed");
-    const [ownerAssignment] = await tx
+    const [ownerAssignment] = await ctx.db
       .insert(clientOwnerAssignments)
       .values({
         organizationId: organization.id,
@@ -106,7 +106,7 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
       })
       .returning();
     if (!ownerAssignment) throw new Error("Client owner assignment creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: organization.id,
       clientId: client.id,
       actorUserId,
@@ -120,16 +120,16 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
 }
 
 export async function getClient(ctx: Context, input: ClientResourceIdInput) {
-  const client = await clientOrThrow(input.id);
+  const client = await clientOrThrow(ctx, input.id);
   await requirePermission(ctx, "clients:read", client.branchId);
-  const [row] = await clientQuery().where(eq(clients.id, input.id)).limit(1);
+  const [row] = await clientQuery(ctx).where(eq(clients.id, input.id)).limit(1);
   if (!row) throw new Error("Client details could not be loaded");
   return shapeClient(row);
 }
 
 export async function listClients(ctx: Context, input: ListClientsInput) {
   await requirePermission(ctx, "clients:read", input.branchId);
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(clients.organizationId, organization.id)];
   if (input.branchId) filters.push(eq(clients.branchId, input.branchId));
   if (input.industryId) filters.push(eq(clients.industryId, input.industryId));
@@ -151,15 +151,16 @@ export async function listClients(ctx: Context, input: ListClientsInput) {
   const hasDerivedFilter = Boolean(input.directoryStatus || input.pipelineStageId);
   const [rows, [totalRow]] = await Promise.all([
     hasDerivedFilter
-      ? clientQuery().where(where).orderBy(asc(clients.legalName))
-      : clientQuery()
+      ? clientQuery(ctx).where(where).orderBy(asc(clients.legalName))
+      : clientQuery(ctx)
           .where(where)
           .orderBy(asc(clients.legalName))
           .limit(pageSize)
           .offset((page - 1) * pageSize),
-    db.select({ value: count() }).from(clients).where(where),
+    ctx.db.select({ value: count() }).from(clients).where(where),
   ]);
   const directoryMetrics = await getClientDirectoryMetrics(
+    ctx,
     rows.map(({ client }) => ({ id: client.id, status: client.status })),
   );
   const enrichedRows = rows
@@ -191,13 +192,13 @@ export async function listClients(ctx: Context, input: ListClientsInput) {
 }
 
 export async function updateClient(ctx: Context, input: UpdateClientInput) {
-  const current = await clientOrThrow(input.id);
+  const current = await clientOrThrow(ctx, input.id);
   await requirePermission(ctx, "clients:manage", current.branchId);
   if (input.branchId && input.branchId !== current.branchId) {
     await requirePermission(ctx, "clients:manage", input.branchId);
   }
-  const organization = await currentOrganizationOrThrow();
-  await validateClientReferences({
+  const organization = await currentOrganizationOrThrow(ctx);
+  await validateClientReferences(ctx, {
     organizationId: organization.id,
     branchId: input.branchId ?? current.branchId,
     ownerEmployeeId: input.ownerEmployeeId ?? current.ownerEmployeeId,
@@ -212,7 +213,7 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
     badRequest("Founded year and calendar must be provided or cleared together");
   }
   if (input.tin && input.tin !== current.tin) {
-    const [duplicate] = await db
+    const [duplicate] = await ctx.db
       .select({ id: clients.id })
       .from(clients)
       .where(
@@ -232,8 +233,8 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
   const changedFields = Object.keys(values).filter(
     (key) => values[key as keyof typeof values] !== undefined,
   );
-  await db.transaction(async (tx) => {
-    await tx
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
       .update(clients)
       .set({
         ...values,
@@ -242,7 +243,7 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
       .where(eq(clients.id, clientId));
     if (ownerEmployeeId && reassigned) {
       const effectiveAt = new Date();
-      await tx
+      await ctx.db
         .update(clientOwnerAssignments)
         .set({ effectiveTo: effectiveAt })
         .where(
@@ -251,7 +252,7 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
             isNull(clientOwnerAssignments.effectiveTo),
           ),
         );
-      await tx.insert(clientOwnerAssignments).values({
+      await ctx.db.insert(clientOwnerAssignments).values({
         organizationId: organization.id,
         clientId,
         ownerEmployeeId,
@@ -260,7 +261,7 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
       });
       changedFields.push("ownerEmployeeId");
     }
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: organization.id,
       clientId,
       actorUserId,
@@ -274,9 +275,9 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
 }
 
 export async function listClientOwnerAssignments(ctx: Context, input: ClientResourceIdInput) {
-  const client = await clientOrThrow(input.id);
+  const client = await clientOrThrow(ctx, input.id);
   await requirePermission(ctx, "clients:read", client.branchId);
-  const rows = await db
+  const rows = await ctx.db
     .select({ assignment: clientOwnerAssignments, employee: employees, person: people })
     .from(clientOwnerAssignments)
     .innerJoin(employees, eq(clientOwnerAssignments.ownerEmployeeId, employees.id))
@@ -290,17 +291,17 @@ export async function listClientOwnerAssignments(ctx: Context, input: ClientReso
 }
 
 export async function archiveClient(ctx: Context, input: ClientResourceIdInput) {
-  const current = await clientOrThrow(input.id);
+  const current = await clientOrThrow(ctx, input.id);
   await requirePermission(ctx, "clients:manage", current.branchId);
   if (current.status === "archived") return current;
   const actorUserId = requireSessionUser(ctx);
-  const [archived] = await db.transaction(async (tx) => {
-    const result = await tx
+  const [archived] = await withTransaction(ctx, async (ctx) => {
+    const result = await ctx.db
       .update(clients)
       .set({ status: "archived", archivedAt: new Date() })
       .where(eq(clients.id, input.id))
       .returning();
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: current.organizationId,
       clientId: current.id,
       actorUserId,

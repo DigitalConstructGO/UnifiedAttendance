@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   employmentContracts,
   employees,
@@ -20,17 +19,14 @@ type DocumentOwner = {
   employmentContractId?: string | null;
 };
 
-/**
- * A document inherits the branch scope of whoever owns it: a person and a contract
- * both resolve to an employee's branch, while a bare cosigner is workspace-wide.
- */
+
 async function requireDocumentPermission(
   ctx: Context,
   permission: "workforce:read" | "workforce:manage",
   owner: DocumentOwner,
 ) {
   if (owner.personId) {
-    const [employee] = await db
+    const [employee] = await ctx.db
       .select()
       .from(employees)
       .where(eq(employees.personId, owner.personId))
@@ -40,7 +36,7 @@ async function requireDocumentPermission(
     return;
   }
   if (owner.employmentContractId) {
-    const [employee] = await db
+    const [employee] = await ctx.db
       .select({ branchId: employees.branchId })
       .from(employmentContracts)
       .innerJoin(employees, eq(employmentContracts.employeeId, employees.id))
@@ -62,7 +58,7 @@ function storagePrefix(input: CreateWorkforceDocumentInput) {
 /** Creates private metadata first; the web route returns the corresponding signed upload URL. */
 export async function createWorkforceDocument(ctx: Context, input: CreateWorkforceDocumentInput) {
   await requireDocumentPermission(ctx, "workforce:manage", input);
-  const [document] = await db
+  const [document] = await ctx.db
     .insert(workforceDocuments)
     .values({
       personId: input.personId ?? null,
@@ -78,14 +74,14 @@ export async function createWorkforceDocument(ctx: Context, input: CreateWorkfor
 }
 
 export async function finalizeWorkforceDocument(ctx: Context, documentId: string) {
-  const [document] = await db
+  const [document] = await ctx.db
     .select()
     .from(workforceDocuments)
     .where(eq(workforceDocuments.id, documentId))
     .limit(1);
   if (!document) notFound("Employee document");
   await requireDocumentPermission(ctx, "workforce:manage", document);
-  const [finalized] = await db
+  const [finalized] = await ctx.db
     .update(workforceDocuments)
     .set({ finalizedAt: new Date() })
     .where(eq(workforceDocuments.id, documentId))
@@ -94,7 +90,7 @@ export async function finalizeWorkforceDocument(ctx: Context, documentId: string
 }
 
 export async function getWorkforceDocument(ctx: Context, documentId: string) {
-  const [document] = await db
+  const [document] = await ctx.db
     .select()
     .from(workforceDocuments)
     .where(eq(workforceDocuments.id, documentId))
@@ -107,6 +103,6 @@ export async function getWorkforceDocument(ctx: Context, documentId: string) {
 export async function deleteWorkforceDocument(ctx: Context, documentId: string) {
   const document = await getWorkforceDocument(ctx, documentId);
   await requireDocumentPermission(ctx, "workforce:manage", document);
-  await db.delete(workforceDocuments).where(eq(workforceDocuments.id, documentId));
+  await ctx.db.delete(workforceDocuments).where(eq(workforceDocuments.id, documentId));
   return document;
 }

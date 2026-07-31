@@ -1,10 +1,10 @@
 import { eq, inArray } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import { permissions, rolePermissions, roles, userRoles } from "@UnifiedAttendance/db/schema/index";
 
 import { ROLES, isRole } from "../../rbac/permissions";
 import { badRequest, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requireSessionUser, requireSuperAdmin } from "../shared/guards";
 
 import type { AssignRoleInput, UpdateRolePermissionsInput } from "../../validations/access";
@@ -12,10 +12,9 @@ import type { Context } from "../../context";
 
 const roleNames = Object.values(ROLES);
 
-/** Every role/permission pair the caller holds — the raw material for the UI's access map. */
 export function getMyAccess(ctx: Context) {
   const userId = requireSessionUser(ctx);
-  return db
+  return ctx.db
     .select({
       roleId: roles.id,
       roleName: roles.name,
@@ -30,17 +29,17 @@ export function getMyAccess(ctx: Context) {
 
 export async function listPermissions(ctx: Context) {
   await requireSuperAdmin(ctx);
-  return db.select().from(permissions).orderBy(permissions.code);
+  return ctx.db.select().from(permissions).orderBy(permissions.code);
 }
 
 export async function listRoles(ctx: Context) {
   await requireSuperAdmin(ctx);
-  return db.select().from(roles).where(inArray(roles.name, roleNames)).orderBy(roles.name);
+  return ctx.db.select().from(roles).where(inArray(roles.name, roleNames)).orderBy(roles.name);
 }
 
 export async function updateRolePermissions(ctx: Context, input: UpdateRolePermissionsInput) {
   await requireSuperAdmin(ctx);
-  const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+  const [role] = await ctx.db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
   if (!role || !isRole(role.name)) {
     notFound("Role");
   }
@@ -48,15 +47,18 @@ export async function updateRolePermissions(ctx: Context, input: UpdateRolePermi
   const selectedPermissions =
     input.permissionCodes.length === 0
       ? []
-      : await db.select().from(permissions).where(inArray(permissions.code, input.permissionCodes));
+      : await ctx.db
+          .select()
+          .from(permissions)
+          .where(inArray(permissions.code, input.permissionCodes));
   if (selectedPermissions.length !== input.permissionCodes.length) {
     badRequest("One or more permission codes are not in the seeded catalog");
   }
 
-  await db.transaction(async (tx) => {
-    await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, role.id));
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(rolePermissions).where(eq(rolePermissions.roleId, role.id));
     if (selectedPermissions.length > 0) {
-      await tx.insert(rolePermissions).values(
+      await ctx.db.insert(rolePermissions).values(
         selectedPermissions.map((permission) => ({
           roleId: role.id,
           permissionId: permission.id,
@@ -69,7 +71,7 @@ export async function updateRolePermissions(ctx: Context, input: UpdateRolePermi
 
 export async function listAssignments(ctx: Context) {
   await requireSuperAdmin(ctx);
-  return db
+  return ctx.db
     .select({
       userId: userRoles.userId,
       roleId: userRoles.roleId,
@@ -83,12 +85,12 @@ export async function listAssignments(ctx: Context) {
 
 export async function assignRole(ctx: Context, input: AssignRoleInput) {
   await requireSuperAdmin(ctx);
-  const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+  const [role] = await ctx.db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
   if (!role || !isRole(role.name)) {
     notFound("Role");
   }
   const assignedBy = requireSessionUser(ctx);
-  const [assignment] = await db
+  const [assignment] = await ctx.db
     .insert(userRoles)
     .values({ userId: input.userId, roleId: role.id, assignedBy })
     .onConflictDoUpdate({

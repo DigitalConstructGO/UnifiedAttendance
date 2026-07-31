@@ -1,6 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   employees,
   permissions,
@@ -22,7 +21,7 @@ function userId(ctx: Context) {
 }
 
 export async function requirePermission(ctx: Context, permission: Permission, _branchId?: string) {
-  const grantedPermissions = await db
+  const grantedPermissions = await ctx.db
     .select({ code: permissions.code })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -41,7 +40,7 @@ export async function requirePermission(ctx: Context, permission: Permission, _b
 }
 
 export async function requireSuperAdmin(ctx: Context) {
-  const assignment = await db
+  const assignment = await ctx.db
     .select({ userId: userRoles.userId })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -54,7 +53,7 @@ export async function requireSuperAdmin(ctx: Context) {
 }
 
 export async function requireAdministrator(ctx: Context) {
-  const assignments = await db
+  const assignments = await ctx.db
     .select({ roleName: roles.name })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -72,8 +71,8 @@ export function requireSessionUser(ctx: Context) {
   return userId(ctx);
 }
 
-export async function employeeBranchOrThrow(employeeId: string) {
-  const [employee] = await db
+export async function employeeBranchOrThrow(ctx: Context, employeeId: string) {
+  const [employee] = await ctx.db
     .select({ branchId: employees.branchId })
     .from(employees)
     .where(eq(employees.id, employeeId))

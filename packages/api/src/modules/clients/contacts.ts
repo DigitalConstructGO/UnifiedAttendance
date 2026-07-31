@@ -1,9 +1,9 @@
 import { and, asc, eq, ne, sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import { clientAuditEntries, clientContacts } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { clientOrThrow } from "./shared";
 
@@ -25,8 +25,8 @@ function hasReachableChannel(value: {
   );
 }
 
-async function contactOrThrow(contactId: string) {
-  const [contact] = await db
+async function contactOrThrow(ctx: Context, contactId: string) {
+  const [contact] = await ctx.db
     .select()
     .from(clientContacts)
     .where(eq(clientContacts.id, contactId))
@@ -36,9 +36,9 @@ async function contactOrThrow(contactId: string) {
 }
 
 export async function listClientContacts(ctx: Context, input: ListClientContactsInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:read", client.branchId);
-  return db
+  return ctx.db
     .select()
     .from(clientContacts)
     .where(
@@ -51,16 +51,16 @@ export async function listClientContacts(ctx: Context, input: ListClientContacts
 }
 
 export async function createClientContact(ctx: Context, input: CreateClientContactInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (!hasReachableChannel(input)) {
     badRequest("An active Client Contact requires a phone, email, or Telegram handle");
   }
   const actorUserId = requireSessionUser(ctx);
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${client.id}))`);
+  return withTransaction(ctx, async (ctx) => {
+    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${client.id}))`);
     if (input.isPrimary) {
-      await tx
+      await ctx.db
         .update(clientContacts)
         .set({ isPrimary: false })
         .where(
@@ -71,7 +71,7 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
           ),
         );
     }
-    const [contact] = await tx
+    const [contact] = await ctx.db
       .insert(clientContacts)
       .values({
         organizationId: client.organizationId,
@@ -85,7 +85,7 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
       })
       .returning();
     if (!contact) throw new Error("Client Contact creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
@@ -99,8 +99,8 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
 }
 
 export async function updateClientContact(ctx: Context, input: UpdateClientContactInput) {
-  const current = await contactOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await contactOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   const phone = input.phone === undefined ? current.phone : input.phone;
   const email = input.email === undefined ? current.email : input.email;
@@ -110,10 +110,10 @@ export async function updateClientContact(ctx: Context, input: UpdateClientConta
     badRequest("An active Client Contact requires a phone, email, or Telegram handle");
   }
   const actorUserId = requireSessionUser(ctx);
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${client.id}))`);
+  return withTransaction(ctx, async (ctx) => {
+    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${client.id}))`);
     if (input.isPrimary) {
-      await tx
+      await ctx.db
         .update(clientContacts)
         .set({ isPrimary: false })
         .where(
@@ -126,13 +126,13 @@ export async function updateClientContact(ctx: Context, input: UpdateClientConta
         );
     }
     const { id: contactId, ...values } = input;
-    const [contact] = await tx
+    const [contact] = await ctx.db
       .update(clientContacts)
       .set(values)
       .where(eq(clientContacts.id, contactId))
       .returning();
     if (!contact) throw new Error("Client Contact update failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
@@ -146,19 +146,19 @@ export async function updateClientContact(ctx: Context, input: UpdateClientConta
 }
 
 export async function archiveClientContact(ctx: Context, input: ClientResourceIdInput) {
-  const current = await contactOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await contactOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (current.status === "inactive") return current;
   const actorUserId = requireSessionUser(ctx);
-  return db.transaction(async (tx) => {
-    const [contact] = await tx
+  return withTransaction(ctx, async (ctx) => {
+    const [contact] = await ctx.db
       .update(clientContacts)
       .set({ status: "inactive", isPrimary: false })
       .where(eq(clientContacts.id, current.id))
       .returning();
     if (!contact) throw new Error("Client Contact archive failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,

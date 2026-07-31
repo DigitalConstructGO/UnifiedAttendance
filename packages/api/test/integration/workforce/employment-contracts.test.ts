@@ -13,9 +13,9 @@ import {
   transitionEmployment,
   updateEmploymentContract,
 } from "../../../src/modules/workforce/service";
-import { resetDatabase } from "../../fixtures";
+import { resetDatabase, testContext } from "../../fixtures";
 
-const context = { session: { user: { id: "admin" } } } as never;
+const context = testContext("admin");
 
 describe("employment contracts", () => {
   let firstBranchId: string;

@@ -1,6 +1,5 @@
 import { desc, eq } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   cosigners,
   departments,
@@ -13,6 +12,7 @@ import {
 import { EMPLOYMENT_CONTRACT_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums";
 
 import { badRequest, conflict, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission } from "../shared/guards";
 import { employeeOrThrow, employmentAt } from "./shared";
 
@@ -24,7 +24,6 @@ import type {
 } from "../../validations/workforce";
 import type { Context } from "../../context";
 
-/** The joined shape every contract endpoint returns. */
 const contractSelection = {
   contract: employmentContracts,
   employee: employees,
@@ -35,8 +34,8 @@ const contractSelection = {
   cosigner: cosigners,
 };
 
-function contractQuery() {
-  return db
+function contractQuery(ctx: Context) {
+  return ctx.db
     .select(contractSelection)
     .from(employmentContracts)
     .innerJoin(employees, eq(employmentContracts.employeeId, employees.id))
@@ -47,8 +46,8 @@ function contractQuery() {
     .innerJoin(cosigners, eq(employmentContracts.cosignerId, cosigners.id));
 }
 
-async function employmentContractOrThrow(contractId: string) {
-  const [contract] = await db
+async function employmentContractOrThrow(ctx: Context, contractId: string) {
+  const [contract] = await ctx.db
     .select()
     .from(employmentContracts)
     .where(eq(employmentContracts.id, contractId))
@@ -57,8 +56,8 @@ async function employmentContractOrThrow(contractId: string) {
   return contract;
 }
 
-async function employmentContractDetails(contractId: string) {
-  const [result] = await contractQuery().where(eq(employmentContracts.id, contractId)).limit(1);
+async function employmentContractDetails(ctx: Context, contractId: string) {
+  const [result] = await contractQuery(ctx).where(eq(employmentContracts.id, contractId)).limit(1);
   if (!result) notFound("Employment contract");
   return result;
 }
@@ -77,8 +76,12 @@ function validateEmploymentContract(values: {
   }
 }
 
-async function ensureUniqueContractNumber(contractNumber: string, currentId?: string) {
-  const [existing] = await db
+async function ensureUniqueContractNumber(
+  ctx: Context,
+  contractNumber: string,
+  currentId?: string,
+) {
+  const [existing] = await ctx.db
     .select({ id: employmentContracts.id })
     .from(employmentContracts)
     .where(eq(employmentContracts.contractNumber, contractNumber))
@@ -88,27 +91,27 @@ async function ensureUniqueContractNumber(contractNumber: string, currentId?: st
 
 export async function listEmploymentContracts(ctx: Context, input: ListEmploymentContractsInput) {
   await requirePermission(ctx, "workforce:read");
-  return contractQuery()
+  return contractQuery(ctx)
     .where(input.employeeId ? eq(employmentContracts.employeeId, input.employeeId) : undefined)
     .orderBy(desc(employmentContracts.createdAt));
 }
 
 export async function createEmploymentContract(ctx: Context, input: CreateEmploymentContractInput) {
-  const employee = await employeeOrThrow(input.employeeId);
+  const employee = await employeeOrThrow(ctx, input.employeeId);
   await requirePermission(ctx, "workforce:manage", employee.branchId);
-  const period = await employmentAt(input.employeeId, input.startsOn);
+  const period = await employmentAt(ctx, input.employeeId, input.startsOn);
   if (!period) badRequest("No employment period covers the contract start date");
-  await ensureUniqueContractNumber(input.contractNumber);
+  await ensureUniqueContractNumber(ctx, input.contractNumber);
   validateEmploymentContract({
     startsOn: input.startsOn,
     endsOn: input.endsOn ?? null,
     status: input.status,
     signedOn: input.signedOn ?? null,
   });
-  const contractId = await db.transaction(async (tx) => {
-    const [cosigner] = await tx.insert(cosigners).values(input.cosigner).returning();
+  const contractId = await withTransaction(ctx, async (ctx) => {
+    const [cosigner] = await ctx.db.insert(cosigners).values(input.cosigner).returning();
     if (!cosigner) throw new Error("Cosigner creation failed");
-    const [contract] = await tx
+    const [contract] = await ctx.db
       .insert(employmentContracts)
       .values({
         contractNumber: input.contractNumber,
@@ -125,40 +128,40 @@ export async function createEmploymentContract(ctx: Context, input: CreateEmploy
     if (!contract) throw new Error("Employment contract creation failed");
     return contract.id;
   });
-  return employmentContractDetails(contractId);
+  return employmentContractDetails(ctx, contractId);
 }
 
 export async function updateEmploymentContract(ctx: Context, input: UpdateEmploymentContractInput) {
-  const current = await employmentContractOrThrow(input.id);
-  const employee = await employeeOrThrow(current.employeeId);
+  const current = await employmentContractOrThrow(ctx, input.id);
+  const employee = await employeeOrThrow(ctx, current.employeeId);
   await requirePermission(ctx, "workforce:manage", employee.branchId);
   const startsOn = input.startsOn ?? current.startsOn;
   const endsOn = input.endsOn === undefined ? current.endsOn : input.endsOn;
   const status = input.status ?? current.status;
   const signedOn = input.signedOn === undefined ? current.signedOn : input.signedOn;
   validateEmploymentContract({ startsOn, endsOn, status, signedOn });
-  if (input.contractNumber) await ensureUniqueContractNumber(input.contractNumber, current.id);
+  if (input.contractNumber) await ensureUniqueContractNumber(ctx, input.contractNumber, current.id);
   const period =
-    startsOn === current.startsOn ? null : await employmentAt(current.employeeId, startsOn);
+    startsOn === current.startsOn ? null : await employmentAt(ctx, current.employeeId, startsOn);
   if (startsOn !== current.startsOn && !period) {
     badRequest("No employment period covers the contract start date");
   }
   const { id: contractId, ...values } = input;
-  await db
+  await ctx.db
     .update(employmentContracts)
     .set({
       ...values,
       ...(period ? { employmentPeriodId: period.id } : {}),
     })
     .where(eq(employmentContracts.id, contractId));
-  return employmentContractDetails(contractId);
+  return employmentContractDetails(ctx, contractId);
 }
 
 export async function deleteEmploymentContract(ctx: Context, input: ResourceIdInput) {
-  const contract = await employmentContractOrThrow(input.id);
-  const employee = await employeeOrThrow(contract.employeeId);
+  const contract = await employmentContractOrThrow(ctx, input.id);
+  const employee = await employeeOrThrow(ctx, contract.employeeId);
   await requirePermission(ctx, "workforce:manage", employee.branchId);
-  const [deleted] = await db
+  const [deleted] = await ctx.db
     .delete(employmentContracts)
     .where(eq(employmentContracts.id, input.id))
     .returning();

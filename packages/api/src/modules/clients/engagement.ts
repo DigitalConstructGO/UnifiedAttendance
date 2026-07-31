@@ -1,6 +1,5 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   clientAuditEntries,
   clientContacts,
@@ -12,6 +11,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { clientOrThrow } from "./shared";
 
@@ -26,8 +26,8 @@ import type {
   UpdateCrmActivityInput,
 } from "../../validations/clients";
 
-async function employeeExists(employeeId: string) {
-  const [employee] = await db
+async function employeeExists(ctx: Context, employeeId: string) {
+  const [employee] = await ctx.db
     .select({ id: employees.id })
     .from(employees)
     .where(eq(employees.id, employeeId))
@@ -35,18 +35,18 @@ async function employeeExists(employeeId: string) {
   return Boolean(employee);
 }
 
-async function noteOrThrow(noteId: string) {
-  const [note] = await db.select().from(clientNotes).where(eq(clientNotes.id, noteId)).limit(1);
+async function noteOrThrow(ctx: Context, noteId: string) {
+  const [note] = await ctx.db.select().from(clientNotes).where(eq(clientNotes.id, noteId)).limit(1);
   if (!note) notFound("Client Note");
   return note;
 }
 
 export async function listClientNotes(ctx: Context, input: ListClientNotesInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:read", client.branchId);
   const filters = [eq(clientNotes.clientId, input.clientId)];
   if (!input.includeArchived) filters.push(isNull(clientNotes.archivedAt));
-  const rows = await db
+  const rows = await ctx.db
     .select({ note: clientNotes, authorEmployee: employees, authorPerson: people })
     .from(clientNotes)
     .innerJoin(employees, eq(clientNotes.authorEmployeeId, employees.id))
@@ -60,12 +60,13 @@ export async function listClientNotes(ctx: Context, input: ListClientNotesInput)
 }
 
 export async function createClientNote(ctx: Context, input: CreateClientNoteInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
-  if (!(await employeeExists(input.authorEmployeeId))) badRequest("Note author is not an Employee");
+  if (!(await employeeExists(ctx, input.authorEmployeeId)))
+    badRequest("Note author is not an Employee");
   const actorUserId = requireSessionUser(ctx);
-  const [note] = await db.transaction(async (tx) => {
-    const result = await tx
+  const [note] = await withTransaction(ctx, async (ctx) => {
+    const result = await ctx.db
       .insert(clientNotes)
       .values({
         organizationId: client.organizationId,
@@ -75,7 +76,7 @@ export async function createClientNote(ctx: Context, input: CreateClientNoteInpu
       .returning();
     const created = result[0];
     if (!created) throw new Error("Client Note creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
@@ -90,21 +91,21 @@ export async function createClientNote(ctx: Context, input: CreateClientNoteInpu
 }
 
 export async function updateClientNote(ctx: Context, input: UpdateClientNoteInput) {
-  const current = await noteOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await noteOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (current.archivedAt) badRequest("Archived Client Notes cannot be edited");
   const actorUserId = requireSessionUser(ctx);
   const { id: noteId, ...values } = input;
-  const [note] = await db.transaction(async (tx) => {
-    const result = await tx
+  const [note] = await withTransaction(ctx, async (ctx) => {
+    const result = await ctx.db
       .update(clientNotes)
       .set(values)
       .where(eq(clientNotes.id, noteId))
       .returning();
     const updated = result[0];
     if (!updated) throw new Error("Client Note update failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
@@ -119,20 +120,20 @@ export async function updateClientNote(ctx: Context, input: UpdateClientNoteInpu
 }
 
 export async function archiveClientNote(ctx: Context, input: ClientResourceIdInput) {
-  const current = await noteOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await noteOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (current.archivedAt) return current;
   const actorUserId = requireSessionUser(ctx);
-  const [note] = await db.transaction(async (tx) => {
-    const result = await tx
+  const [note] = await withTransaction(ctx, async (ctx) => {
+    const result = await ctx.db
       .update(clientNotes)
       .set({ archivedAt: new Date() })
       .where(eq(clientNotes.id, current.id))
       .returning();
     const archived = result[0];
     if (!archived) throw new Error("Client Note archive failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
@@ -145,13 +146,13 @@ export async function archiveClientNote(ctx: Context, input: ClientResourceIdInp
   return note!;
 }
 
-async function resolveActivityTargets(input: CreateCrmActivityInput) {
+async function resolveActivityTargets(ctx: Context, input: CreateCrmActivityInput) {
   if (!input.clientId && !input.opportunityId) {
     badRequest("CRM Activity requires a Client or Opportunity");
   }
-  const client = input.clientId ? await clientOrThrow(input.clientId) : null;
+  const client = input.clientId ? await clientOrThrow(ctx, input.clientId) : null;
   const [opportunity] = input.opportunityId
-    ? await db
+    ? await ctx.db
         .select()
         .from(opportunities)
         .where(eq(opportunities.id, input.opportunityId))
@@ -163,7 +164,7 @@ async function resolveActivityTargets(input: CreateCrmActivityInput) {
   }
   if (input.clientContactId) {
     if (!client) badRequest("A Client Contact requires a Client target");
-    const [contact] = await db
+    const [contact] = await ctx.db
       .select({ clientId: clientContacts.clientId })
       .from(clientContacts)
       .where(eq(clientContacts.id, input.clientContactId))
@@ -176,15 +177,15 @@ async function resolveActivityTargets(input: CreateCrmActivityInput) {
 }
 
 export async function createCrmActivity(ctx: Context, input: CreateCrmActivityInput) {
-  const { client, opportunity } = await resolveActivityTargets(input);
+  const { client, opportunity } = await resolveActivityTargets(ctx, input);
   const branchId = client?.branchId ?? opportunity!.branchId;
   await requirePermission(ctx, "clients:manage", branchId);
-  if (!(await employeeExists(input.actorEmployeeId)))
+  if (!(await employeeExists(ctx, input.actorEmployeeId)))
     badRequest("Activity actor is not an Employee");
   const organizationId = client?.organizationId ?? opportunity!.organizationId;
   const actorUserId = requireSessionUser(ctx);
-  const activityId = await db.transaction(async (tx) => {
-    const [activity] = await tx
+  const activityId = await withTransaction(ctx, async (ctx) => {
+    const [activity] = await ctx.db
       .insert(crmActivities)
       .values({
         organizationId,
@@ -200,13 +201,13 @@ export async function createCrmActivity(ctx: Context, input: CreateCrmActivityIn
       opportunity &&
       (!opportunity.lastActivityAt || opportunity.lastActivityAt < input.occurredAt)
     ) {
-      await tx
+      await ctx.db
         .update(opportunities)
         .set({ lastActivityAt: input.occurredAt })
         .where(eq(opportunities.id, opportunity.id));
     }
     if (client) {
-      await tx.insert(clientAuditEntries).values({
+      await ctx.db.insert(clientAuditEntries).values({
         organizationId,
         clientId: client.id,
         actorUserId,
@@ -218,13 +219,13 @@ export async function createCrmActivity(ctx: Context, input: CreateCrmActivityIn
     }
     return activity.id;
   });
-  const [row] = await activityQuery().where(eq(crmActivities.id, activityId)).limit(1);
+  const [row] = await activityQuery(ctx).where(eq(crmActivities.id, activityId)).limit(1);
   if (!row) throw new Error("CRM Activity details could not be loaded");
   return shapeActivity(row);
 }
 
-async function activityOrThrow(activityId: string) {
-  const [activity] = await db
+async function activityOrThrow(ctx: Context, activityId: string) {
+  const [activity] = await ctx.db
     .select()
     .from(crmActivities)
     .where(eq(crmActivities.id, activityId))
@@ -234,11 +235,11 @@ async function activityOrThrow(activityId: string) {
 }
 
 export async function updateCrmActivity(ctx: Context, input: UpdateCrmActivityInput) {
-  const current = await activityOrThrow(input.id);
-  const client = current.clientId ? await clientOrThrow(current.clientId) : null;
+  const current = await activityOrThrow(ctx, input.id);
+  const client = current.clientId ? await clientOrThrow(ctx, current.clientId) : null;
   const [opportunity] =
     !client && current.opportunityId
-      ? await db
+      ? await ctx.db
           .select()
           .from(opportunities)
           .where(eq(opportunities.id, current.opportunityId))
@@ -249,10 +250,10 @@ export async function updateCrmActivity(ctx: Context, input: UpdateCrmActivityIn
   await requirePermission(ctx, "clients:manage", branchId);
   const actorUserId = requireSessionUser(ctx);
   const { id: activityId, ...values } = input;
-  await db.transaction(async (tx) => {
-    await tx.update(crmActivities).set(values).where(eq(crmActivities.id, activityId));
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.update(crmActivities).set(values).where(eq(crmActivities.id, activityId));
     if (client) {
-      await tx.insert(clientAuditEntries).values({
+      await ctx.db.insert(clientAuditEntries).values({
         organizationId: current.organizationId,
         clientId: client.id,
         actorUserId,
@@ -263,13 +264,13 @@ export async function updateCrmActivity(ctx: Context, input: UpdateCrmActivityIn
       });
     }
   });
-  const [row] = await activityQuery().where(eq(crmActivities.id, current.id)).limit(1);
+  const [row] = await activityQuery(ctx).where(eq(crmActivities.id, current.id)).limit(1);
   if (!row) throw new Error("CRM Activity details could not be loaded");
   return shapeActivity(row);
 }
 
-function activityQuery() {
-  return db
+function activityQuery(ctx: Context) {
+  return ctx.db
     .select({
       activity: crmActivities,
       actorEmployee: employees,
@@ -292,10 +293,10 @@ export async function listCrmActivities(ctx: Context, input: ListCrmActivitiesIn
     badRequest("CRM Activity list requires a Client or Opportunity");
   }
   if (input.clientId) {
-    const client = await clientOrThrow(input.clientId);
+    const client = await clientOrThrow(ctx, input.clientId);
     await requirePermission(ctx, "clients:read", client.branchId);
   } else {
-    const [opportunity] = await db
+    const [opportunity] = await ctx.db
       .select({ branchId: opportunities.branchId })
       .from(opportunities)
       .where(eq(opportunities.id, input.opportunityId!))
@@ -306,7 +307,7 @@ export async function listCrmActivities(ctx: Context, input: ListCrmActivitiesIn
   const filters = [];
   if (input.clientId) filters.push(eq(crmActivities.clientId, input.clientId));
   if (input.opportunityId) filters.push(eq(crmActivities.opportunityId, input.opportunityId));
-  const rows = await activityQuery()
+  const rows = await activityQuery(ctx)
     .where(and(...filters))
     .orderBy(desc(crmActivities.occurredAt));
   return rows.map(shapeActivity);

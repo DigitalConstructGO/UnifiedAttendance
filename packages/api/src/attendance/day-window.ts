@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
+import type { Context } from "../context";
 
 export function minutesAfter(actual: Date, expected: Date) {
   return Math.max(0, Math.floor((actual.getTime() - expected.getTime()) / 60_000));
@@ -19,19 +19,18 @@ export type DayWindow = {
   expectedEnd: Date | null;
 };
 
-/**
- * Resolves a local calendar date into absolute instants using Postgres' own
- * timezone tables, so the boundaries match what the database would compute.
- */
-export async function branchDayWindow(options: {
-  attendanceDate: string;
-  timezone: string;
-  openingTime: string | null;
-  closingTime: string | null;
-}): Promise<DayWindow> {
+export async function branchDayWindow(
+  ctx: Context,
+  options: {
+    attendanceDate: string;
+    timezone: string;
+    openingTime: string | null;
+    closingTime: string | null;
+  },
+): Promise<DayWindow> {
   const { attendanceDate, timezone, openingTime, closingTime } = options;
 
-  const { rows } = await db.execute<{
+  const { rows } = await ctx.db.execute<{
     day_start: number;
     day_end: number;
     expected_start: number | null;

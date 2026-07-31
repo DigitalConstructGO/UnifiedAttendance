@@ -1,6 +1,5 @@
 import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   branches,
   branchWorkingDays,
@@ -12,30 +11,31 @@ import {
 import { notFound } from "../errors";
 import { branchDayWindow, type DayWindow } from "./day-window";
 
+import type { Context } from "../context";
+
 export type DayContext = {
   dayType: "working_day" | "weekend" | "holiday";
   dayWindow: DayWindow;
 };
 
-/**
- * Everything about the *day* an employee's punches are judged against: which branch
- * schedule applies on that date, and the absolute instants that bound it.
- */
-export async function loadDayContext(options: {
-  employeeId: string;
-  attendanceDate: string;
-}): Promise<DayContext> {
+export async function loadDayContext(
+  ctx: Context,
+  options: {
+    employeeId: string;
+    attendanceDate: string;
+  },
+): Promise<DayContext> {
   const { employeeId, attendanceDate } = options;
   const weekday = new Date(`${attendanceDate}T00:00:00Z`).getUTCDay();
 
-  const [employee] = await db
+  const [employee] = await ctx.db
     .select({ branchId: employees.branchId })
     .from(employees)
     .where(eq(employees.id, employeeId))
     .limit(1);
   if (!employee) notFound("Employee");
 
-  const [employment] = await db
+  const [employment] = await ctx.db
     .select()
     .from(employmentPeriods)
     .where(
@@ -49,30 +49,29 @@ export async function loadDayContext(options: {
       ),
     )
     .limit(1);
-  // Existing installations may have employees created before the backfill migration runs.
   const branchId = employment?.branchId ?? employee.branchId;
 
-  const [branch] = await db
+  const [branch] = await ctx.db
     .select({ timezone: branches.timezone })
     .from(branches)
     .where(eq(branches.id, branchId))
     .limit(1);
   if (!branch) notFound("Branch");
 
-  const [workingDay] = await db
+  const [workingDay] = await ctx.db
     .select()
     .from(branchWorkingDays)
     .where(and(eq(branchWorkingDays.branchId, branchId), eq(branchWorkingDays.weekday, weekday)))
     .limit(1);
 
-  const dayWindow = await branchDayWindow({
+  const dayWindow = await branchDayWindow(ctx, {
     attendanceDate,
     timezone: branch.timezone,
     openingTime: workingDay?.openingTime ?? null,
     closingTime: workingDay?.closingTime ?? null,
   });
 
-  const [holiday] = await db
+  const [holiday] = await ctx.db
     .select({ id: holidays.id })
     .from(holidays)
     .where(

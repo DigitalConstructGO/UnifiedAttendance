@@ -24,9 +24,7 @@ export const listCorrectionsInput = z.object({
 
 export const createCorrectionInput = correctionValues.superRefine((input, issue) => {
   if (
-    ["add_check_in", "add_check_out", "adjust_check_in", "adjust_check_out"].includes(
-      input.type,
-    ) &&
+    ["add_check_in", "add_check_out", "adjust_check_in", "adjust_check_out"].includes(input.type) &&
     !input.proposedTime
   ) {
     issue.addIssue({

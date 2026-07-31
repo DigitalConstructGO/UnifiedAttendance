@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   clientAuditEntries,
   clientDocuments,
@@ -15,6 +14,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { clientOrThrow } from "./shared";
 
@@ -26,8 +26,8 @@ import type {
   ListClientDocumentsInput,
 } from "../../validations/clients";
 
-function documentQuery() {
-  return db
+function documentQuery(ctx: Context) {
+  return ctx.db
     .select({ document: clientDocuments, uploaderEmployee: employees, uploaderPerson: people })
     .from(clientDocuments)
     .innerJoin(employees, eq(clientDocuments.uploadedByEmployeeId, employees.id))
@@ -39,8 +39,8 @@ function shapeDocument(row: Awaited<ReturnType<typeof documentQuery>>[number]) {
   return { ...rest, uploader: { employee: uploaderEmployee, person: uploaderPerson } };
 }
 
-async function documentOrThrow(documentId: string) {
-  const [document] = await db
+async function documentOrThrow(ctx: Context, documentId: string) {
+  const [document] = await ctx.db
     .select()
     .from(clientDocuments)
     .where(eq(clientDocuments.id, documentId))
@@ -49,8 +49,8 @@ async function documentOrThrow(documentId: string) {
   return document;
 }
 
-async function validateUploader(employeeId: string) {
-  const [uploader] = await db
+async function validateUploader(ctx: Context, employeeId: string) {
+  const [uploader] = await ctx.db
     .select({ id: employees.id })
     .from(employees)
     .where(eq(employees.id, employeeId))
@@ -58,7 +58,11 @@ async function validateUploader(employeeId: string) {
   if (!uploader) badRequest("Document uploader is not an Employee");
 }
 
-async function validateDocumentContext(input: CreateClientDocumentInput, organizationId: string) {
+async function validateDocumentContext(
+  ctx: Context,
+  input: CreateClientDocumentInput,
+  organizationId: string,
+) {
   const contexts = [
     input.commercialContractId,
     input.opportunityId,
@@ -67,7 +71,7 @@ async function validateDocumentContext(input: CreateClientDocumentInput, organiz
   ].filter(Boolean);
   if (contexts.length > 1) badRequest("A Client Document may have at most one business context");
   if (input.commercialContractId) {
-    const [contract] = await db
+    const [contract] = await ctx.db
       .select({ clientId: commercialContracts.clientId })
       .from(commercialContracts)
       .where(
@@ -82,7 +86,7 @@ async function validateDocumentContext(input: CreateClientDocumentInput, organiz
     }
   }
   if (input.opportunityId) {
-    const [opportunity] = await db
+    const [opportunity] = await ctx.db
       .select({ clientId: opportunities.clientId })
       .from(opportunities)
       .where(
@@ -97,7 +101,7 @@ async function validateDocumentContext(input: CreateClientDocumentInput, organiz
     }
   }
   if (input.projectId) {
-    const [project] = await db
+    const [project] = await ctx.db
       .select({ clientId: projects.clientId })
       .from(projects)
       .where(and(eq(projects.id, input.projectId), eq(projects.organizationId, organizationId)))
@@ -107,7 +111,7 @@ async function validateDocumentContext(input: CreateClientDocumentInput, organiz
     }
   }
   if (input.invoiceId) {
-    const [invoice] = await db
+    const [invoice] = await ctx.db
       .select({ clientId: invoices.clientId })
       .from(invoices)
       .where(and(eq(invoices.id, input.invoiceId), eq(invoices.organizationId, organizationId)))
@@ -119,22 +123,22 @@ async function validateDocumentContext(input: CreateClientDocumentInput, organiz
 }
 
 export async function getClientDocument(ctx: Context, input: ClientResourceIdInput) {
-  const document = await documentOrThrow(input.id);
-  const client = await clientOrThrow(document.clientId);
+  const document = await documentOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, document.clientId);
   await requirePermission(
     ctx,
     document.accessLevel === "restricted" ? "clients:manage" : "clients:read",
     client.branchId,
   );
-  const [row] = await documentQuery().where(eq(clientDocuments.id, document.id)).limit(1);
+  const [row] = await documentQuery(ctx).where(eq(clientDocuments.id, document.id)).limit(1);
   if (!row) throw new Error("Client Document details could not be loaded");
   return shapeDocument(row);
 }
 
 export async function listClientDocuments(ctx: Context, input: ListClientDocumentsInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:read", client.branchId);
-  const rows = await documentQuery()
+  const rows = await documentQuery(ctx)
     .where(
       and(
         eq(clientDocuments.clientId, input.clientId),
@@ -146,16 +150,16 @@ export async function listClientDocuments(ctx: Context, input: ListClientDocumen
 }
 
 export async function createClientDocument(ctx: Context, input: CreateClientDocumentInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   await Promise.all([
-    validateUploader(input.uploadedByEmployeeId),
-    validateDocumentContext(input, client.organizationId),
+    validateUploader(ctx, input.uploadedByEmployeeId),
+    validateDocumentContext(ctx, input, client.organizationId),
   ]);
   const actorUserId = requireSessionUser(ctx);
   const logicalDocumentId = randomUUID();
-  const documentId = await db.transaction(async (tx) => {
-    const [document] = await tx
+  const documentId = await withTransaction(ctx, async (ctx) => {
+    const [document] = await ctx.db
       .insert(clientDocuments)
       .values({
         organizationId: client.organizationId,
@@ -176,7 +180,7 @@ export async function createClientDocument(ctx: Context, input: CreateClientDocu
       })
       .returning({ id: clientDocuments.id });
     if (!document) throw new Error("Client Document creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
@@ -194,20 +198,20 @@ export async function createClientDocumentVersion(
   ctx: Context,
   input: CreateClientDocumentVersionInput,
 ) {
-  const [latest] = await db
+  const [latest] = await ctx.db
     .select()
     .from(clientDocuments)
     .where(eq(clientDocuments.logicalDocumentId, input.logicalDocumentId))
     .orderBy(desc(clientDocuments.version))
     .limit(1);
   if (!latest) notFound("Client Document");
-  const client = await clientOrThrow(latest.clientId);
+  const client = await clientOrThrow(ctx, latest.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
-  await validateUploader(input.uploadedByEmployeeId);
+  await validateUploader(ctx, input.uploadedByEmployeeId);
   const actorUserId = requireSessionUser(ctx);
-  const documentId = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.logicalDocumentId}))`);
-    const [current] = await tx
+  const documentId = await withTransaction(ctx, async (ctx) => {
+    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${input.logicalDocumentId}))`);
+    const [current] = await ctx.db
       .select()
       .from(clientDocuments)
       .where(eq(clientDocuments.logicalDocumentId, input.logicalDocumentId))
@@ -215,7 +219,7 @@ export async function createClientDocumentVersion(
       .limit(1);
     if (!current) throw new Error("Client Document version family disappeared");
     const version = current.version + 1;
-    const [document] = await tx
+    const [document] = await ctx.db
       .insert(clientDocuments)
       .values({
         organizationId: current.organizationId,
@@ -236,7 +240,7 @@ export async function createClientDocumentVersion(
       })
       .returning({ id: clientDocuments.id });
     if (!document) throw new Error("Client Document version creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: current.organizationId,
       clientId: current.clientId,
       actorUserId,
@@ -251,18 +255,18 @@ export async function createClientDocumentVersion(
 }
 
 export async function deleteClientDocument(ctx: Context, input: ClientResourceIdInput) {
-  const document = await documentOrThrow(input.id);
-  const client = await clientOrThrow(document.clientId);
+  const document = await documentOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, document.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   const actorUserId = requireSessionUser(ctx);
 
-  return db.transaction(async (tx) => {
-    const [deleted] = await tx
+  return withTransaction(ctx, async (ctx) => {
+    const [deleted] = await ctx.db
       .delete(clientDocuments)
       .where(eq(clientDocuments.id, document.id))
       .returning();
     if (!deleted) throw new Error("Client Document deletion failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,

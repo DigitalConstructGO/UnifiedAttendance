@@ -11,7 +11,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { deriveAttendanceDay } from "../../../src/attendance/derive-day";
-import { resetDatabase } from "../../fixtures";
+import { resetDatabase, testContext } from "../../fixtures";
 
 export const MONDAY = "2026-03-02";
 export const TUESDAY = "2026-03-03";
@@ -108,7 +108,7 @@ export async function setUpDeriveDayFixture(): Promise<DeriveDayFixture> {
     },
 
     derive(attendanceDate = MONDAY) {
-      return deriveAttendanceDay({ employeeId, attendanceDate });
+      return deriveAttendanceDay(testContext(), { employeeId, attendanceDate });
     },
   };
 }

@@ -1,6 +1,5 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   crmActivities,
   invoicePayments,
@@ -63,14 +62,14 @@ function selectDirectoryStatus(
   return { kind: "active", label: "Active" };
 }
 
-export async function getClientDirectoryMetrics(clientRows: ClientDirectorySource[]) {
+export async function getClientDirectoryMetrics(ctx: Context, clientRows: ClientDirectorySource[]) {
   const clientIds = clientRows.map((client) => client.id);
   const result = new Map<string, ReturnType<typeof emptyMetrics>>();
   for (const clientId of clientIds) result.set(clientId, emptyMetrics());
   if (clientIds.length === 0) return new Map();
 
   const [projectRows, opportunityRows, invoiceRows, paymentRows, activityRows] = await Promise.all([
-    db
+    ctx.db
       .select({
         clientId: projects.clientId,
         status: projects.status,
@@ -78,7 +77,7 @@ export async function getClientDirectoryMetrics(clientRows: ClientDirectorySourc
       })
       .from(projects)
       .where(inArray(projects.clientId, clientIds)),
-    db
+    ctx.db
       .select({
         clientId: opportunities.clientId,
         stageId: pipelineStages.id,
@@ -94,7 +93,7 @@ export async function getClientDirectoryMetrics(clientRows: ClientDirectorySourc
           eq(pipelineStages.outcome, "open"),
         ),
       ),
-    db
+    ctx.db
       .select({
         clientId: invoices.clientId,
         currency: invoices.currency,
@@ -102,7 +101,7 @@ export async function getClientDirectoryMetrics(clientRows: ClientDirectorySourc
       })
       .from(invoices)
       .where(and(inArray(invoices.clientId, clientIds), eq(invoices.lifecycleStatus, "issued"))),
-    db
+    ctx.db
       .select({
         clientId: invoices.clientId,
         currency: invoicePayments.currency,
@@ -111,7 +110,7 @@ export async function getClientDirectoryMetrics(clientRows: ClientDirectorySourc
       .from(invoicePayments)
       .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
       .where(and(inArray(invoices.clientId, clientIds), eq(invoices.lifecycleStatus, "issued"))),
-    db
+    ctx.db
       .select({ clientId: crmActivities.clientId, occurredAt: crmActivities.occurredAt })
       .from(crmActivities)
       .where(inArray(crmActivities.clientId, clientIds)),
@@ -174,3 +173,5 @@ export async function getClientDirectoryMetrics(clientRows: ClientDirectorySourc
     }),
   );
 }
+
+import type { Context } from "../../context";

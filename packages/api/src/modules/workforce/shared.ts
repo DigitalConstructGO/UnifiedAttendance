@@ -1,19 +1,23 @@
 import { asc, eq } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import { employmentPeriods, employees } from "@UnifiedAttendance/db/schema/index";
 
 import { notFound } from "../../errors";
 
-export async function employeeOrThrow(employeeId: string) {
-  const [employee] = await db.select().from(employees).where(eq(employees.id, employeeId)).limit(1);
+import type { Context } from "../../context";
+
+export async function employeeOrThrow(ctx: Context, employeeId: string) {
+  const [employee] = await ctx.db
+    .select()
+    .from(employees)
+    .where(eq(employees.id, employeeId))
+    .limit(1);
   if (!employee) notFound("Employee");
   return employee;
 }
 
-/** The assignment in force on a local calendar date. */
-export async function employmentAt(employeeId: string, date: string) {
-  const periods = await db
+export async function employmentAt(ctx: Context, employeeId: string, date: string) {
+  const periods = await ctx.db
     .select()
     .from(employmentPeriods)
     .where(eq(employmentPeriods.employeeId, employeeId))
@@ -23,8 +27,8 @@ export async function employmentAt(employeeId: string, date: string) {
   );
 }
 
-export async function openEmploymentOrThrow(employeeId: string) {
-  const periods = await db
+export async function openEmploymentOrThrow(ctx: Context, employeeId: string) {
+  const periods = await ctx.db
     .select()
     .from(employmentPeriods)
     .where(eq(employmentPeriods.employeeId, employeeId));

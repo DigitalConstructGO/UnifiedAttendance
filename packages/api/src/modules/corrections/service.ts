@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import { attendanceCorrections, attendanceEvents } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, conflict, forbidden, notFound } from "../../errors";
@@ -16,8 +15,12 @@ import type {
 import type { Context } from "../../context";
 
 export async function listCorrections(ctx: Context, input: ListCorrectionsInput) {
-  await requirePermission(ctx, "corrections:read", await employeeBranchOrThrow(input.employeeId));
-  return db
+  await requirePermission(
+    ctx,
+    "corrections:read",
+    await employeeBranchOrThrow(ctx, input.employeeId),
+  );
+  return ctx.db
     .select()
     .from(attendanceCorrections)
     .where(
@@ -29,10 +32,10 @@ export async function listCorrections(ctx: Context, input: ListCorrectionsInput)
 }
 
 export async function createCorrection(ctx: Context, input: CreateCorrectionInput) {
-  const branchId = await employeeBranchOrThrow(input.employeeId);
+  const branchId = await employeeBranchOrThrow(ctx, input.employeeId);
   await requirePermission(ctx, "corrections:manage", branchId);
   if (input.disputedEventId) {
-    const [event] = await db
+    const [event] = await ctx.db
       .select()
       .from(attendanceEvents)
       .where(eq(attendanceEvents.id, input.disputedEventId))
@@ -40,7 +43,7 @@ export async function createCorrection(ctx: Context, input: CreateCorrectionInpu
     if (!event || event.employeeId !== input.employeeId)
       badRequest("Disputed event must belong to the employee");
   }
-  const [correction] = await db
+  const [correction] = await ctx.db
     .insert(attendanceCorrections)
     .values({
       ...input,
@@ -53,7 +56,7 @@ export async function createCorrection(ctx: Context, input: CreateCorrectionInpu
 }
 
 export async function updateCorrection(ctx: Context, input: UpdateCorrectionInput) {
-  const [current] = await db
+  const [current] = await ctx.db
     .select()
     .from(attendanceCorrections)
     .where(eq(attendanceCorrections.id, input.id))
@@ -62,13 +65,12 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
   await requirePermission(
     ctx,
     "corrections:manage",
-    await employeeBranchOrThrow(current.employeeId),
+    await employeeBranchOrThrow(ctx, current.employeeId),
   );
-  if (current.status !== "pending")
-    conflict("Only pending corrections can be changed");
+  if (current.status !== "pending") conflict("Only pending corrections can be changed");
   if (current.requestedBy !== requireSessionUser(ctx))
     forbidden("Only the requester can change a correction");
-  const [correction] = await db
+  const [correction] = await ctx.db
     .update(attendanceCorrections)
     .set(input.values)
     .where(eq(attendanceCorrections.id, input.id))
@@ -77,7 +79,7 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
 }
 
 export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInput) {
-  const [current] = await db
+  const [current] = await ctx.db
     .select()
     .from(attendanceCorrections)
     .where(eq(attendanceCorrections.id, input.id))
@@ -86,13 +88,12 @@ export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInpu
   await requirePermission(
     ctx,
     "corrections:review",
-    await employeeBranchOrThrow(current.employeeId),
+    await employeeBranchOrThrow(ctx, current.employeeId),
   );
   const reviewer = requireSessionUser(ctx);
   if (current.requestedBy === reviewer) forbidden("A requester cannot review their own correction");
-  if (current.status !== "pending")
-    conflict("Correction has already been reviewed");
-  const [correction] = await db
+  if (current.status !== "pending") conflict("Correction has already been reviewed");
+  const [correction] = await ctx.db
     .update(attendanceCorrections)
     .set({
       status: input.status,
@@ -103,7 +104,7 @@ export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInpu
     .where(eq(attendanceCorrections.id, input.id))
     .returning();
   if (correction?.status === "approved") {
-    await deriveAttendanceDay({
+    await deriveAttendanceDay(ctx, {
       employeeId: correction.employeeId,
       attendanceDate: correction.attendanceDate,
     });

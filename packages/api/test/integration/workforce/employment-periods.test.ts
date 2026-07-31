@@ -12,9 +12,9 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { createEmployee, transitionEmployment } from "../../../src/modules/workforce/service";
-import { resetDatabase } from "../../fixtures";
+import { resetDatabase, testContext } from "../../fixtures";
 
-const context = { session: { user: { id: "admin" } } } as never;
+const context = testContext("admin");
 
 describe("employment periods", () => {
   let firstBranchId: string;

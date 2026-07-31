@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   branches,
   clients,
@@ -73,7 +72,7 @@ function averageMeasure(totals: Map<string, { amount: bigint; count: number }>) 
 
 export async function getClientOverview(ctx: Context, input: ClientOverviewInput) {
   await requirePermission(ctx, "clients:read", input.branchId);
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   const asOf = input.asOf ?? localBusinessDate(organization.timezone);
   const from = input.from ?? defaultReportingStart(asOf);
   const to = input.to ?? asOf;
@@ -82,7 +81,7 @@ export async function getClientOverview(ctx: Context, input: ClientOverviewInput
   const revenueMeasure = input.revenueMeasure ?? "invoiced";
 
   const [clientRows, projectRows, opportunityRows, invoiceRows, paymentRows] = await Promise.all([
-    db
+    ctx.db
       .select({ id: clients.id, status: clients.status, createdAt: clients.createdAt })
       .from(clients)
       .where(
@@ -91,7 +90,7 @@ export async function getClientOverview(ctx: Context, input: ClientOverviewInput
           ...(branchFilter ? [eq(clients.branchId, branchFilter)] : []),
         ),
       ),
-    db
+    ctx.db
       .select({
         clientId: projects.clientId,
         branchId: projects.branchId,
@@ -104,7 +103,7 @@ export async function getClientOverview(ctx: Context, input: ClientOverviewInput
           ...(branchFilter ? [eq(projects.branchId, branchFilter)] : []),
         ),
       ),
-    db
+    ctx.db
       .select({ opportunity: opportunities })
       .from(opportunities)
       .where(
@@ -113,7 +112,7 @@ export async function getClientOverview(ctx: Context, input: ClientOverviewInput
           ...(branchFilter ? [eq(opportunities.branchId, branchFilter)] : []),
         ),
       ),
-    db
+    ctx.db
       .select({
         invoice: invoices,
         client: {
@@ -139,7 +138,7 @@ export async function getClientOverview(ctx: Context, input: ClientOverviewInput
           ...(branchFilter ? [eq(invoices.branchId, branchFilter)] : []),
         ),
       ),
-    db
+    ctx.db
       .select({
         payment: invoicePayments,
         invoice: {

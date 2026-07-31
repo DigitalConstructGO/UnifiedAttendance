@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import { cosigners, employmentContracts } from "@UnifiedAttendance/db/schema/index";
 
 import { conflict } from "../../errors";
@@ -15,19 +14,19 @@ import type { Context } from "../../context";
 
 export async function listCosigners(ctx: Context) {
   await requirePermission(ctx, "workforce:read");
-  return db.select().from(cosigners).orderBy(cosigners.fullName);
+  return ctx.db.select().from(cosigners).orderBy(cosigners.fullName);
 }
 
 export async function createCosigner(ctx: Context, input: CreateCosignerInput) {
   await requirePermission(ctx, "workforce:manage");
-  const [cosigner] = await db.insert(cosigners).values(input).returning();
+  const [cosigner] = await ctx.db.insert(cosigners).values(input).returning();
   return cosigner;
 }
 
 export async function updateCosigner(ctx: Context, input: UpdateCosignerInput) {
   await requirePermission(ctx, "workforce:manage");
   const { id: cosignerId, ...values } = input;
-  const [cosigner] = await db
+  const [cosigner] = await ctx.db
     .update(cosigners)
     .set(values)
     .where(eq(cosigners.id, cosignerId))
@@ -37,12 +36,12 @@ export async function updateCosigner(ctx: Context, input: UpdateCosignerInput) {
 
 export async function deleteCosigner(ctx: Context, input: ResourceIdInput) {
   await requirePermission(ctx, "workforce:manage");
-  const [contract] = await db
+  const [contract] = await ctx.db
     .select({ id: employmentContracts.id })
     .from(employmentContracts)
     .where(eq(employmentContracts.cosignerId, input.id))
     .limit(1);
   if (contract) conflict("Cosigners linked to employment contracts cannot be deleted");
-  const [deleted] = await db.delete(cosigners).where(eq(cosigners.id, input.id)).returning();
+  const [deleted] = await ctx.db.delete(cosigners).where(eq(cosigners.id, input.id)).returning();
   return deleted ?? null;
 }

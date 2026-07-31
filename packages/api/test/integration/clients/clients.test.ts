@@ -63,9 +63,9 @@ import {
   updateProject,
   voidInvoice,
 } from "../../../src/index";
-import { resetDatabase } from "../../fixtures";
+import { resetDatabase, testContext } from "../../fixtures";
 
-const context = { session: { user: { id: "admin" } } } as never;
+const context = testContext("admin");
 
 describe("clients", () => {
   let branchId: string;

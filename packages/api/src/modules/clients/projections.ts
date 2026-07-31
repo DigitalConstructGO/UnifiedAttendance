@@ -1,6 +1,5 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   clientAuditEntries,
   clientContacts,
@@ -31,9 +30,9 @@ function asDate(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-async function invoiceBalances(clientId: string) {
-  const rows = await db.select().from(invoices).where(eq(invoices.clientId, clientId));
-  const payments = await db
+async function invoiceBalances(ctx: Context, clientId: string) {
+  const rows = await ctx.db.select().from(invoices).where(eq(invoices.clientId, clientId));
+  const payments = await ctx.db
     .select({ invoiceId: invoicePayments.invoiceId, amount: invoicePayments.amount })
     .from(invoicePayments)
     .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
@@ -58,20 +57,20 @@ async function invoiceBalances(clientId: string) {
   });
 }
 
-async function clientHealth(clientId: string, asOf: string) {
-  const [latestActivity] = await db
+async function clientHealth(ctx: Context, clientId: string, asOf: string) {
+  const [latestActivity] = await ctx.db
     .select({ occurredAt: crmActivities.occurredAt })
     .from(crmActivities)
     .where(eq(crmActivities.clientId, clientId))
     .orderBy(desc(crmActivities.occurredAt))
     .limit(1);
-  const deliveryRisks = await db
+  const deliveryRisks = await ctx.db
     .select({ id: projects.id, dueOn: projects.dueOn })
     .from(projects)
     .where(
       and(eq(projects.clientId, clientId), inArray(projects.status, ["planning", "in_progress"])),
     );
-  const balances = await invoiceBalances(clientId);
+  const balances = await invoiceBalances(ctx, clientId);
   const reasons: string[] = [];
   let score = 100;
   if (
@@ -116,10 +115,10 @@ async function clientHealth(clientId: string, asOf: string) {
 
 export async function getClientProfile(ctx: Context, input: ClientProjectionInput) {
   const details = await getClient(ctx, { id: input.id });
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   const asOf = input.asOf ?? localBusinessDate(organization.timezone);
   const [[primaryContact], currentProjects, activityHealth] = await Promise.all([
-    db
+    ctx.db
       .select()
       .from(clientContacts)
       .where(
@@ -131,7 +130,7 @@ export async function getClientProfile(ctx: Context, input: ClientProjectionInpu
       )
       .limit(1),
     listProjects(ctx, { clientId: input.id }),
-    clientHealth(input.id, asOf),
+    clientHealth(ctx, input.id, asOf),
   ]);
   return {
     ...details,
@@ -145,9 +144,9 @@ export async function getClientProfile(ctx: Context, input: ClientProjectionInpu
 }
 
 export async function listClientAuditEntries(ctx: Context, input: ClientResourceIdInput) {
-  const client = await clientOrThrow(input.id);
+  const client = await clientOrThrow(ctx, input.id);
   await requirePermission(ctx, "clients:read", client.branchId);
-  return db
+  return ctx.db
     .select({ entry: clientAuditEntries, actorUser: user })
     .from(clientAuditEntries)
     .leftJoin(user, eq(clientAuditEntries.actorUserId, user.id))
@@ -165,19 +164,19 @@ type TimelineItem = {
 };
 
 export async function getClientTimeline(ctx: Context, input: ClientProjectionInput) {
-  const client = await clientOrThrow(input.id);
+  const client = await clientOrThrow(ctx, input.id);
   await requirePermission(ctx, "clients:read", client.branchId);
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   const asOf = input.asOf ?? localBusinessDate(organization.timezone);
   const [assignments, transitions, contracts, clientInvoices, payments, activities, balances] =
     await Promise.all([
-      db
+      ctx.db
         .select({ assignment: clientOwnerAssignments, person: people })
         .from(clientOwnerAssignments)
         .innerJoin(employees, eq(clientOwnerAssignments.ownerEmployeeId, employees.id))
         .innerJoin(people, eq(employees.personId, people.id))
         .where(eq(clientOwnerAssignments.clientId, client.id)),
-      db
+      ctx.db
         .select({ transition: opportunityStageTransitions, stage: pipelineStages })
         .from(opportunityStageTransitions)
         .innerJoin(opportunities, eq(opportunityStageTransitions.opportunityId, opportunities.id))
@@ -186,15 +185,15 @@ export async function getClientTimeline(ctx: Context, input: ClientProjectionInp
           eq(opportunityStageTransitions.toPipelineStageId, pipelineStages.id),
         )
         .where(eq(opportunities.clientId, client.id)),
-      db.select().from(commercialContracts).where(eq(commercialContracts.clientId, client.id)),
-      db.select().from(invoices).where(eq(invoices.clientId, client.id)),
-      db
+      ctx.db.select().from(commercialContracts).where(eq(commercialContracts.clientId, client.id)),
+      ctx.db.select().from(invoices).where(eq(invoices.clientId, client.id)),
+      ctx.db
         .select({ payment: invoicePayments, invoice: invoices })
         .from(invoicePayments)
         .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
         .where(eq(invoices.clientId, client.id)),
-      db.select().from(crmActivities).where(eq(crmActivities.clientId, client.id)),
-      invoiceBalances(client.id),
+      ctx.db.select().from(crmActivities).where(eq(crmActivities.clientId, client.id)),
+      invoiceBalances(ctx, client.id),
     ]);
 
   const items: TimelineItem[] = [

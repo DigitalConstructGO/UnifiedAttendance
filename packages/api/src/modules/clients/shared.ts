@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   branches,
   clientTypes,
@@ -13,34 +12,43 @@ import {
 
 import { badRequest, notFound } from "../../errors";
 
-export async function currentOrganizationOrThrow() {
-  const [organization] = await db.select().from(organizations).limit(1);
+import type { Context } from "../../context";
+
+export async function currentOrganizationOrThrow(ctx: Context) {
+  const [organization] = await ctx.db.select().from(organizations).limit(1);
   if (!organization) notFound("Organization");
   return organization;
 }
 
-export async function clientOrThrow(clientId: string) {
-  const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
+export async function clientOrThrow(ctx: Context, clientId: string) {
+  const [client] = await ctx.db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
   if (!client) notFound("Client");
   return client;
 }
 
-export async function validateClientReferences(input: {
-  organizationId: string;
-  branchId: string;
-  ownerEmployeeId: string;
-  industryId: string;
-  clientTypeId: string;
-  companySizeId?: string | null;
-}) {
+export async function validateClientReferences(
+  ctx: Context,
+  input: {
+    organizationId: string;
+    branchId: string;
+    ownerEmployeeId: string;
+    industryId: string;
+    clientTypeId: string;
+    companySizeId?: string | null;
+  },
+) {
   const [[branch], [owner], [industry], [clientType]] = await Promise.all([
-    db.select({ id: branches.id }).from(branches).where(eq(branches.id, input.branchId)).limit(1),
-    db
+    ctx.db
+      .select({ id: branches.id })
+      .from(branches)
+      .where(eq(branches.id, input.branchId))
+      .limit(1),
+    ctx.db
       .select({ id: employees.id })
       .from(employees)
       .where(eq(employees.id, input.ownerEmployeeId))
       .limit(1),
-    db
+    ctx.db
       .select({ id: industries.id })
       .from(industries)
       .where(
@@ -51,7 +59,7 @@ export async function validateClientReferences(input: {
         ),
       )
       .limit(1),
-    db
+    ctx.db
       .select({ id: clientTypes.id })
       .from(clientTypes)
       .where(
@@ -69,7 +77,7 @@ export async function validateClientReferences(input: {
   if (!industry) badRequest("Industry is not active in this Organization");
   if (!clientType) badRequest("Client Type is not active in this Organization");
   if (input.companySizeId) {
-    const [companySize] = await db
+    const [companySize] = await ctx.db
       .select({ id: companySizes.id })
       .from(companySizes)
       .where(

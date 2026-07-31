@@ -1,6 +1,5 @@
 import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   clientAuditEntries,
   clients,
@@ -9,6 +8,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { clientOrThrow, currentOrganizationOrThrow } from "./shared";
 
@@ -20,8 +20,8 @@ import type {
   UpdateCommercialContractInput,
 } from "../../validations/clients";
 
-function commercialContractQuery() {
-  return db
+function commercialContractQuery(ctx: Context) {
+  return ctx.db
     .select({
       commercialContract: commercialContracts,
       client: clients,
@@ -32,8 +32,8 @@ function commercialContractQuery() {
     .leftJoin(opportunities, eq(commercialContracts.opportunityId, opportunities.id));
 }
 
-async function commercialContractOrThrow(contractId: string) {
-  const [contract] = await db
+async function commercialContractOrThrow(ctx: Context, contractId: string) {
+  const [contract] = await ctx.db
     .select()
     .from(commercialContracts)
     .where(eq(commercialContracts.id, contractId))
@@ -43,12 +43,13 @@ async function commercialContractOrThrow(contractId: string) {
 }
 
 async function validateOpportunityOrigin(
+  ctx: Context,
   organizationId: string,
   clientId: string,
   opportunityId?: string | null,
 ) {
   if (!opportunityId) return;
-  const [opportunity] = await db
+  const [opportunity] = await ctx.db
     .select({ clientId: opportunities.clientId })
     .from(opportunities)
     .where(
@@ -80,10 +81,10 @@ function validateCommercialContract(input: {
 }
 
 export async function getCommercialContract(ctx: Context, input: ClientResourceIdInput) {
-  const contract = await commercialContractOrThrow(input.id);
-  const client = await clientOrThrow(contract.clientId);
+  const contract = await commercialContractOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, contract.clientId);
   await requirePermission(ctx, "clients:read", client.branchId);
-  const [row] = await commercialContractQuery()
+  const [row] = await commercialContractQuery(ctx)
     .where(eq(commercialContracts.id, input.id))
     .limit(1);
   if (!row) throw new Error("Commercial Contract details could not be loaded");
@@ -92,23 +93,23 @@ export async function getCommercialContract(ctx: Context, input: ClientResourceI
 
 export async function listCommercialContracts(ctx: Context, input: ListCommercialContractsInput) {
   await requirePermission(ctx, "clients:read");
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(commercialContracts.organizationId, organization.id)];
   if (input.clientId) filters.push(eq(commercialContracts.clientId, input.clientId));
   if (input.opportunityId) filters.push(eq(commercialContracts.opportunityId, input.opportunityId));
   if (input.status) filters.push(eq(commercialContracts.status, input.status));
-  return commercialContractQuery()
+  return commercialContractQuery(ctx)
     .where(and(...filters))
     .orderBy(asc(commercialContracts.startsOn));
 }
 
 export async function createCommercialContract(ctx: Context, input: CreateCommercialContractInput) {
-  const client = await clientOrThrow(input.clientId);
+  const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   if (client.organizationId !== organization.id)
     badRequest("Client belongs to another Organization");
-  await validateOpportunityOrigin(organization.id, client.id, input.opportunityId);
+  await validateOpportunityOrigin(ctx, organization.id, client.id, input.opportunityId);
   const status = input.status ?? "draft";
   const signedOn = input.signedOn ?? null;
   const amount = input.amount ?? null;
@@ -122,10 +123,10 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
     currency,
   });
   const actorUserId = requireSessionUser(ctx);
-  const contractId = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+  const contractId = await withTransaction(ctx, async (ctx) => {
+    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
     const year = input.startsOn.slice(0, 4);
-    const [row] = await tx
+    const [row] = await ctx.db
       .select({ value: count() })
       .from(commercialContracts)
       .where(
@@ -135,7 +136,7 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
         ),
       );
     const contractCode = `CTR-${year}-${String((row?.value ?? 0) + 1).padStart(6, "0")}`;
-    const [contract] = await tx
+    const [contract] = await ctx.db
       .insert(commercialContracts)
       .values({
         organizationId: organization.id,
@@ -154,7 +155,7 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
       })
       .returning({ id: commercialContracts.id });
     if (!contract) throw new Error("Commercial Contract creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: organization.id,
       clientId: client.id,
       actorUserId,
@@ -169,8 +170,8 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
 }
 
 export async function updateCommercialContract(ctx: Context, input: UpdateCommercialContractInput) {
-  const current = await commercialContractOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await commercialContractOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   const startsOn = input.startsOn ?? current.startsOn;
   const endsOn = input.endsOn ?? current.endsOn;
@@ -180,16 +181,16 @@ export async function updateCommercialContract(ctx: Context, input: UpdateCommer
   const currency = input.currency === undefined ? current.currency : input.currency;
   const opportunityId =
     input.opportunityId === undefined ? current.opportunityId : input.opportunityId;
-  await validateOpportunityOrigin(current.organizationId, current.clientId, opportunityId);
+  await validateOpportunityOrigin(ctx, current.organizationId, current.clientId, opportunityId);
   validateCommercialContract({ startsOn, endsOn, status, signedOn, amount, currency });
   const actorUserId = requireSessionUser(ctx);
   const { id: contractId, ...values } = input;
-  await db.transaction(async (tx) => {
-    await tx
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
       .update(commercialContracts)
       .set({ ...values, startsOn, endsOn, status, signedOn, amount, currency })
       .where(eq(commercialContracts.id, contractId));
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: current.organizationId,
       clientId: current.clientId,
       actorUserId,

@@ -1,6 +1,5 @@
 import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
 import {
   branches,
   clientAuditEntries,
@@ -13,6 +12,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, conflict, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { minorToMoney, moneyToMinor } from "./money";
 import { clientOrThrow, currentOrganizationOrThrow, localBusinessDate } from "./shared";
@@ -35,8 +35,8 @@ const invoiceSelection = {
   branch: branches,
 };
 
-function invoiceQuery() {
-  return db
+function invoiceQuery(ctx: Context) {
+  return ctx.db
     .select(invoiceSelection)
     .from(invoices)
     .innerJoin(clients, eq(invoices.clientId, clients.id))
@@ -45,30 +45,33 @@ function invoiceQuery() {
     .innerJoin(branches, eq(invoices.branchId, branches.id));
 }
 
-async function invoiceOrThrow(invoiceId: string) {
-  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
+async function invoiceOrThrow(ctx: Context, invoiceId: string) {
+  const [invoice] = await ctx.db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
   if (!invoice) notFound("Invoice");
   return invoice;
 }
 
-async function validateInvoiceReferences(input: {
-  organizationId: string;
-  clientId: string;
-  branchId: string;
-  projectId?: string | null;
-  commercialContractId?: string | null;
-}) {
-  const client = await clientOrThrow(input.clientId);
+async function validateInvoiceReferences(
+  ctx: Context,
+  input: {
+    organizationId: string;
+    clientId: string;
+    branchId: string;
+    projectId?: string | null;
+    commercialContractId?: string | null;
+  },
+) {
+  const client = await clientOrThrow(ctx, input.clientId);
   if (client.organizationId !== input.organizationId)
     badRequest("Client belongs to another Organization");
-  const [branch] = await db
+  const [branch] = await ctx.db
     .select({ id: branches.id })
     .from(branches)
     .where(eq(branches.id, input.branchId))
     .limit(1);
   if (!branch) badRequest("Branch is not available");
   if (input.projectId) {
-    const [project] = await db
+    const [project] = await ctx.db
       .select({ id: projects.id })
       .from(projects)
       .where(
@@ -82,7 +85,7 @@ async function validateInvoiceReferences(input: {
     if (!project) badRequest("Project does not belong to this Client");
   }
   if (input.commercialContractId) {
-    const [contract] = await db
+    const [contract] = await ctx.db
       .select({ id: commercialContracts.id })
       .from(commercialContracts)
       .where(
@@ -98,8 +101,8 @@ async function validateInvoiceReferences(input: {
   return client;
 }
 
-async function paymentSummary(invoice: typeof invoices.$inferSelect, asOf: string) {
-  const payments = await db
+async function paymentSummary(ctx: Context, invoice: typeof invoices.$inferSelect, asOf: string) {
+  const payments = await ctx.db
     .select()
     .from(invoicePayments)
     .where(eq(invoicePayments.invoiceId, invoice.id))
@@ -129,15 +132,19 @@ async function paymentSummary(invoice: typeof invoices.$inferSelect, asOf: strin
 }
 
 async function invoiceDetails(ctx: Context, invoiceId: string, asOf?: string) {
-  const invoice = await invoiceOrThrow(invoiceId);
-  const client = await clientOrThrow(invoice.clientId);
+  const invoice = await invoiceOrThrow(ctx, invoiceId);
+  const client = await clientOrThrow(ctx, invoice.clientId);
   await requirePermission(ctx, "clients:read", client.branchId);
-  const [row] = await invoiceQuery().where(eq(invoices.id, invoiceId)).limit(1);
+  const [row] = await invoiceQuery(ctx).where(eq(invoices.id, invoiceId)).limit(1);
   if (!row) throw new Error("Invoice details could not be loaded");
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   return {
     ...row,
-    paymentSummary: await paymentSummary(invoice, asOf ?? localBusinessDate(organization.timezone)),
+    paymentSummary: await paymentSummary(
+      ctx,
+      invoice,
+      asOf ?? localBusinessDate(organization.timezone),
+    ),
   };
 }
 
@@ -147,12 +154,12 @@ export async function getInvoice(ctx: Context, input: ClientResourceIdInput) {
 
 export async function listInvoices(ctx: Context, input: ListInvoicesInput) {
   await requirePermission(ctx, "clients:read", input.branchId);
-  const organization = await currentOrganizationOrThrow();
+  const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(invoices.organizationId, organization.id)];
   if (input.clientId) filters.push(eq(invoices.clientId, input.clientId));
   if (input.branchId) filters.push(eq(invoices.branchId, input.branchId));
   if (input.lifecycleStatus) filters.push(eq(invoices.lifecycleStatus, input.lifecycleStatus));
-  const rows = await db
+  const rows = await ctx.db
     .select({ id: invoices.id })
     .from(invoices)
     .where(and(...filters))
@@ -162,13 +169,16 @@ export async function listInvoices(ctx: Context, input: ListInvoicesInput) {
 
 export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
   await requirePermission(ctx, "clients:manage", input.branchId);
-  const organization = await currentOrganizationOrThrow();
-  const client = await validateInvoiceReferences({ organizationId: organization.id, ...input });
+  const organization = await currentOrganizationOrThrow(ctx);
+  const client = await validateInvoiceReferences(ctx, {
+    organizationId: organization.id,
+    ...input,
+  });
   const actorUserId = requireSessionUser(ctx);
-  const invoiceId = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+  const invoiceId = await withTransaction(ctx, async (ctx) => {
+    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
     const year = localBusinessDate(organization.timezone).slice(0, 4);
-    const [row] = await tx
+    const [row] = await ctx.db
       .select({ value: count() })
       .from(invoices)
       .where(
@@ -178,7 +188,7 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
         ),
       );
     const invoiceNumber = `INV-${year}-${String((row?.value ?? 0) + 1).padStart(6, "0")}`;
-    const [invoice] = await tx
+    const [invoice] = await ctx.db
       .insert(invoices)
       .values({
         organizationId: organization.id,
@@ -192,7 +202,7 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
       })
       .returning({ id: invoices.id });
     if (!invoice) throw new Error("Invoice creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: organization.id,
       clientId: client.id,
       actorUserId,
@@ -207,14 +217,14 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
 }
 
 export async function updateInvoice(ctx: Context, input: UpdateInvoiceInput) {
-  const current = await invoiceOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await invoiceOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (current.lifecycleStatus !== "draft") conflict("Only a draft Invoice can be edited");
   if (input.branchId && input.branchId !== current.branchId) {
     await requirePermission(ctx, "clients:manage", input.branchId);
   }
-  await validateInvoiceReferences({
+  await validateInvoiceReferences(ctx, {
     organizationId: current.organizationId,
     clientId: current.clientId,
     branchId: input.branchId ?? current.branchId,
@@ -226,9 +236,9 @@ export async function updateInvoice(ctx: Context, input: UpdateInvoiceInput) {
   });
   const actorUserId = requireSessionUser(ctx);
   const { id: invoiceId, ...values } = input;
-  await db.transaction(async (tx) => {
-    await tx.update(invoices).set(values).where(eq(invoices.id, invoiceId));
-    await tx.insert(clientAuditEntries).values({
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.update(invoices).set(values).where(eq(invoices.id, invoiceId));
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: current.organizationId,
       clientId: current.clientId,
       actorUserId,
@@ -242,18 +252,18 @@ export async function updateInvoice(ctx: Context, input: UpdateInvoiceInput) {
 }
 
 export async function issueInvoice(ctx: Context, input: IssueInvoiceInput) {
-  const current = await invoiceOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await invoiceOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (current.lifecycleStatus !== "draft") conflict("Only a draft Invoice can be issued");
   if (input.dueOn < input.issuedOn) badRequest("Invoice due date cannot be before issue date");
   const actorUserId = requireSessionUser(ctx);
-  await db.transaction(async (tx) => {
-    await tx
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
       .update(invoices)
       .set({ lifecycleStatus: "issued", issuedOn: input.issuedOn, dueOn: input.dueOn })
       .where(eq(invoices.id, current.id));
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: current.organizationId,
       clientId: current.clientId,
       actorUserId,
@@ -267,22 +277,26 @@ export async function issueInvoice(ctx: Context, input: IssueInvoiceInput) {
 }
 
 export async function voidInvoice(ctx: Context, input: ClientResourceIdInput) {
-  const current = await invoiceOrThrow(input.id);
-  const client = await clientOrThrow(current.clientId);
+  const current = await invoiceOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (current.lifecycleStatus === "draft") {
     conflict("A draft Invoice must be issued before it can be voided");
   }
   const summary = await paymentSummary(
+    ctx,
     current,
-    localBusinessDate((await currentOrganizationOrThrow()).timezone),
+    localBusinessDate((await currentOrganizationOrThrow(ctx)).timezone),
   );
   if (summary.payments.length > 0) conflict("An Invoice with Payments cannot be voided");
   if (current.lifecycleStatus === "void") return invoiceDetails(ctx, current.id);
   const actorUserId = requireSessionUser(ctx);
-  await db.transaction(async (tx) => {
-    await tx.update(invoices).set({ lifecycleStatus: "void" }).where(eq(invoices.id, current.id));
-    await tx.insert(clientAuditEntries).values({
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .update(invoices)
+      .set({ lifecycleStatus: "void" })
+      .where(eq(invoices.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: current.organizationId,
       clientId: current.clientId,
       actorUserId,
@@ -295,24 +309,24 @@ export async function voidInvoice(ctx: Context, input: ClientResourceIdInput) {
 }
 
 export async function recordInvoicePayment(ctx: Context, input: RecordInvoicePaymentInput) {
-  const invoice = await invoiceOrThrow(input.invoiceId);
-  const client = await clientOrThrow(invoice.clientId);
+  const invoice = await invoiceOrThrow(ctx, input.invoiceId);
+  const client = await clientOrThrow(ctx, invoice.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (invoice.lifecycleStatus !== "issued") conflict("Payments require an issued Invoice");
   if (input.currency !== invoice.currency) badRequest("Payment currency must match the Invoice");
-  const [recorder] = await db
+  const [recorder] = await ctx.db
     .select({ id: employees.id })
     .from(employees)
     .where(eq(employees.id, input.recordedByEmployeeId))
     .limit(1);
   if (!recorder) badRequest("Payment recorder is not an Employee");
-  const summary = await paymentSummary(invoice, input.paidOn);
+  const summary = await paymentSummary(ctx, invoice, input.paidOn);
   if (moneyToMinor(input.amount) > moneyToMinor(summary.outstandingAmount)) {
     badRequest("Payment cannot exceed the outstanding Invoice balance");
   }
   const actorUserId = requireSessionUser(ctx);
-  const [payment] = await db.transaction(async (tx) => {
-    const result = await tx
+  const [payment] = await withTransaction(ctx, async (ctx) => {
+    const result = await ctx.db
       .insert(invoicePayments)
       .values({
         organizationId: invoice.organizationId,
@@ -323,7 +337,7 @@ export async function recordInvoicePayment(ctx: Context, input: RecordInvoicePay
       .returning();
     const recorded = result[0];
     if (!recorded) throw new Error("Invoice Payment creation failed");
-    await tx.insert(clientAuditEntries).values({
+    await ctx.db.insert(clientAuditEntries).values({
       organizationId: invoice.organizationId,
       clientId: invoice.clientId,
       actorUserId,
