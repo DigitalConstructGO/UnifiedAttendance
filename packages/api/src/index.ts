@@ -1,4 +1,4 @@
-export { createContext, createInnerContext, type Context } from "./context";
+export { createContext, createInnerContext, withTransaction, type Context } from "./context";
 export {
   ApiError,
   isApiError,
