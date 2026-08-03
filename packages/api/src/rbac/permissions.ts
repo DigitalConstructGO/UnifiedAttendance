@@ -46,13 +46,17 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "attendance:read",
     "corrections:read",
     "corrections:review",
-    "clients:read",
   ],
   [ROLES.manager]: [
     "workforce:read",
-    "attendance:read",
-    "corrections:read",
-    "corrections:review",
     "clients:read",
   ],
 };
+
+
+
+
+
+
+
+

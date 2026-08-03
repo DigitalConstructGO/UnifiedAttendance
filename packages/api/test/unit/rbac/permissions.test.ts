@@ -27,10 +27,13 @@ describe("isRole", () => {
 });
 
 describe("Client CRM access", () => {
-  it.each([ROLES.superAdministrator, ROLES.admin, ROLES.hr])(
+  it.each([ROLES.superAdministrator, ROLES.admin])(
     "grants %s permission to view Client and lead details",
     (role) => {
       expect(ROLE_PERMISSIONS[role]).toContain(PERMISSIONS.clientsRead);
     },
   );
+  it("restricts HR from accessing Client and lead details", () => {
+    expect(ROLE_PERMISSIONS[ROLES.hr]).not.toContain(PERMISSIONS.clientsRead);
+  });
 });
