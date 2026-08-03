@@ -4,8 +4,6 @@ import {
   date,
   foreignKey,
   index,
-  integer,
-  numeric,
   pgTable,
   text,
   timestamp,
@@ -40,9 +38,6 @@ export const projects = pgTable(
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
     status: projectStatus("status").notNull().default(PROJECT_STATUSES[0]),
-    progressPercent: integer("progress_percent").notNull().default(0),
-    budgetAmount: numeric("budget_amount", { precision: 14, scale: 2 }).notNull(),
-    currency: text("currency").notNull(),
     startsOn: date("starts_on"),
     dueOn: date("due_on").notNull(),
     completedOn: date("completed_on"),
@@ -71,14 +66,13 @@ export const projects = pgTable(
         commercialContracts.id,
       ],
     }),
-    check("projects_progress_range", sql`${table.progressPercent} between 0 and 100`),
     check(
       "projects_date_range",
       sql`${table.startsOn} is null or ${table.dueOn} >= ${table.startsOn}`,
     ),
     check(
       "projects_completion_state",
-      sql`(${table.status} = 'completed' and ${table.progressPercent} = 100 and ${table.completedOn} is not null) or (${table.status} <> 'completed' and ${table.completedOn} is null)`,
+      sql`(${table.status} = 'completed' and ${table.completedOn} is not null) or (${table.status} <> 'completed' and ${table.completedOn} is null)`,
     ),
   ],
 );

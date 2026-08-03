@@ -5,8 +5,7 @@ import { user } from "./auth";
 import { organizations } from "./organization";
 import { employees } from "./employees";
 import { clients, clientContacts } from "./clients";
-import { opportunities } from "./client-sales";
-import { AUDIT_ACTOR_TYPES, auditActorType, crmActivityType } from "./client-enums";
+import { AUDIT_ACTOR_TYPES, auditActorType } from "./client-enums";
 
 export const clientNotes = pgTable(
   "client_notes",
@@ -44,20 +43,17 @@ export const crmActivities = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    clientId: uuid("client_id").references(() => clients.id, { onDelete: "restrict" }),
-    opportunityId: uuid("opportunity_id").references(() => opportunities.id, {
-      onDelete: "restrict",
-    }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "restrict" }),
     clientContactId: uuid("client_contact_id").references(() => clientContacts.id, {
       onDelete: "set null",
     }),
     actorEmployeeId: uuid("actor_employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
-    activityType: crmActivityType("activity_type").notNull(),
-    summary: text("summary").notNull(),
-    details: text("details"),
-    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    note: text("note").notNull(),
+    contactDate: timestamp("contact_date", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
@@ -65,14 +61,9 @@ export const crmActivities = pgTable(
       .notNull(),
   },
   (table) => [
-    index("crm_activities_client_date_idx").on(table.clientId, table.occurredAt),
-    index("crm_activities_opportunity_date_idx").on(table.opportunityId, table.occurredAt),
+    index("crm_activities_client_date_idx").on(table.clientId, table.contactDate),
     index("crm_activities_actor_idx").on(table.actorEmployeeId),
-    check(
-      "crm_activities_target_required",
-      sql`(${table.clientId} is not null)::integer + (${table.opportunityId} is not null)::integer >= 1`,
-    ),
-    check("crm_activities_summary_nonempty", sql`length(trim(${table.summary})) > 0`),
+    check("crm_activities_note_nonempty", sql`length(trim(${table.note})) > 0`),
   ],
 );
 

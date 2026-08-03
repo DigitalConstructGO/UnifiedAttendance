@@ -8,7 +8,6 @@ import {
   clientOwnerAssignments,
   clientTypes,
   clients,
-  companySizes,
   industries,
   pipelineStages,
 } from "./clients";
@@ -36,14 +35,6 @@ export const clientTypesRelations = relations(clientTypes, ({ many, one }) => ({
   clients: many(clients),
 }));
 
-export const companySizesRelations = relations(companySizes, ({ many, one }) => ({
-  organization: one(organizations, {
-    fields: [companySizes.organizationId],
-    references: [organizations.id],
-  }),
-  clients: many(clients),
-}));
-
 export const pipelineStagesRelations = relations(pipelineStages, ({ many, one }) => ({
   organization: one(organizations, {
     fields: [pipelineStages.organizationId],
@@ -63,10 +54,6 @@ export const clientsRelations = relations(clients, ({ many, one }) => ({
   owner: one(employees, { fields: [clients.ownerEmployeeId], references: [employees.id] }),
   industry: one(industries, { fields: [clients.industryId], references: [industries.id] }),
   clientType: one(clientTypes, { fields: [clients.clientTypeId], references: [clientTypes.id] }),
-  companySize: one(companySizes, {
-    fields: [clients.companySizeId],
-    references: [companySizes.id],
-  }),
   contacts: many(clientContacts),
   ownerAssignments: many(clientOwnerAssignments),
   opportunities: many(opportunities),
@@ -250,10 +237,6 @@ export const crmActivitiesRelations = relations(crmActivities, ({ one }) => ({
     references: [organizations.id],
   }),
   client: one(clients, { fields: [crmActivities.clientId], references: [clients.id] }),
-  opportunity: one(opportunities, {
-    fields: [crmActivities.opportunityId],
-    references: [opportunities.id],
-  }),
   clientContact: one(clientContacts, {
     fields: [crmActivities.clientContactId],
     references: [clientContacts.id],

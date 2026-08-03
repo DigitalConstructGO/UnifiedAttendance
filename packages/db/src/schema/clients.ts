@@ -20,7 +20,6 @@ import {
   CLIENT_STATUSES,
   clientPriority,
   clientStatus,
-  foundingCalendar,
   pipelineStageOutcome,
 } from "./client-enums";
 
@@ -137,9 +136,6 @@ export const clients = pgTable(
     clientTypeId: uuid("client_type_id")
       .notNull()
       .references(() => clientTypes.id, { onDelete: "restrict" }),
-    companySizeId: uuid("company_size_id").references(() => companySizes.id, {
-      onDelete: "set null",
-    }),
     phone: text("phone"),
     email: text("email"),
     tin: text("tin"),
@@ -147,8 +143,6 @@ export const clients = pgTable(
     registrationNumber: text("registration_number"),
     businessLicenseNumber: text("business_license_number"),
     website: text("website"),
-    foundedYear: integer("founded_year"),
-    foundedCalendar: foundingCalendar("founded_calendar"),
     relationshipStartedOn: date("relationship_started_on").notNull(),
     priority: clientPriority("priority"),
     status: clientStatus("status").notNull().default(CLIENT_STATUSES[0]),
@@ -171,14 +165,6 @@ export const clients = pgTable(
     index("clients_type_idx").on(table.clientTypeId),
     index("clients_status_idx").on(table.organizationId, table.status),
     check(
-      "clients_founded_year_valid",
-      sql`${table.foundedYear} is null or ${table.foundedYear} > 0`,
-    ),
-    check(
-      "clients_founded_calendar_pair",
-      sql`(${table.foundedYear} is null and ${table.foundedCalendar} is null) or (${table.foundedYear} is not null and ${table.foundedCalendar} is not null)`,
-    ),
-    check(
       "clients_archived_timestamp",
       sql`${table.status} <> 'archived' or ${table.archivedAt} is not null`,
     ),
@@ -196,12 +182,10 @@ export const clientContacts = pgTable(
       .notNull()
       .references(() => clients.id, { onDelete: "restrict" }),
     firstName: text("first_name").notNull(),
-    middleName: text("middle_name"),
     lastName: text("last_name").notNull(),
     role: text("role"),
     phone: text("phone"),
     email: text("email"),
-    telegramHandle: text("telegram_handle"),
     isPrimary: boolean("is_primary").notNull().default(false),
     status: activeStatus("status").notNull().default("active"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -217,7 +201,7 @@ export const clientContacts = pgTable(
       .where(sql`${table.status} = 'active' and ${table.isPrimary} = true`),
     check(
       "client_contacts_reachable_channel",
-      sql`${table.status} <> 'active' or nullif(trim(${table.phone}), '') is not null or nullif(trim(${table.email}), '') is not null or nullif(trim(${table.telegramHandle}), '') is not null`,
+      sql`${table.status} <> 'active' or nullif(trim(${table.phone}), '') is not null or nullif(trim(${table.email}), '') is not null`,
     ),
   ],
 );
