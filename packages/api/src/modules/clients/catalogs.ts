@@ -2,7 +2,6 @@ import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import {
   clientTypes,
-  companySizes,
   industries,
   pipelineStages,
 } from "@UnifiedAttendance/db/schema/index";
@@ -14,7 +13,6 @@ import { currentOrganizationOrThrow } from "./shared";
 import type { Context } from "../../context";
 import type {
   CreateClientTypeInput,
-  CreateCompanySizeInput,
   CreateIndustryInput,
   CreatePipelineStageInput,
   UpdateCatalogInput,
@@ -139,64 +137,7 @@ export async function updateClientType(ctx: Context, input: UpdateCatalogInput) 
   return clientType!;
 }
 
-export async function listCompanySizes(ctx: Context) {
-  await requirePermission(ctx, "clients:read");
-  const organization = await currentOrganizationOrThrow(ctx);
-  return ctx.db
-    .select()
-    .from(companySizes)
-    .where(eq(companySizes.organizationId, organization.id))
-    .orderBy(asc(companySizes.name));
-}
 
-export async function createCompanySize(ctx: Context, input: CreateCompanySizeInput) {
-  await requirePermission(ctx, "clients:manage");
-  const organization = await currentOrganizationOrThrow(ctx);
-  const [existing] = await ctx.db
-    .select({ id: companySizes.id })
-    .from(companySizes)
-    .where(and(eq(companySizes.organizationId, organization.id), eq(companySizes.name, input.name)))
-    .limit(1);
-  if (existing) conflict("Company Size name already exists");
-  const [companySize] = await ctx.db
-    .insert(companySizes)
-    .values({ organizationId: organization.id, name: input.name })
-    .returning();
-  if (!companySize) throw new Error("Company Size creation failed");
-  return companySize;
-}
-
-export async function updateCompanySize(ctx: Context, input: UpdateCatalogInput) {
-  await requirePermission(ctx, "clients:manage");
-  const organization = await currentOrganizationOrThrow(ctx);
-  const [current] = await ctx.db
-    .select()
-    .from(companySizes)
-    .where(and(eq(companySizes.id, input.id), eq(companySizes.organizationId, organization.id)))
-    .limit(1);
-  if (!current) notFound("Company Size");
-  if (input.name && input.name !== current.name) {
-    const [duplicate] = await ctx.db
-      .select({ id: companySizes.id })
-      .from(companySizes)
-      .where(
-        and(
-          eq(companySizes.organizationId, organization.id),
-          eq(companySizes.name, input.name),
-          ne(companySizes.id, input.id),
-        ),
-      )
-      .limit(1);
-    if (duplicate) conflict("Company Size name already exists");
-  }
-  const { id: companySizeId, ...values } = input;
-  const [companySize] = await ctx.db
-    .update(companySizes)
-    .set(values)
-    .where(eq(companySizes.id, companySizeId))
-    .returning();
-  return companySize!;
-}
 
 export async function listPipelineStages(ctx: Context) {
   await requirePermission(ctx, "clients:read");

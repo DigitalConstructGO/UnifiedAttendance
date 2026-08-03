@@ -19,7 +19,6 @@ import {
   createClientContact,
   createCommercialContract,
   createClientType,
-  createCompanySize,
   createEmployee,
   createIndustry,
   createInvoice,
@@ -36,7 +35,6 @@ import {
   getClientProfile,
   getClientTimeline,
   getClientOverview,
-  listCompanySizes,
   listClients,
   listClientOwnerAssignments,
   listClientContacts,
@@ -145,16 +143,12 @@ describe("clients", () => {
   it("serves editable CRM classifications instead of hard-coded options", async () => {
     const industry = await createIndustry(context, { name: "Banking" });
     await updateIndustry(context, { id: industry.id, name: "Financial services" });
-    const companySize = await createCompanySize(context, { name: "Enterprise" });
     const lead = await createPipelineStage(context, {
       name: "Lead",
       position: 1,
       outcome: "open",
     });
 
-    expect(await listCompanySizes(context)).toEqual([
-      expect.objectContaining({ id: companySize.id, name: "Enterprise" }),
-    ]);
     expect(await listPipelineStages(context)).toEqual([
       expect.objectContaining({ id: lead.id, name: "Lead", position: 1 }),
     ]);
@@ -166,7 +160,6 @@ describe("clients", () => {
   it("enriches, reassigns, and archives a client without losing owner history", async () => {
     const industry = await createIndustry(context, { name: "Banking" });
     const clientType = await createClientType(context, { name: "Enterprise" });
-    const companySize = await createCompanySize(context, { name: "Large" });
     const replacementOwner = await createEmployee(context, {
       person: { firstName: "Nahom", lastName: "Desta" },
       employee: {
@@ -187,10 +180,7 @@ describe("clients", () => {
     const updated = await updateClient(context, {
       id: created.client.id,
       tradingName: "Commercial",
-      companySizeId: companySize.id,
       tin: "001000002",
-      foundedYear: 2009,
-      foundedCalendar: "ethiopian",
       priority: "critical",
       ownerEmployeeId: replacementOwner.employee.id,
     });
@@ -198,7 +188,6 @@ describe("clients", () => {
     expect(updated).toMatchObject({
       client: {
         tradingName: "Commercial",
-        companySizeId: companySize.id,
         ownerEmployeeId: replacementOwner.employee.id,
         priority: "critical",
       },
@@ -340,17 +329,14 @@ describe("clients", () => {
       branchId,
       name: "Core platform rollout",
       managerEmployeeId: ownerEmployeeId,
-      budgetAmount: "1740000.00",
-      currency: "ETB",
       startsOn: "2026-07-01",
       dueOn: "2026-12-30",
     });
     const active = await updateProject(context, {
       id: project.project.id,
       status: "in_progress",
-      progressPercent: 62,
     });
-    expect(active.project).toMatchObject({ status: "in_progress", progressPercent: 62 });
+    expect(active.project).toMatchObject({ status: "in_progress" });
     await expect(
       updateProject(context, { id: project.project.id, status: "completed" }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
@@ -358,12 +344,10 @@ describe("clients", () => {
     const completed = await updateProject(context, {
       id: project.project.id,
       status: "completed",
-      progressPercent: 100,
       completedOn: "2026-12-20",
     });
     expect(completed.project).toMatchObject({
       status: "completed",
-      progressPercent: 100,
       completedOn: "2026-12-20",
     });
     expect(await listProjects(context, { clientId: client.client.id })).toHaveLength(1);
@@ -522,21 +506,14 @@ describe("clients", () => {
 
     const activity = await createCrmActivity(context, {
       clientId: client.client.id,
-      opportunityId: opportunity.opportunity.id,
       clientContactId: contact.id,
       actorEmployeeId: ownerEmployeeId,
-      activityType: "meeting",
-      summary: "Quarterly business review",
-      details: "Discussed renewal terms",
-      occurredAt: new Date("2026-07-30T09:00:00.000Z"),
+      note: "Quarterly business review - Discussed renewal terms",
+      contactDate: new Date("2026-07-30T09:00:00.000Z"),
     });
     expect(await listCrmActivities(context, { clientId: client.client.id })).toEqual([
       expect.objectContaining({ activity: expect.objectContaining({ id: activity.activity.id }) }),
     ]);
-    expect(
-      (await getOpportunity(context, { id: opportunity.opportunity.id })).opportunity
-        .lastActivityAt,
-    ).toEqual(new Date("2026-07-30T09:00:00.000Z"));
 
     await archiveClientNote(context, { id: note.id });
     expect(await listClientNotes(context, { clientId: client.client.id })).toEqual([]);
@@ -604,18 +581,14 @@ describe("clients", () => {
       name: "Core platform rollout",
       managerEmployeeId: ownerEmployeeId,
       status: "in_progress",
-      progressPercent: 62,
-      budgetAmount: "1740000.00",
-      currency: "ETB",
       startsOn: "2026-07-01",
       dueOn: "2026-12-30",
     });
     await createCrmActivity(context, {
       clientId: client.client.id,
       actorEmployeeId: ownerEmployeeId,
-      activityType: "meeting",
-      summary: "Quarterly business review",
-      occurredAt: new Date("2026-07-30T09:00:00.000Z"),
+      note: "Quarterly business review",
+      contactDate: new Date("2026-07-30T09:00:00.000Z"),
     });
 
     const profile = await getClientProfile(context, {
@@ -657,9 +630,6 @@ describe("clients", () => {
       name: "Core platform rollout",
       managerEmployeeId: ownerEmployeeId,
       status: "in_progress",
-      progressPercent: 62,
-      budgetAmount: "1740000.00",
-      currency: "ETB",
       dueOn: "2026-12-30",
     });
     const invoice = await createInvoice(context, {
@@ -683,9 +653,8 @@ describe("clients", () => {
     await createCrmActivity(context, {
       clientId: client.client.id,
       actorEmployeeId: ownerEmployeeId,
-      activityType: "call",
-      summary: "Discussed renewal",
-      occurredAt: new Date("2026-07-30T09:00:00.000Z"),
+      note: "Discussed renewal",
+      contactDate: new Date("2026-07-30T09:00:00.000Z"),
     });
 
     const directory = await listClients(context, {});
@@ -745,9 +714,6 @@ describe("clients", () => {
       name: "Core platform rollout",
       managerEmployeeId: ownerEmployeeId,
       status: "in_progress",
-      progressPercent: 62,
-      budgetAmount: "1740000.00",
-      currency: "ETB",
       dueOn: "2026-12-30",
     });
     await createProject(context, {
@@ -756,9 +722,6 @@ describe("clients", () => {
       name: "Discovery",
       managerEmployeeId: ownerEmployeeId,
       status: "completed",
-      progressPercent: 100,
-      budgetAmount: "120000.00",
-      currency: "ETB",
       dueOn: "2026-06-30",
       completedOn: "2026-06-25",
     });
@@ -864,22 +827,16 @@ describe("clients", () => {
 
     const activity = await createCrmActivity(context, {
       clientId: client.client.id,
-      opportunityId: opportunity.opportunity.id,
       actorEmployeeId: ownerEmployeeId,
-      activityType: "call",
-      summary: "Discovery call",
-      occurredAt: new Date("2026-07-30T09:00:00.000Z"),
+      note: "Discovery call",
+      contactDate: new Date("2026-07-30T09:00:00.000Z"),
     });
     const updatedActivity = await updateCrmActivity(context, {
       id: activity.activity.id,
-      activityType: "meeting",
-      summary: "Discovery meeting",
-      details: "Scope confirmed",
+      note: "Discovery meeting - Scope confirmed",
     });
     expect(updatedActivity.activity).toMatchObject({
-      activityType: "meeting",
-      summary: "Discovery meeting",
-      details: "Scope confirmed",
+      note: "Discovery meeting - Scope confirmed",
     });
 
     const invoice = await createInvoice(context, {

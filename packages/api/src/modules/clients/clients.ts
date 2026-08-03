@@ -6,13 +6,12 @@ import {
   clientOwnerAssignments,
   clientTypes,
   clients,
-  companySizes,
   employees,
   industries,
   people,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { badRequest, conflict } from "../../errors";
+import { conflict } from "../../errors";
 import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { getClientDirectoryMetrics } from "./directory";
@@ -36,7 +35,6 @@ const clientSelection = {
   branch: branches,
   industry: industries,
   clientType: clientTypes,
-  companySize: companySizes,
   ownerEmployee: employees,
   ownerPerson: people,
 };
@@ -48,7 +46,6 @@ function clientQuery(ctx: Context) {
     .innerJoin(branches, eq(clients.branchId, branches.id))
     .innerJoin(industries, eq(clients.industryId, industries.id))
     .innerJoin(clientTypes, eq(clients.clientTypeId, clientTypes.id))
-    .leftJoin(companySizes, eq(clients.companySizeId, companySizes.id))
     .innerJoin(employees, eq(clients.ownerEmployeeId, employees.id))
     .innerJoin(people, eq(employees.personId, people.id));
 }
@@ -204,14 +201,7 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
     ownerEmployeeId: input.ownerEmployeeId ?? current.ownerEmployeeId,
     industryId: input.industryId ?? current.industryId,
     clientTypeId: input.clientTypeId ?? current.clientTypeId,
-    companySizeId: input.companySizeId === undefined ? current.companySizeId : input.companySizeId,
   });
-  const foundedYear = input.foundedYear === undefined ? current.foundedYear : input.foundedYear;
-  const foundedCalendar =
-    input.foundedCalendar === undefined ? current.foundedCalendar : input.foundedCalendar;
-  if ((foundedYear === null) !== (foundedCalendar === null)) {
-    badRequest("Founded year and calendar must be provided or cleared together");
-  }
   if (input.tin && input.tin !== current.tin) {
     const [duplicate] = await ctx.db
       .select({ id: clients.id })

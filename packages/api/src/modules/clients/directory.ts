@@ -111,7 +111,7 @@ export async function getClientDirectoryMetrics(ctx: Context, clientRows: Client
       .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
       .where(and(inArray(invoices.clientId, clientIds), eq(invoices.lifecycleStatus, "issued"))),
     ctx.db
-      .select({ clientId: crmActivities.clientId, occurredAt: crmActivities.occurredAt })
+      .select({ clientId: crmActivities.clientId, contactDate: crmActivities.contactDate })
       .from(crmActivities)
       .where(inArray(crmActivities.clientId, clientIds)),
   ]);
@@ -141,8 +141,8 @@ export async function getClientDirectoryMetrics(ctx: Context, clientRows: Client
   for (const row of activityRows) {
     if (!row.clientId) continue;
     const metrics = result.get(row.clientId);
-    if (metrics && (metrics.lastActivityAt === null || row.occurredAt > metrics.lastActivityAt)) {
-      metrics.lastActivityAt = row.occurredAt;
+    if (metrics && (metrics.lastActivityAt === null || row.contactDate > metrics.lastActivityAt)) {
+      metrics.lastActivityAt = row.contactDate;
     }
   }
 

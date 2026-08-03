@@ -7,8 +7,6 @@ import {
   CLIENT_DOCUMENT_KINDS,
   COMMERCIAL_CONTRACT_STATUSES,
   CONTRACT_RENEWAL_MODES,
-  CRM_ACTIVITY_TYPES,
-  FOUNDING_CALENDARS,
   OPPORTUNITY_PRIORITIES,
   PIPELINE_STAGE_OUTCOMES,
   PROJECT_STATUSES,
@@ -22,7 +20,7 @@ export const clientResourceIdInput = z.object({ id });
 
 export const createIndustryInput = z.object({ name: text });
 export const createClientTypeInput = z.object({ name: text });
-export const createCompanySizeInput = z.object({ name: text });
+
 export const updateCatalogInput = z.object({
   id,
   name: text.optional(),
@@ -57,7 +55,6 @@ export const updateClientInput = z.object({
   tradingName: nullableText,
   industryId: id.optional(),
   clientTypeId: id.optional(),
-  companySizeId: id.nullable().optional(),
   phone: nullableText,
   email: z.email().nullable().optional(),
   tin: nullableText,
@@ -65,8 +62,6 @@ export const updateClientInput = z.object({
   registrationNumber: nullableText,
   businessLicenseNumber: nullableText,
   website: z.url().nullable().optional(),
-  foundedYear: z.number().int().positive().nullable().optional(),
-  foundedCalendar: z.enum(FOUNDING_CALENDARS).nullable().optional(),
   relationshipStartedOn: date.optional(),
   priority: z.enum(CLIENT_PRIORITIES).nullable().optional(),
 });
@@ -92,12 +87,10 @@ export const listClientContactsInput = z.object({
 export const createClientContactInput = z.object({
   clientId: id,
   firstName: text,
-  middleName: nullableText,
   lastName: text,
   role: nullableText,
   phone: nullableText,
   email: z.email().nullable().optional(),
-  telegramHandle: nullableText,
   isPrimary: z.boolean().optional(),
 });
 export const updateClientContactInput = createClientContactInput
@@ -160,9 +153,6 @@ export const createProjectInput = z.object({
   name: text,
   managerEmployeeId: id,
   status: z.enum(PROJECT_STATUSES).optional(),
-  progressPercent: z.number().int().min(0).max(100).optional(),
-  budgetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-  currency: text,
   startsOn: date.nullable().optional(),
   dueOn: date,
   completedOn: date.nullable().optional(),
@@ -251,24 +241,20 @@ export const listClientNotesInput = z.object({
   includeArchived: z.stringbool().optional(),
 });
 export const createCrmActivityInput = z.object({
-  clientId: id.nullable().optional(),
-  opportunityId: id.nullable().optional(),
+  clientId: id,
   clientContactId: id.nullable().optional(),
   actorEmployeeId: id,
-  activityType: z.enum(CRM_ACTIVITY_TYPES),
-  summary: text,
-  details: nullableText,
-  occurredAt: z.coerce.date(),
+  note: text,
+  contactDate: z.coerce.date(),
 });
 export const updateCrmActivityInput = z.object({
   id,
-  activityType: z.enum(CRM_ACTIVITY_TYPES).optional(),
-  summary: text.optional(),
-  details: nullableText,
+  note: text.optional(),
+  contactDate: z.coerce.date().optional(),
+  clientContactId: id.nullable().optional(),
 });
 export const listCrmActivitiesInput = z.object({
-  clientId: id.optional(),
-  opportunityId: id.optional(),
+  clientId: id,
 });
 
 export const CLIENT_DOCUMENT_CONTENT_TYPES = [
@@ -322,7 +308,6 @@ export const clientOverviewInput = z
 export type ClientResourceIdInput = z.output<typeof clientResourceIdInput>;
 export type CreateIndustryInput = z.output<typeof createIndustryInput>;
 export type CreateClientTypeInput = z.output<typeof createClientTypeInput>;
-export type CreateCompanySizeInput = z.output<typeof createCompanySizeInput>;
 export type UpdateCatalogInput = z.output<typeof updateCatalogInput>;
 export type CreatePipelineStageInput = z.output<typeof createPipelineStageInput>;
 export type UpdatePipelineStageInput = z.output<typeof updatePipelineStageInput>;

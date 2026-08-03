@@ -4,7 +4,6 @@ import {
   branches,
   clientTypes,
   clients,
-  companySizes,
   employees,
   industries,
   organizations,
@@ -34,7 +33,7 @@ export async function validateClientReferences(
     ownerEmployeeId: string;
     industryId: string;
     clientTypeId: string;
-    companySizeId?: string | null;
+
   },
 ) {
   const [[branch], [owner], [industry], [clientType]] = await Promise.all([
@@ -76,20 +75,6 @@ export async function validateClientReferences(
   if (!owner) badRequest("Account Owner is not available");
   if (!industry) badRequest("Industry is not active in this Organization");
   if (!clientType) badRequest("Client Type is not active in this Organization");
-  if (input.companySizeId) {
-    const [companySize] = await ctx.db
-      .select({ id: companySizes.id })
-      .from(companySizes)
-      .where(
-        and(
-          eq(companySizes.id, input.companySizeId),
-          eq(companySizes.organizationId, input.organizationId),
-          eq(companySizes.status, "active"),
-        ),
-      )
-      .limit(1);
-    if (!companySize) badRequest("Company Size is not active in this Organization");
-  }
 }
 
 export function localBusinessDate(timeZone: string, instant = new Date()) {

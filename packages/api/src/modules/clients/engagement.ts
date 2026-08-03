@@ -6,7 +6,6 @@ import {
   clientNotes,
   crmActivities,
   employees,
-  opportunities,
   people,
 } from "@UnifiedAttendance/db/schema/index";
 
@@ -147,23 +146,8 @@ export async function archiveClientNote(ctx: Context, input: ClientResourceIdInp
 }
 
 async function resolveActivityTargets(ctx: Context, input: CreateCrmActivityInput) {
-  if (!input.clientId && !input.opportunityId) {
-    badRequest("CRM Activity requires a Client or Opportunity");
-  }
-  const client = input.clientId ? await clientOrThrow(ctx, input.clientId) : null;
-  const [opportunity] = input.opportunityId
-    ? await ctx.db
-        .select()
-        .from(opportunities)
-        .where(eq(opportunities.id, input.opportunityId))
-        .limit(1)
-    : [null];
-  if (input.opportunityId && !opportunity) notFound("Opportunity");
-  if (client && opportunity?.clientId && opportunity.clientId !== client.id) {
-    badRequest("CRM Activity Client and Opportunity do not match");
-  }
+  const client = await clientOrThrow(ctx, input.clientId);
   if (input.clientContactId) {
-    if (!client) badRequest("A Client Contact requires a Client target");
     const [contact] = await ctx.db
       .select({ clientId: clientContacts.clientId })
       .from(clientContacts)
@@ -173,16 +157,15 @@ async function resolveActivityTargets(ctx: Context, input: CreateCrmActivityInpu
       badRequest("Client Contact does not belong to the CRM Activity Client");
     }
   }
-  return { client, opportunity };
+  return { client };
 }
 
 export async function createCrmActivity(ctx: Context, input: CreateCrmActivityInput) {
-  const { client, opportunity } = await resolveActivityTargets(ctx, input);
-  const branchId = client?.branchId ?? opportunity!.branchId;
-  await requirePermission(ctx, "clients:manage", branchId);
+  const { client } = await resolveActivityTargets(ctx, input);
+  await requirePermission(ctx, "clients:manage", client.branchId);
   if (!(await employeeExists(ctx, input.actorEmployeeId)))
     badRequest("Activity actor is not an Employee");
-  const organizationId = client?.organizationId ?? opportunity!.organizationId;
+  const organizationId = client.organizationId;
   const actorUserId = requireSessionUser(ctx);
   const activityId = await withTransaction(ctx, async (ctx) => {
     const [activity] = await ctx.db
@@ -190,33 +173,18 @@ export async function createCrmActivity(ctx: Context, input: CreateCrmActivityIn
       .values({
         organizationId,
         ...input,
-        clientId: input.clientId ?? null,
-        opportunityId: input.opportunityId ?? null,
         clientContactId: input.clientContactId ?? null,
-        details: input.details ?? null,
       })
       .returning({ id: crmActivities.id });
     if (!activity) throw new Error("CRM Activity creation failed");
-    if (
-      opportunity &&
-      (!opportunity.lastActivityAt || opportunity.lastActivityAt < input.occurredAt)
-    ) {
-      await ctx.db
-        .update(opportunities)
-        .set({ lastActivityAt: input.occurredAt })
-        .where(eq(opportunities.id, opportunity.id));
-    }
-    if (client) {
-      await ctx.db.insert(clientAuditEntries).values({
-        organizationId,
-        clientId: client.id,
-        actorUserId,
-        action: "crm_activity.created",
-        entityType: "crm_activity",
-        entityId: activity.id,
-        changeSummary: { activityType: input.activityType },
-      });
-    }
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId,
+      clientId: client.id,
+      actorUserId,
+      action: "crm_activity.created",
+      entityType: "crm_activity",
+      entityId: activity.id,
+    });
     return activity.id;
   });
   const [row] = await activityQuery(ctx).where(eq(crmActivities.id, activityId)).limit(1);
@@ -236,33 +204,21 @@ async function activityOrThrow(ctx: Context, activityId: string) {
 
 export async function updateCrmActivity(ctx: Context, input: UpdateCrmActivityInput) {
   const current = await activityOrThrow(ctx, input.id);
-  const client = current.clientId ? await clientOrThrow(ctx, current.clientId) : null;
-  const [opportunity] =
-    !client && current.opportunityId
-      ? await ctx.db
-          .select()
-          .from(opportunities)
-          .where(eq(opportunities.id, current.opportunityId))
-          .limit(1)
-      : [null];
-  const branchId = client?.branchId ?? opportunity?.branchId;
-  if (!branchId) throw new Error("CRM Activity target could not be loaded");
-  await requirePermission(ctx, "clients:manage", branchId);
+  const client = await clientOrThrow(ctx, current.clientId);
+  await requirePermission(ctx, "clients:manage", client.branchId);
   const actorUserId = requireSessionUser(ctx);
   const { id: activityId, ...values } = input;
   await withTransaction(ctx, async (ctx) => {
     await ctx.db.update(crmActivities).set(values).where(eq(crmActivities.id, activityId));
-    if (client) {
-      await ctx.db.insert(clientAuditEntries).values({
-        organizationId: current.organizationId,
-        clientId: client.id,
-        actorUserId,
-        action: "crm_activity.updated",
-        entityType: "crm_activity",
-        entityId: current.id,
-        changeSummary: { changedFields: Object.keys(values) },
-      });
-    }
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: client.id,
+      actorUserId,
+      action: "crm_activity.updated",
+      entityType: "crm_activity",
+      entityId: current.id,
+      changeSummary: { changedFields: Object.keys(values) },
+    });
   });
   const [row] = await activityQuery(ctx).where(eq(crmActivities.id, current.id)).limit(1);
   if (!row) throw new Error("CRM Activity details could not be loaded");
@@ -289,26 +245,10 @@ function shapeActivity(row: Awaited<ReturnType<typeof activityQuery>>[number]) {
 }
 
 export async function listCrmActivities(ctx: Context, input: ListCrmActivitiesInput) {
-  if (!input.clientId && !input.opportunityId) {
-    badRequest("CRM Activity list requires a Client or Opportunity");
-  }
-  if (input.clientId) {
-    const client = await clientOrThrow(ctx, input.clientId);
-    await requirePermission(ctx, "clients:read", client.branchId);
-  } else {
-    const [opportunity] = await ctx.db
-      .select({ branchId: opportunities.branchId })
-      .from(opportunities)
-      .where(eq(opportunities.id, input.opportunityId!))
-      .limit(1);
-    if (!opportunity) notFound("Opportunity");
-    await requirePermission(ctx, "clients:read", opportunity.branchId);
-  }
-  const filters = [];
-  if (input.clientId) filters.push(eq(crmActivities.clientId, input.clientId));
-  if (input.opportunityId) filters.push(eq(crmActivities.opportunityId, input.opportunityId));
+  const client = await clientOrThrow(ctx, input.clientId);
+  await requirePermission(ctx, "clients:read", client.branchId);
   const rows = await activityQuery(ctx)
-    .where(and(...filters))
-    .orderBy(desc(crmActivities.occurredAt));
+    .where(eq(crmActivities.clientId, input.clientId))
+    .orderBy(desc(crmActivities.contactDate));
   return rows.map(shapeActivity);
 }

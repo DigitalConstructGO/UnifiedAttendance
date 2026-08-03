@@ -59,10 +59,10 @@ async function invoiceBalances(ctx: Context, clientId: string) {
 
 async function clientHealth(ctx: Context, clientId: string, asOf: string) {
   const [latestActivity] = await ctx.db
-    .select({ occurredAt: crmActivities.occurredAt })
+    .select({ contactDate: crmActivities.contactDate })
     .from(crmActivities)
     .where(eq(crmActivities.clientId, clientId))
-    .orderBy(desc(crmActivities.occurredAt))
+    .orderBy(desc(crmActivities.contactDate))
     .limit(1);
   const deliveryRisks = await ctx.db
     .select({ id: projects.id, dueOn: projects.dueOn })
@@ -91,7 +91,7 @@ async function clientHealth(ctx: Context, clientId: string, asOf: string) {
   }
   if (latestActivity) {
     const staleDays =
-      (asDate(asOf).getTime() - latestActivity.occurredAt.getTime()) / (24 * 60 * 60 * 1000);
+      (asDate(asOf).getTime() - latestActivity.contactDate.getTime()) / (24 * 60 * 60 * 1000);
     if (staleDays > 90) {
       score -= 20;
       reasons.push("no_recent_activity");
@@ -109,7 +109,7 @@ async function clientHealth(ctx: Context, clientId: string, asOf: string) {
       reasons,
       calculatedAt: asOf,
     },
-    lastActivityAt: latestActivity?.occurredAt ?? null,
+    lastActivityAt: latestActivity?.contactDate ?? null,
   };
 }
 
@@ -251,9 +251,9 @@ export async function getClientTimeline(ctx: Context, input: ClientProjectionInp
       sourceType: "crm_activity",
       sourceId: activity.id,
       kind: "crm_activity",
-      title: activity.summary,
-      detail: activity.details,
-      occurredAt: activity.occurredAt,
+      title: "Contact Activity",
+      detail: activity.note,
+      occurredAt: activity.contactDate,
     })),
     ...balances
       .filter(

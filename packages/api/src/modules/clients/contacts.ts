@@ -18,9 +18,8 @@ import type {
 function hasReachableChannel(value: {
   phone?: string | null;
   email?: string | null;
-  telegramHandle?: string | null;
 }) {
-  return [value.phone, value.email, value.telegramHandle].some(
+  return [value.phone, value.email].some(
     (channel) => typeof channel === "string" && channel.trim().length > 0,
   );
 }
@@ -54,7 +53,7 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
   const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "clients:manage", client.branchId);
   if (!hasReachableChannel(input)) {
-    badRequest("An active Client Contact requires a phone, email, or Telegram handle");
+    badRequest("An active Client Contact requires a phone or email");
   }
   const actorUserId = requireSessionUser(ctx);
   return withTransaction(ctx, async (ctx) => {
@@ -77,11 +76,9 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
         organizationId: client.organizationId,
         ...input,
         isPrimary: input.isPrimary ?? false,
-        middleName: input.middleName ?? null,
         role: input.role ?? null,
         phone: input.phone ?? null,
         email: input.email ?? null,
-        telegramHandle: input.telegramHandle ?? null,
       })
       .returning();
     if (!contact) throw new Error("Client Contact creation failed");
@@ -104,10 +101,8 @@ export async function updateClientContact(ctx: Context, input: UpdateClientConta
   await requirePermission(ctx, "clients:manage", client.branchId);
   const phone = input.phone === undefined ? current.phone : input.phone;
   const email = input.email === undefined ? current.email : input.email;
-  const telegramHandle =
-    input.telegramHandle === undefined ? current.telegramHandle : input.telegramHandle;
-  if (!hasReachableChannel({ phone, email, telegramHandle })) {
-    badRequest("An active Client Contact requires a phone, email, or Telegram handle");
+  if (!hasReachableChannel({ phone, email })) {
+    badRequest("An active Client Contact requires a phone or email");
   }
   const actorUserId = requireSessionUser(ctx);
   return withTransaction(ctx, async (ctx) => {

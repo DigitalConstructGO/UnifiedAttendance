@@ -11,7 +11,6 @@ import {
   clientTypes,
   clients,
   commercialContracts,
-  companySizes,
   crmActivities,
   employees,
   industries,
@@ -26,7 +25,6 @@ import {
 
 const INDUSTRIES = ["Banking", "Telecom", "Construction", "Hospitality", "Education", "Health"];
 const CLIENT_TYPES = ["Enterprise", "SME", "Government", "NGO"];
-const COMPANY_SIZES = ["Startup", "SME", "Enterprise"];
 const PIPELINE_STAGES = [
   { name: "Lead", position: 1, outcome: "open" },
   { name: "Qualified", position: 2, outcome: "open" },
@@ -105,13 +103,11 @@ const CLIENTS = [
     tradingName: null,
     industry: "Telecom",
     clientType: "Enterprise",
-    companySize: "Enterprise",
     tin: "0001000001",
     vat: "ET000001",
     registration: "MT/AA/0001",
     licence: "TRD-00001",
     website: "https://www.ethiotelecom.et",
-    foundedYear: 1994,
     phone: "+251 911 234 001",
     email: "procurement@ethiotelecom.et",
     startedOn: "2024-06-11",
@@ -123,13 +119,11 @@ const CLIENTS = [
     tradingName: "Commercial",
     industry: "Banking",
     clientType: "Enterprise",
-    companySize: "Enterprise",
     tin: "0001000002",
     vat: "ET000002",
     registration: "MT/AA/0002",
     licence: "TRD-00002",
     website: "https://www.cbe.com.et",
-    foundedYear: 2009,
     phone: "+251 911 234 002",
     email: "vendors@cbe.com.et",
     startedOn: "2024-09-13",
@@ -141,13 +135,11 @@ const CLIENTS = [
     tradingName: null,
     industry: "Construction",
     clientType: "SME",
-    companySize: "SME",
     tin: "0001000003",
     vat: "ET000003",
     registration: "MT/AA/0003",
     licence: "TRD-00003",
     website: "https://www.sunrise.et",
-    foundedYear: 2011,
     phone: "+251 911 234 003",
     email: "info@sunrise.et",
     startedOn: "2025-01-20",
@@ -159,13 +151,11 @@ const CLIENTS = [
     tradingName: "Kuriftu",
     industry: "Hospitality",
     clientType: "SME",
-    companySize: "SME",
     tin: "0001000004",
     vat: "ET000004",
     registration: "MT/AA/0004",
     licence: "TRD-00004",
     website: "https://www.kuriftu.com",
-    foundedYear: 2006,
     phone: "+251 911 234 004",
     email: "reservations@kuriftu.com",
     startedOn: "2025-03-02",
@@ -174,7 +164,7 @@ const CLIENTS = [
 ];
 
 async function upsertCatalog(
-  table: typeof industries | typeof clientTypes | typeof companySizes,
+  table: typeof industries | typeof clientTypes,
   organizationId: string,
   names: string[],
 ) {
@@ -216,7 +206,6 @@ export async function seedClients() {
 
   const industryId = await upsertCatalog(industries, organization.id, INDUSTRIES);
   const clientTypeId = await upsertCatalog(clientTypes, organization.id, CLIENT_TYPES);
-  const companySizeId = await upsertCatalog(companySizes, organization.id, COMPANY_SIZES);
 
   for (const stage of PIPELINE_STAGES) {
     await db
@@ -261,16 +250,7 @@ export async function seedClients() {
           tradingName: seed.tradingName,
           industryId: industryId.get(seed.industry)!,
           clientTypeId: clientTypeId.get(seed.clientType)!,
-          companySizeId: companySizeId.get(seed.companySize) ?? null,
           phone: seed.phone,
-          email: seed.email,
-          tin: seed.tin,
-          vatNumber: seed.vat,
-          registrationNumber: seed.registration,
-          businessLicenseNumber: seed.licence,
-          website: seed.website,
-          foundedYear: seed.foundedYear,
-          foundedCalendar: "ethiopian",
           relationshipStartedOn: seed.startedOn,
           priority: seed.priority,
         })
@@ -294,7 +274,6 @@ export async function seedClients() {
           role: "Head of procurement",
           phone: seed.phone,
           email: seed.email,
-          telegramHandle: "@getachew",
           isPrimary: true,
         },
         {
@@ -331,36 +310,29 @@ export async function seedClients() {
           organizationId: organization.id,
           clientId: id,
           actorEmployeeId: employeeAt(index),
-          activityType: "call",
-          summary: "Discussed renewal terms",
-          details: "Positive — pricing accepted in principle.",
-          occurredAt: new Date("2026-02-28T09:15:00Z"),
+          note: "Discussed renewal terms — Positive, pricing accepted in principle.",
+          contactDate: new Date("2026-02-28T09:15:00Z"),
         },
         {
           organizationId: organization.id,
           clientId: id,
           actorEmployeeId: employeeAt(index),
-          activityType: "meeting",
-          summary: "Quarterly business review",
-          details: "Held at the client head office.",
-          occurredAt: new Date("2026-02-27T13:00:00Z"),
+          note: "Quarterly business review held at the client head office.",
+          contactDate: new Date("2026-02-27T13:00:00Z"),
         },
         {
           organizationId: organization.id,
           clientId: id,
           actorEmployeeId: employeeAt(index + 1),
-          activityType: "email",
-          summary: "Sent updated statement of work",
-          occurredAt: new Date("2026-02-21T10:30:00Z"),
+          note: "Sent updated statement of work",
+          contactDate: new Date("2026-02-21T10:30:00Z"),
         },
         {
           organizationId: organization.id,
           clientId: id,
           actorEmployeeId: employeeAt(index),
-          activityType: "site_visit",
-          summary: "On-site scoping",
-          details: "Requirements confirmed.",
-          occurredAt: new Date("2026-02-09T08:00:00Z"),
+          note: "On-site scoping — Requirements confirmed.",
+          contactDate: new Date("2026-02-09T08:00:00Z"),
         },
       ]);
     }
@@ -410,9 +382,6 @@ export async function seedClients() {
           name: "Core platform rollout",
           managerEmployeeId: employeeAt(index),
           status: "in_progress",
-          progressPercent: 62,
-          budgetAmount: "1740000.00",
-          currency: "ETB",
           startsOn: seed.startedOn,
           dueOn: "2026-06-07",
         },
@@ -424,9 +393,6 @@ export async function seedClients() {
           name: "Branch integration",
           managerEmployeeId: employeeAt(index),
           status: "planning",
-          progressPercent: 18,
-          budgetAmount: "1740000.00",
-          currency: "ETB",
           dueOn: "2026-06-22",
         },
       ])

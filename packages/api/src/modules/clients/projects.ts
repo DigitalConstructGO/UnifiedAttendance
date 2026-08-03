@@ -100,7 +100,6 @@ async function validateProjectReferences(
 
 function validateProjectState(input: {
   status: "planning" | "in_progress" | "completed" | "cancelled";
-  progressPercent: number;
   startsOn: string | null;
   dueOn: string;
   completedOn: string | null;
@@ -109,8 +108,8 @@ function validateProjectState(input: {
     badRequest("Project due date cannot be before its start date");
   }
   if (input.status === "completed") {
-    if (input.progressPercent !== 100 || !input.completedOn) {
-      badRequest("A completed Project requires 100 percent progress and a completion date");
+    if (!input.completedOn) {
+      badRequest("A completed Project requires a completion date");
     }
   } else if (input.completedOn) {
     badRequest("Only a completed Project may have a completion date");
@@ -146,10 +145,9 @@ export async function createProject(ctx: Context, input: CreateProjectInput) {
     ...input,
   });
   const status = input.status ?? "planning";
-  const progressPercent = input.progressPercent ?? 0;
   const startsOn = input.startsOn ?? null;
   const completedOn = input.completedOn ?? null;
-  validateProjectState({ status, progressPercent, startsOn, dueOn: input.dueOn, completedOn });
+  validateProjectState({ status, startsOn, dueOn: input.dueOn, completedOn });
   const actorUserId = requireSessionUser(ctx);
   const [created] = await withTransaction(ctx, async (ctx) => {
     const result = await ctx.db
@@ -159,7 +157,6 @@ export async function createProject(ctx: Context, input: CreateProjectInput) {
         ...input,
         commercialContractId: input.commercialContractId ?? null,
         status,
-        progressPercent,
         startsOn,
         completedOn,
       })
@@ -187,7 +184,6 @@ export async function updateProject(ctx: Context, input: UpdateProjectInput) {
   const branchId = input.branchId ?? current.branchId;
   if (branchId !== current.branchId) await requirePermission(ctx, "clients:manage", branchId);
   const status = input.status ?? current.status;
-  const progressPercent = input.progressPercent ?? current.progressPercent;
   const startsOn = input.startsOn === undefined ? current.startsOn : input.startsOn;
   const dueOn = input.dueOn ?? current.dueOn;
   const completedOn =
@@ -207,13 +203,13 @@ export async function updateProject(ctx: Context, input: UpdateProjectInput) {
     managerEmployeeId: input.managerEmployeeId ?? current.managerEmployeeId,
     commercialContractId,
   });
-  validateProjectState({ status, progressPercent, startsOn, dueOn, completedOn });
+  validateProjectState({ status, startsOn, dueOn, completedOn });
   const actorUserId = requireSessionUser(ctx);
   const { id: projectId, ...values } = input;
   await withTransaction(ctx, async (ctx) => {
     await ctx.db
       .update(projects)
-      .set({ ...values, status, progressPercent, startsOn, dueOn, completedOn })
+      .set({ ...values, status, startsOn, dueOn, completedOn })
       .where(eq(projects.id, projectId));
     await ctx.db.insert(clientAuditEntries).values({
       organizationId: organization.id,
