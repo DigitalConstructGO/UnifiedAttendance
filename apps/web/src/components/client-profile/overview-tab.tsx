@@ -14,7 +14,7 @@ import {
   PROJECT_PROGRESS_TONE,
   PROJECT_STATUS_META,
 } from "@/lib/client-presentation";
-import { ethiopianDate, ethiopianYear, relativeTime } from "@/lib/ethiopian-date";
+import { ethiopianDate, relativeTime } from "@/lib/ethiopian-date";
 
 import { summarizeClientBilling } from "./profile-metrics";
 import { TabPanel } from "./tab-shell";
@@ -52,32 +52,13 @@ export function ProjectSummaryCard({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-strong text-sm font-bold">{project.project.name}</h4>
         <p className={`text-xs font-bold ${status.className}`}>
-          {status.label} · {project.project.progressPercent}%
+          {status.label}
         </p>
-      </div>
-      <div
-        className="mt-3 h-1.5 overflow-hidden rounded-full bg-border"
-        role="progressbar"
-        aria-valuenow={project.project.progressPercent}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${project.project.name} progress`}
-      >
-        <div
-          className={`h-full rounded-full ${PROJECT_PROGRESS_TONE[project.project.status]}`}
-          style={{ width: `${project.project.progressPercent}%` }}
-        />
       </div>
       <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-muted-foreground">
         <div className="flex gap-1.5">
           <dt>Manager</dt>
           <dd className="text-strong font-semibold">{personName(project.manager.person)}</dd>
-        </div>
-        <div className="flex gap-1.5">
-          <dt>Budget</dt>
-          <dd className="text-strong font-semibold">
-            {money(project.project.budgetAmount, project.project.currency)}
-          </dd>
         </div>
         <div className="flex gap-1.5">
           <dt>Due</dt>
@@ -149,10 +130,6 @@ export function OverviewTab({
               )}
             </Detail>
             <Detail label="Industry">{client.industry.name}</Detail>
-            <Detail label="Company size">{client.companySize?.name ?? "—"}</Detail>
-            <Detail label="Founded">
-              {ethiopianYear(record.foundedYear, record.foundedCalendar)}
-            </Detail>
           </dl>
         </TabPanel>
 

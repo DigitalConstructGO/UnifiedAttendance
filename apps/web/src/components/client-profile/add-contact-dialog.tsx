@@ -54,9 +54,8 @@ export function AddContactDialog({ clientId, onClose }: { clientId: string; onCl
         const data = new FormData(form);
         const phone = optionalValue(data, "phone");
         const email = optionalValue(data, "email");
-        const telegramHandle = optionalValue(data, "telegramHandle");
 
-        if (!phone && !email && !telegramHandle) {
+        if (!phone && !email) {
           setLocalError(REACHABLE_CHANNEL_ERROR);
           return;
         }
@@ -65,12 +64,10 @@ export function AddContactDialog({ clientId, onClose }: { clientId: string; onCl
         createContact.mutate({
           clientId,
           firstName: String(data.get("firstName") ?? "").trim(),
-          middleName: optionalValue(data, "middleName"),
           lastName: String(data.get("lastName") ?? "").trim(),
           role: optionalValue(data, "role"),
           phone,
           email,
-          telegramHandle,
           isPrimary: data.get("isPrimary") === "on",
         });
       }}

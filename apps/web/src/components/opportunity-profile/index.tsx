@@ -38,8 +38,8 @@ export function OpportunityProfile({
 }) {
   const opportunityQuery = useQuery(clientQueries.opportunity(opportunityId));
   const activitiesQuery = useQuery({
-    ...clientQueries.activities({ opportunityId }),
-    enabled: tab === "activities",
+    ...clientQueries.activities({ clientId: opportunityQuery.data?.opportunity.clientId ?? "" }),
+    enabled: tab === "activities" && Boolean(opportunityQuery.data?.opportunity.clientId),
   });
   const transitionsQuery = useQuery({
     ...clientQueries.stageTransitions(opportunityId),

@@ -19,7 +19,6 @@ export type ProjectRow = Returned<typeof service.listProjects>[number];
 export type CommercialContractRow = Returned<typeof service.listCommercialContracts>[number];
 export type Industry = Returned<typeof service.listIndustries>[number];
 export type ClientType = Returned<typeof service.listClientTypes>[number];
-export type CompanySize = Returned<typeof service.listCompanySizes>[number];
 export type PipelineStage = Returned<typeof service.listPipelineStages>[number];
 export type ClientOverview = Returned<typeof service.getClientOverview>;
 export type ClientProfile = Returned<typeof service.getClientProfile>;
@@ -45,11 +44,7 @@ type ClientDocumentVersionMetadata = Omit<
   "fileName" | "contentType" | "contentLength"
 >;
 
-/**
- * Catalog keys are bare prefixes so one write invalidates every reader. The
- * list keys carry their whole query, since two different filters must not
- * share a cache entry.
- */
+
 export const clientKeys = {
   all: ["clients"] as const,
   list: (query: ListClientsQuery) => ["clients", "list", query] as const,
@@ -85,7 +80,6 @@ export const clientKeys = {
   documentsAll: ["client-documents"] as const,
   industries: ["industries"] as const,
   clientTypes: ["client-types"] as const,
-  companySizes: ["company-sizes"] as const,
   pipelineStages: ["pipeline-stages"] as const,
 };
 
@@ -324,11 +318,6 @@ export const clientsApi = {
     apiFetch<ClientType>("/client-types", { method: "POST", body: input }),
   updateClientType: ({ id, ...values }: z.input<typeof validations.updateCatalogInput>) =>
     apiFetch<ClientType>(`/client-types/${id}`, { method: "PATCH", body: values }),
-  companySizes: (signal?: AbortSignal) => apiFetch<CompanySize[]>("/company-sizes", { signal }),
-  createCompanySize: (input: z.input<typeof validations.createCompanySizeInput>) =>
-    apiFetch<CompanySize>("/company-sizes", { method: "POST", body: input }),
-  updateCompanySize: ({ id, ...values }: z.input<typeof validations.updateCatalogInput>) =>
-    apiFetch<CompanySize>(`/company-sizes/${id}`, { method: "PATCH", body: values }),
   pipelineStages: (signal?: AbortSignal) =>
     apiFetch<PipelineStage[]>("/pipeline-stages", { signal }),
   createPipelineStage: (input: z.input<typeof validations.createPipelineStageInput>) =>

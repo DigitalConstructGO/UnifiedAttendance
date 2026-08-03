@@ -280,7 +280,7 @@ export const clientQueries = {
     queryOptions({
       queryKey: clientKeys.activities(query),
       queryFn: ({ signal }) => clientsApi.activities(query, signal),
-      enabled: Boolean(query.clientId || query.opportunityId),
+      enabled: Boolean(query.clientId),
     }),
   documents: (clientId: string) =>
     queryOptions({
@@ -298,12 +298,6 @@ export const clientQueries = {
     queryOptions({
       queryKey: clientKeys.clientTypes,
       queryFn: ({ signal }) => clientsApi.clientTypes(signal),
-      staleTime: CATALOG_STALE_TIME,
-    }),
-  companySizes: () =>
-    queryOptions({
-      queryKey: clientKeys.companySizes,
-      queryFn: ({ signal }) => clientsApi.companySizes(signal),
       staleTime: CATALOG_STALE_TIME,
     }),
   pipelineStages: () =>

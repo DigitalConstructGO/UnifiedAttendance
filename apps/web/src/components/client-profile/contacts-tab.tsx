@@ -48,13 +48,6 @@ export function ContactsTab({ contacts }: { contacts: ClientContact[] }) {
                 <dd className="break-all">{contact.email}</dd>
               </div>
             ) : null}
-            {contact.telegramHandle ? (
-              <div className="flex items-center gap-1.5">
-                <dt className="sr-only">Telegram</dt>
-                <Send className="size-3.5" aria-hidden="true" />
-                <dd>{contact.telegramHandle}</dd>
-              </div>
-            ) : null}
           </dl>
         </TabPanel>
       ))}
