@@ -1,6 +1,6 @@
 # UnifiedAttendance
 
-A modern TypeScript fullstack application built with Next.js, tRPC, and more.
+A modern TypeScript fullstack application built with Next.js, a REST API, and more.
 
 ## Features
 
@@ -8,7 +8,7 @@ A modern TypeScript fullstack application built with Next.js, tRPC, and more.
 - **Next.js** - Full-stack React framework
 - **TailwindCSS** - CSS framework
 - **shadcn/ui** - UI components
-- **tRPC** - End-to-end type-safe APIs
+- **REST API** - Versioned JSON endpoints under `/api/v1`, typed end to end
 - **Drizzle** - TypeScript-first ORM
 - **PostgreSQL** - Database engine
 - **Authentication** - Better Auth
