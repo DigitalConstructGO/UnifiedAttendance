@@ -64,3 +64,6 @@ skills-lock.json
 .cache
 tmp
 temp
+
+# Local scripts
+packages/api/scripts/
