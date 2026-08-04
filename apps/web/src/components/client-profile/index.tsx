@@ -11,10 +11,12 @@ import { DEFAULT_TIME_ZONE } from "@/lib/timezone";
 
 import { ActivitiesTab } from "./activities-tab";
 import { AddContactDialog } from "./add-contact-dialog";
+import { AddProjectDialog } from "./add-project-dialog";
 import { AuditTab } from "./audit-tab";
 import { ContactsTab } from "./contacts-tab";
 import { ContractsTab } from "./contracts-tab";
 import { DocumentsTab } from "./documents-tab";
+import { EditClientDialog } from "./edit-client-dialog";
 import { InvoicesTab } from "./invoices-tab";
 import { NotesTab } from "./notes-tab";
 import { OverviewTab } from "./overview-tab";
@@ -40,6 +42,8 @@ export function ClientProfile({
 }) {
   const { can } = useAccess();
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const profile = useClientProfile(clientId, tab, opportunityId);
   const manageable = can("clients:manage");
   const projectStatuses = (profile.client?.currentProjects ?? []).map(
@@ -79,6 +83,7 @@ export function ClientProfile({
               timeZone={timeZone}
               manageable={manageable}
               onAddContact={() => setContactDialogOpen(true)}
+              onEdit={() => setEditDialogOpen(true)}
             />
             <ProfileTabs clientId={clientId} opportunityId={opportunityId} active={tab} />
           </div>
@@ -106,7 +111,12 @@ export function ClientProfile({
             <ContactsTab contacts={profile.contacts} />
           ) : null}
           {!profile.tabLoading && tab === "projects" ? (
-            <ProjectsTab projects={profile.projects} timeZone={timeZone} />
+            <ProjectsTab
+              projects={profile.projects}
+              timeZone={timeZone}
+              manageable={manageable}
+              onAddProject={() => setProjectDialogOpen(true)}
+            />
           ) : null}
           {!profile.tabLoading && tab === "contracts" ? (
             <ContractsTab contracts={profile.contracts} timeZone={timeZone} />
@@ -145,6 +155,19 @@ export function ClientProfile({
 
           {contactDialogOpen ? (
             <AddContactDialog clientId={clientId} onClose={() => setContactDialogOpen(false)} />
+          ) : null}
+          {editDialogOpen ? (
+            <EditClientDialog
+              client={profile.client.client}
+              onClose={() => setEditDialogOpen(false)}
+            />
+          ) : null}
+          {projectDialogOpen ? (
+            <AddProjectDialog
+              clientId={clientId}
+              branchId={profile.client.branch.id}
+              onClose={() => setProjectDialogOpen(false)}
+            />
           ) : null}
         </>
       ) : null}

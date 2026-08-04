@@ -4,6 +4,7 @@ import {
   CalendarDays,
   MapPin,
   MoreHorizontal,
+  Pencil,
   UserPlus,
   UserRound,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export function ProfileHeader({
   timeZone,
   manageable,
   onAddContact,
+  onEdit,
 }: {
   client: ClientRow;
   projectStatuses: ProjectStatus[];
@@ -43,6 +45,7 @@ export function ProfileHeader({
   timeZone: string;
   manageable: boolean;
   onAddContact: () => void;
+  onEdit: () => void;
 }) {
   const headline = opportunity?.pipelineStage.name ?? directoryStatus(projectStatuses);
   const headlineTone =
@@ -141,6 +144,15 @@ export function ProfileHeader({
             >
               <UserPlus aria-hidden="true" />
               Add contact
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-[11px] px-4 font-bold"
+              onClick={onEdit}
+            >
+              <Pencil aria-hidden="true" />
+              Edit details
             </Button>
             <Button asChild variant="outline" size="icon" className="size-10 rounded-[11px]">
               <Link
