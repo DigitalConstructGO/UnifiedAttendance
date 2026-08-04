@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 
 import "../index.css";
+import Header from "@/components/header";
 import Providers from "@/components/providers";
-import { getBrand } from "@/lib/brand";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -15,10 +15,10 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const brand = await getBrand();
-  return { title: brand.name, description: `${brand.name} — ${brand.tagline}` };
-}
+export const metadata: Metadata = {
+  title: "Digital Construct",
+  description: "Office attendance and business operations platform",
+};
 
 export default function RootLayout({
   children,
@@ -29,7 +29,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} antialiased`}>
         <Providers>
-          <div className="h-svh">{children}</div>
+          <div className="grid grid-rows-[auto_1fr] h-svh">
+            <Header />
+            {children}
+          </div>
         </Providers>
       </body>
     </html>

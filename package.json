@@ -19,8 +19,6 @@
     "db:watch": "turbo -F @UnifiedAttendance/db db:watch",
     "db:stop": "turbo -F @UnifiedAttendance/db db:stop",
     "db:down": "turbo -F @UnifiedAttendance/db db:down",
-    "rbac:seed": "turbo -F @UnifiedAttendance/api rbac:seed",
-    "rbac:seed-admin": "turbo -F @UnifiedAttendance/api rbac:seed-admin --",
     "test": "pnpm --filter web test && pnpm --filter @UnifiedAttendance/api test",
     "lint": "prettier --check . && eslint .",
     "lint:eslint": "eslint .",
