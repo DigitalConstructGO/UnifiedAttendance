@@ -16,7 +16,7 @@ import {
   personName,
   type ClientDocumentKind,
 } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 
 import { DialogField, dialogFieldClass, RecordDialog } from "../client-agreements/record-dialog";
@@ -148,7 +148,7 @@ export function DocumentsTab({
                   <Download className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </span>
                 <span className="mt-4 flex justify-between gap-3 text-[0.6875rem] text-muted-foreground">
-                  <span>{ethiopianDate(document.uploadedAt, timeZone)}</span>
+                  <span>{formatDate(document.uploadedAt, timeZone)}</span>
                   <span>{fileSize(document.contentLength)}</span>
                 </span>
               </button>

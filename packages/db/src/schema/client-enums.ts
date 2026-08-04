@@ -2,7 +2,6 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 export const CLIENT_STATUSES = ["active", "archived"] as const;
 export const CLIENT_PRIORITIES = ["low", "normal", "high", "critical"] as const;
-export const FOUNDING_CALENDARS = ["gregorian", "ethiopian"] as const;
 export const OPPORTUNITY_PRIORITIES = ["low", "medium", "high"] as const;
 export const PIPELINE_STAGE_OUTCOMES = ["open", "won", "lost"] as const;
 export const PROJECT_STATUSES = ["planning", "in_progress", "completed", "cancelled"] as const;
@@ -27,7 +26,6 @@ export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
 
 export const clientStatus = pgEnum("client_status", CLIENT_STATUSES);
 export const clientPriority = pgEnum("client_priority", CLIENT_PRIORITIES);
-export const foundingCalendar = pgEnum("founding_calendar", FOUNDING_CALENDARS);
 export const opportunityPriority = pgEnum("opportunity_priority", OPPORTUNITY_PRIORITIES);
 export const pipelineStageOutcome = pgEnum("pipeline_stage_outcome", PIPELINE_STAGE_OUTCOMES);
 export const projectStatus = pgEnum("project_status", PROJECT_STATUSES);

@@ -2,7 +2,7 @@ import { ReceiptText } from "lucide-react";
 
 import type { InvoiceRow } from "@/lib/api";
 import { money } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -64,11 +64,11 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
                   <td className="text-strong px-5 py-4 font-bold">{row.invoice.invoiceNumber}</td>
                   <td className="px-4 py-4 text-muted-foreground">
                     {row.invoice.issuedOn
-                      ? ethiopianDate(row.invoice.issuedOn, timeZone)
+                      ? formatDate(row.invoice.issuedOn, timeZone)
                       : "Not issued"}
                   </td>
                   <td className="px-4 py-4 text-muted-foreground">
-                    {ethiopianDate(row.invoice.dueOn, timeZone)}
+                    {formatDate(row.invoice.dueOn, timeZone)}
                   </td>
                   <td className="text-strong px-4 py-4 text-right font-bold">
                     {money(row.invoice.totalAmount, row.invoice.currency)}

@@ -78,6 +78,20 @@
       "when": 1785847000000,
       "tag": "0010_simplify_client_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785847001000,
+      "tag": "0011_drop_founding_calendar",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785847002000,
+      "tag": "0012_drop_client_website",
+      "breakpoints": true
     }
   ]
 }

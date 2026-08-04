@@ -2,7 +2,7 @@ import { MessageSquare, Pin } from "lucide-react";
 
 import type { ClientNoteRow } from "@/lib/api";
 import { initials, personName } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -34,7 +34,7 @@ export function NotesTab({ notes, timeZone }: { notes: ClientNoteRow[]; timeZone
               <p className="text-strong text-xs font-bold">
                 {personName(author.person)}
                 <time className="ml-2 font-medium text-muted-foreground">
-                  {ethiopianDate(note.createdAt, timeZone)}
+                  {formatDate(note.createdAt, timeZone)}
                 </time>
               </p>
             </div>

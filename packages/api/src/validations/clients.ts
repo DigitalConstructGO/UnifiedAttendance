@@ -40,10 +40,15 @@ export const createClientInput = z.object({
   branchId: id,
   ownerEmployeeId: id,
   legalName: text,
+  tradingName: nullableText,
   industryId: id,
   clientTypeId: id,
   phone: nullableText,
   email: z.email().nullable().optional(),
+  tin: nullableText,
+  vatNumber: nullableText,
+  registrationNumber: nullableText,
+  businessLicenseNumber: nullableText,
   relationshipStartedOn: date.optional(),
 });
 
@@ -61,7 +66,6 @@ export const updateClientInput = z.object({
   vatNumber: nullableText,
   registrationNumber: nullableText,
   businessLicenseNumber: nullableText,
-  website: z.url().nullable().optional(),
   relationshipStartedOn: date.optional(),
   priority: z.enum(CLIENT_PRIORITIES).nullable().optional(),
 });

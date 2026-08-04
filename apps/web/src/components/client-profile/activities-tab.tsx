@@ -2,7 +2,7 @@ import { PhoneCall } from "lucide-react";
 
 import type { CrmActivityRow } from "@/lib/api";
 import { personName } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -51,7 +51,7 @@ export function ActivitiesTab({
                 <p className="mt-0.5 text-xs text-muted-foreground">{activity.note}</p>
               </div>
               <time className="shrink-0 text-xs text-muted-foreground">
-                {ethiopianDate(activity.contactDate, timeZone)}
+                {formatDate(activity.contactDate, timeZone)}
               </time>
             </li>
           );

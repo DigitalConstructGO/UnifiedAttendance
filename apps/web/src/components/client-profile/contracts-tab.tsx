@@ -2,7 +2,7 @@ import { FileSignature } from "lucide-react";
 
 import type { CommercialContractRow } from "@/lib/api";
 import { CONTRACT_STATUS_META, RENEWAL_MODE_LABELS } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -59,10 +59,10 @@ export function ContractsTab({
                     </p>
                   </td>
                   <td className="px-4 py-4 text-muted-foreground">
-                    {ethiopianDate(contract.startsOn, timeZone)}
+                    {formatDate(contract.startsOn, timeZone)}
                     <span aria-hidden="true"> → </span>
                     <span className="sr-only">to </span>
-                    {ethiopianDate(contract.endsOn, timeZone)}
+                    {formatDate(contract.endsOn, timeZone)}
                   </td>
                   <td className="text-strong px-4 py-4 font-semibold">
                     {RENEWAL_MODE_LABELS[contract.renewalMode]}

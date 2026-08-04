@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clientKeys, clientQueries, clientsApi } from "@/lib/api";
 import { clientName, money } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 
@@ -153,10 +153,10 @@ export function ClientInvoices() {
                         {row.client ? clientName(row.client) : "—"}
                       </td>
                       <td className="px-4 py-3.5 text-muted-foreground">
-                        {invoice.issuedOn ? ethiopianDate(invoice.issuedOn) : "Not issued"}
+                        {invoice.issuedOn ? formatDate(invoice.issuedOn) : "Not issued"}
                       </td>
                       <td className="px-4 py-3.5 text-muted-foreground">
-                        {invoice.dueOn ? ethiopianDate(invoice.dueOn) : "—"}
+                        {invoice.dueOn ? formatDate(invoice.dueOn) : "—"}
                       </td>
                       <td className="text-strong px-4 py-3.5 text-right font-bold">
                         {money(invoice.totalAmount, invoice.currency)}

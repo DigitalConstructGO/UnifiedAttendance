@@ -142,7 +142,6 @@ export const clients = pgTable(
     vatNumber: text("vat_number"),
     registrationNumber: text("registration_number"),
     businessLicenseNumber: text("business_license_number"),
-    website: text("website"),
     relationshipStartedOn: date("relationship_started_on").notNull(),
     priority: clientPriority("priority"),
     status: clientStatus("status").notNull().default(CLIENT_STATUSES[0]),

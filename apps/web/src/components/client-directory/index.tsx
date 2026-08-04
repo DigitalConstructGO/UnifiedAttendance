@@ -25,10 +25,11 @@ import {
   initials,
   personName,
 } from "@/lib/client-presentation";
-import { relativeTime } from "@/lib/ethiopian-date";
+import { relativeTime } from "@/lib/format-date";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 import { EmptyState, TabPanel } from "../client-profile/tab-shell";
+import { AddClientDialog } from "./add-client-dialog";
 
 const PAGE_SIZE = 8;
 
@@ -55,6 +56,7 @@ export function ClientDirectory() {
   const [ownerEmployeeId, setOwnerEmployeeId] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [addOpen, setAddOpen] = useState(false);
 
   const clientsQuery = useQuery(
     clientQueries.list({
@@ -170,11 +172,9 @@ export function ClientDirectory() {
             Columns
           </Button>
           {can("clients:manage") ? (
-            <Button asChild className="h-10 rounded-[11px] px-4 font-bold">
-              <Link href="/dashboard/clients/pipeline?view=create">
-                <Plus aria-hidden="true" />
-                Add client
-              </Link>
+            <Button className="h-10 rounded-[11px] px-4 font-bold" onClick={() => setAddOpen(true)}>
+              <Plus aria-hidden="true" />
+              Add client
             </Button>
           ) : null}
         </div>
@@ -189,7 +189,7 @@ export function ClientDirectory() {
           <EmptyState
             icon={<Building2 className="size-5" aria-hidden="true" />}
             title="No clients found"
-            hint="Adjust the search or filters, or add the first client from the pipeline board."
+            hint="Adjust the search or filters, or add the first client with the Add client button."
           />
         </TabPanel>
       ) : (
@@ -366,6 +366,8 @@ export function ClientDirectory() {
           </footer>
         </TabPanel>
       )}
+
+      {addOpen ? <AddClientDialog onClose={() => setAddOpen(false)} /> : null}
     </div>
   );
 }
