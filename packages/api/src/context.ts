@@ -13,6 +13,7 @@ export function createInnerContext({
   return {
     session,
     db,
+    grantedPermissions: undefined as Promise<string[]> | undefined,
   };
 }
 

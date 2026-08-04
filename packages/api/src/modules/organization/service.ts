@@ -34,35 +34,32 @@ export async function getOrganization(ctx: Context) {
   return organization ?? null;
 }
 
-/**
- * How far first-run setup has got. Deliberately checks no permission: it gates
- * the dashboard *before* authorization is meaningful, and a Manager holds no
- * `organization:read`, so a guarded read here would deny exactly the users who
- * need to be told the workspace is not configured yet.
- *
- * The context is optional for the same reason — Server Components call this
- * through `cache()` with no arguments, outside any request context.
- */
 export async function getSetupStatus(ctx: Pick<Context, "db"> = { db }) {
-  const [organization] = await ctx.db.select({ id: organizations.id }).from(organizations).limit(1);
-  const [branch] = await ctx.db
-    .select({ id: branches.id })
-    .from(branches)
-    .orderBy(branches.createdAt)
-    .limit(1);
+  const result = await ctx.db.execute(sql`
+    select
+      exists (select 1 from ${organizations}) as organization_exists,
+      exists (select 1 from ${branches}) as branch_exists,
+      (
+        select count(distinct ${branchWorkingDays.weekday}) = 7
+        from ${branchWorkingDays}
+        where ${branchWorkingDays.branchId} =
+          (select ${branches.id} from ${branches} order by ${branches.createdAt} limit 1)
+      ) as schedule_complete
+  `);
 
-  const days = branch
-    ? await ctx.db
-        .select({ weekday: branchWorkingDays.weekday })
-        .from(branchWorkingDays)
-        .where(eq(branchWorkingDays.branchId, branch.id))
-    : [];
-  const scheduleComplete = new Set(days.map((day) => day.weekday)).size === 7;
+  const row = result.rows[0] as {
+    organization_exists: boolean;
+    branch_exists: boolean;
+    schedule_complete: boolean;
+  };
+  const organizationExists = Boolean(row.organization_exists);
+  const branchExists = Boolean(row.branch_exists);
+  const scheduleComplete = Boolean(row.schedule_complete);
 
   return {
-    complete: Boolean(organization && branch && scheduleComplete),
-    organizationExists: Boolean(organization),
-    branchExists: Boolean(branch),
+    complete: organizationExists && branchExists && scheduleComplete,
+    organizationExists,
+    branchExists,
     scheduleComplete,
   };
 }

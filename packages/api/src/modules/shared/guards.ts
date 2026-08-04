@@ -20,21 +20,29 @@ function userId(ctx: Context) {
   return ctx.session.user.id;
 }
 
-export async function requirePermission(ctx: Context, permission: Permission, _branchId?: string) {
-  const grantedPermissions = await ctx.db
+async function loadGrantedPermissions(ctx: Context) {
+  const rows = await ctx.db
     .select({ code: permissions.code })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
     .innerJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .where(and(eq(userRoles.userId, userId(ctx))));
+  return rows.map((row) => row.code);
+}
 
-  if (
-    !hasPermission(
-      grantedPermissions.map((grantedPermission) => grantedPermission.code),
-      permission,
-    )
-  ) {
+export async function requirePermission(ctx: Context, permission: Permission, _branchId?: string) {
+  ctx.grantedPermissions ??= loadGrantedPermissions(ctx);
+
+  let grantedPermissions: string[];
+  try {
+    grantedPermissions = await ctx.grantedPermissions;
+  } catch (error) {
+    ctx.grantedPermissions = undefined;
+    throw error;
+  }
+
+  if (!hasPermission(grantedPermissions, permission)) {
     forbidden(`Missing permission: ${permission}`);
   }
 }
