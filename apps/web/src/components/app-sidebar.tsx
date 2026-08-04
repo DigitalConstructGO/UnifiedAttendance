@@ -11,7 +11,6 @@ import {
   type LucideIcon,
   PieChart,
   ReceiptText,
-  ShieldCheck,
   UserRoundPlus,
   UsersRound,
 } from "lucide-react";
@@ -42,7 +41,6 @@ const moduleIcons = {
   Employees: UsersRound,
   Devices: Laptop2,
   Attendance: CalendarCheck2,
-  Corrections: ShieldCheck,
   Dashboard: PieChart,
   "All clients": Building,
   "Leads & pipeline": UserRoundPlus,

@@ -85,10 +85,11 @@ export function avatarTone(name: string) {
   return AVATAR_TONES[index % AVATAR_TONES.length];
 }
 
+/** Accepts `HH:mm` or `HH:mm:ss` — corrections name a second, manual entries do not. */
 export function localDateTimeToIso(date: string, time: string, timeZone: string) {
   const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute] = time.split(":").map(Number);
-  const desired = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  const [hour, minute, second = 0] = time.split(":").map(Number);
+  const desired = Date.UTC(year, month - 1, day, hour, minute, second, 0);
   let candidate = desired;
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone,

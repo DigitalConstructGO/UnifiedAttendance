@@ -1,16 +1,22 @@
 import { Input } from "@/components/ui/input";
 import type { Branch } from "@/lib/api";
 
+export const attendanceSelectClass =
+  "h-10 rounded-[11px] border border-input bg-background px-3 text-xs font-normal outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50";
+
+
 export function RegisterControls({
   branches,
   branchId,
   date,
+  showDate,
   onBranchChange,
   onDateChange,
 }: {
   branches: Branch[];
   branchId: string;
   date: string;
+  showDate: boolean;
   onBranchChange: (branchId: string) => void;
   onDateChange: (date: string) => void;
 }) {
@@ -19,7 +25,7 @@ export function RegisterControls({
       <label className="text-strong grid min-w-48 gap-1.5 text-xs font-bold">
         Branch
         <select
-          className="h-10 rounded-[11px] border border-input bg-background px-3 text-xs font-normal outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+          className={attendanceSelectClass}
           value={branchId}
           onChange={(event) => onBranchChange(event.target.value)}
         >
@@ -30,15 +36,17 @@ export function RegisterControls({
           ))}
         </select>
       </label>
-      <label className="text-strong grid gap-1.5 text-xs font-bold">
-        Date
-        <Input
-          type="date"
-          value={date}
-          className="h-10 w-44 rounded-[11px] bg-background px-3 font-normal"
-          onChange={(event) => onDateChange(event.target.value)}
-        />
-      </label>
+      {showDate ? (
+        <label className="text-strong grid gap-1.5 text-xs font-bold">
+          Date
+          <Input
+            type="date"
+            value={date}
+            className="h-10 w-44 rounded-[11px] bg-background px-3 font-normal"
+            onChange={(event) => onDateChange(event.target.value)}
+          />
+        </label>
+      ) : null}
     </section>
   );
 }

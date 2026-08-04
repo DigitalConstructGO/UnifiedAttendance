@@ -34,7 +34,6 @@ export function can(access: Access, permission: Permission) {
 export const DASHBOARD_NAV = [
   { href: "/dashboard/attendance", label: "Attendance", permission: "attendance:read" },
   { href: "/dashboard/employees", label: "Employees", permission: "workforce:read" },
-  { href: "/dashboard/corrections", label: "Corrections", permission: "corrections:read" },
   { href: "/dashboard/clients/overview", label: "Dashboard", permission: "clients:read" },
   { href: "/dashboard/clients", label: "All clients", permission: "clients:read" },
   { href: "/dashboard/clients/pipeline", label: "Leads & pipeline", permission: "clients:read" },
@@ -48,7 +47,7 @@ export type NavItem = (typeof DASHBOARD_NAV)[number];
 export type NavLabel = NavItem["label"];
 
 export const NAV_SECTIONS = [
-  { label: "Office", items: ["Attendance", "Employees", "Corrections"] },
+  { label: "Office", items: ["Attendance", "Employees"] },
   {
     label: "Clients",
     items: ["Dashboard", "All clients", "Leads & pipeline", "Contracts", "Invoices"],

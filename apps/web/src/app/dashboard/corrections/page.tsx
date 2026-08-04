@@ -1,14 +1,10 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
-import { requireAccess } from "@/lib/access-server";
+import { redirect } from "next/navigation";
 
-export default async function CorrectionsPage() {
-  const { access } = await requireAccess("corrections:read");
-
-  return (
-    <ModulePlaceholder
-      title="Corrections"
-      description="Attendance correction requests and reviews."
-      role={access.role}
-    />
-  );
+/**
+ * Corrections moved under Attendance, next to the register whose days they
+ * change. The old route stays as a redirect so bookmarks and the links that
+ * were already handed out keep working.
+ */
+export default function CorrectionsPage() {
+  redirect("/dashboard/attendance?section=corrections");
 }

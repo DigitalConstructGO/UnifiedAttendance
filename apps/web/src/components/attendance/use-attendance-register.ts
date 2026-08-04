@@ -19,7 +19,8 @@ import { localDateTimeToIso, registerStatus, today } from "./register-presentati
 
 const REGISTER_PAGE_SIZE = 200;
 
-export function useAttendanceRegister() {
+
+export function useAttendanceRegister({ registerActive = true } = {}) {
   const queryClient = useQueryClient();
   const [chosenBranchId, setChosenBranchId] = useState("");
   const [chosenDate, setChosenDate] = useState<string | null>(null);
@@ -38,9 +39,10 @@ export function useAttendanceRegister() {
     branches.find((branch) => branch.id === branchId)?.timezone ?? detectedTimeZone();
   const date = chosenDate ?? today(timeZone);
 
-  const registerQuery = useQuery(
-    attendanceQueries.register({ branchId, date, limit: REGISTER_PAGE_SIZE, offset: 0 }),
-  );
+  const registerQuery = useQuery({
+    ...attendanceQueries.register({ branchId, date, limit: REGISTER_PAGE_SIZE, offset: 0 }),
+    enabled: registerActive && branchId.length > 0,
+  });
   const register = registerQuery.data ?? null;
 
   const manualEntry = useMutation({
@@ -114,7 +116,8 @@ export function useAttendanceRegister() {
     manualKind,
     notice,
     error,
-    loading: branchesQuery.isPending || (branchId !== "" && registerQuery.isPending),
+    loading:
+      branchesQuery.isPending || (registerActive && branchId !== "" && registerQuery.isPending),
     busy: manualEntry.isPending,
     counts,
     visibleRows,
