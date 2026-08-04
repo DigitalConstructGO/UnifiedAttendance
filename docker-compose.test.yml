@@ -18,7 +18,13 @@ services:
     ports:
       - "5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test -d test"]
+      # `-h 127.0.0.1` is load-bearing. Without a host pg_isready checks the unix
+      # socket, which the entrypoint's temporary init server already answers — so the
+      # container reports healthy, the migrator connects, and then that temporary
+      # server shuts down and restarts for real, killing the connection mid-migration.
+      # The temporary server runs with listen_addresses='', so requiring TCP is what
+      # makes this wait for the server that will actually stay up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U test -d test"]
       interval: 1s
       timeout: 5s
       retries: 30
