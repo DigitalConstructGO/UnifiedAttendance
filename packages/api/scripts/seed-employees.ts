@@ -79,11 +79,21 @@ const STAFF = [
 ];
 
 export async function seedEmployees() {
-  const [organization] = await db.select().from(organizations).limit(1);
-  if (!organization) throw new Error("Run the organization setup before seeding employees");
+  let [organization] = await db.select().from(organizations).limit(1);
+  if (!organization) {
+    [organization] = await db
+      .insert(organizations)
+      .values({ name: "Construct GO", code: "CGO-01", timezone: "Africa/Addis_Ababa" })
+      .returning();
+  }
 
-  const [branch] = await db.select().from(branches).limit(1);
-  if (!branch) throw new Error("The organization has no branch to attach employees to");
+  let [branch] = await db.select().from(branches).limit(1);
+  if (!branch) {
+    [branch] = await db
+      .insert(branches)
+      .values({ name: "Addis Ababa Main Branch", code: "ADD-01", timezone: "Africa/Addis_Ababa" })
+      .returning();
+  }
 
   for (const name of DEPARTMENTS) {
     const [existing] = await db
