@@ -23,7 +23,6 @@ export type DeriveDayFixture = {
   deviceId: string;
   addEvent: (occurredAt: string, direction: "in" | "out" | "unknown") => Promise<void>;
   addCorrection: (
-    status: "pending" | "approved" | "rejected",
     type?: "add_check_out" | "mark_absent" | "mark_present" | "excuse_lateness",
   ) => Promise<void>;
   derive: (attendanceDate?: string) => ReturnType<typeof deriveAttendanceDay>;
@@ -86,12 +85,12 @@ export async function setUpDeriveDayFixture(): Promise<DeriveDayFixture> {
       });
     },
 
-    async addCorrection(status, type = "add_check_out") {
-      const reviewerId = "00000000-0000-4000-8000-000000000001";
+    async addCorrection(type = "add_check_out") {
+      const officerId = "00000000-0000-4000-8000-000000000001";
       await db.insert(user).values({
-        id: reviewerId,
-        name: "Reviewer",
-        email: "reviewer@example.test",
+        id: officerId,
+        name: "Correction Officer",
+        email: "officer@example.test",
         emailVerified: true,
       });
       await db.insert(attendanceCorrections).values({
@@ -100,10 +99,7 @@ export async function setUpDeriveDayFixture(): Promise<DeriveDayFixture> {
         type,
         proposedTime: type === "add_check_out" ? new Date("2026-03-02T17:00:00+03:00") : null,
         reason: "Attendance Device missed the event",
-        status,
-        requestedBy: reviewerId,
-        reviewedBy: status === "pending" ? null : reviewerId,
-        reviewedAt: status === "pending" ? null : new Date("2026-03-03T09:00:00Z"),
+        appliedBy: officerId,
       });
     },
 

@@ -13,19 +13,21 @@ export const ATTENDANCE_CORRECTION_TYPES = [
   "mark_present",
   "excuse_lateness",
 ] as const;
-export const ATTENDANCE_CORRECTION_STATUSES = ["pending", "approved", "rejected"] as const;
-export const PENDING_CORRECTION_STATUS = ATTENDANCE_CORRECTION_STATUSES[0];
 
 export const attendanceCorrectionType = pgEnum(
   "attendance_correction_type",
   ATTENDANCE_CORRECTION_TYPES,
 );
 
-export const attendanceCorrectionStatus = pgEnum(
-  "attendance_correction_status",
-  ATTENDANCE_CORRECTION_STATUSES,
-);
-
+/**
+ * A correction is applied the moment it is made, so this table is a log of what
+ * was changed rather than a queue of what someone is asking for. Only HR and
+ * administrators can reach it, and asking them to approve each other's edits
+ * bought nothing but a delay: undoing a wrong correction is a delete, and the
+ * day recomputes either way.
+ *
+ * `applied_by` and `applied_at` are therefore never null — every row happened.
+ */
 export const attendanceCorrections = pgTable(
   "attendance_corrections",
   {
@@ -40,25 +42,13 @@ export const attendanceCorrections = pgTable(
     }),
     proposedTime: timestamp("proposed_time", { withTimezone: true }),
     reason: text("reason").notNull(),
-    status: attendanceCorrectionStatus("status").notNull().default(PENDING_CORRECTION_STATUS),
-    requestedBy: text("requested_by")
+    appliedBy: text("applied_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
-    requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
-    reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "restrict" }),
-    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-    reviewNote: text("review_note"),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("attendance_corrections_employee_date_idx").on(table.employeeId, table.attendanceDate),
-    index("attendance_corrections_status_idx")
-      .on(table.status)
-      .where(sql`${table.status} = 'pending'`),
-    check(
-      "attendance_corrections_reviewed_when_decided",
-      sql`(${table.status} = 'pending' and ${table.reviewedBy} is null and ${table.reviewedAt} is null)
-        or (${table.status} <> 'pending' and ${table.reviewedBy} is not null and ${table.reviewedAt} is not null)`,
-    ),
     check(
       "attendance_corrections_time_required",
       sql`${table.type} not in ('add_check_in', 'add_check_out', 'adjust_check_in', 'adjust_check_out')

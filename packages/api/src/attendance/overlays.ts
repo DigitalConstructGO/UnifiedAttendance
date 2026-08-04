@@ -22,10 +22,7 @@ type Correction = {
   proposedTime: Date | null;
 };
 
-/**
- * Manual entries widen the day: a manual check-in can only move `firstIn` earlier
- * and a manual check-out can only move `lastOut` later. Applied in creation order.
- */
+
 export function applyManualEntries(base: PunchTimes, entries: ManualEntry[]): PunchTimes {
   const { latenessExcused } = base;
   let { firstIn, lastOut, outcomeOverride } = base;
@@ -56,10 +53,7 @@ export function applyManualEntries(base: PunchTimes, entries: ManualEntry[]): Pu
   return { firstIn, lastOut, outcomeOverride, latenessExcused };
 }
 
-/**
- * Approved corrections replace a punch outright rather than widening it,
- * because a correction states what the time should have been.
- */
+
 export function applyCorrections(base: PunchTimes, corrections: Correction[]): PunchTimes {
   let { firstIn, lastOut, outcomeOverride, latenessExcused } = base;
 

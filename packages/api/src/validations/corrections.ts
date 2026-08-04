@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  ATTENDANCE_CORRECTION_STATUSES,
-  ATTENDANCE_CORRECTION_TYPES,
-} from "@UnifiedAttendance/db/schema/attendance-corrections";
+import { ATTENDANCE_CORRECTION_TYPES } from "@UnifiedAttendance/db/schema/attendance-corrections";
 
 import { date, id, text } from "./shared";
 
@@ -17,10 +14,7 @@ export const correctionValues = z.object({
   reason: text,
 });
 
-export const listCorrectionsInput = z.object({
-  employeeId: id,
-  status: z.enum(ATTENDANCE_CORRECTION_STATUSES).optional(),
-});
+export const listCorrectionsInput = z.object({ employeeId: id });
 
 export const createCorrectionInput = correctionValues.superRefine((input, issue) => {
   if (
@@ -37,13 +31,9 @@ export const createCorrectionInput = correctionValues.superRefine((input, issue)
 
 export const updateCorrectionInput = z.object({ id, values: correctionValues.partial() });
 
-export const reviewCorrectionInput = z.object({
-  id,
-  status: z.enum(["approved", "rejected"]),
-  reviewNote: text.nullable().optional(),
-});
+export const deleteCorrectionInput = z.object({ id });
 
 export type ListCorrectionsInput = z.output<typeof listCorrectionsInput>;
 export type CreateCorrectionInput = z.output<typeof createCorrectionInput>;
 export type UpdateCorrectionInput = z.output<typeof updateCorrectionInput>;
-export type ReviewCorrectionInput = z.output<typeof reviewCorrectionInput>;
+export type DeleteCorrectionInput = z.output<typeof deleteCorrectionInput>;

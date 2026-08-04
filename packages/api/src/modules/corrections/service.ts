@@ -1,18 +1,20 @@
-import { and, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { attendanceCorrections, attendanceEvents } from "@UnifiedAttendance/db/schema/index";
+import { user } from "@UnifiedAttendance/db/schema/auth";
 
-import { badRequest, conflict, forbidden, notFound } from "../../errors";
+import { badRequest, notFound } from "../../errors";
 import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
 
 import type {
   CreateCorrectionInput,
+  DeleteCorrectionInput,
   ListCorrectionsInput,
-  ReviewCorrectionInput,
   UpdateCorrectionInput,
 } from "../../validations/corrections";
 import type { Context } from "../../context";
+
 
 export async function listCorrections(ctx: Context, input: ListCorrectionsInput) {
   await requirePermission(
@@ -20,15 +22,15 @@ export async function listCorrections(ctx: Context, input: ListCorrectionsInput)
     "corrections:read",
     await employeeBranchOrThrow(ctx, input.employeeId),
   );
-  return ctx.db
-    .select()
+  const rows = await ctx.db
+    .select({ correction: attendanceCorrections, appliedByName: user.name })
     .from(attendanceCorrections)
-    .where(
-      and(
-        eq(attendanceCorrections.employeeId, input.employeeId),
-        input.status ? eq(attendanceCorrections.status, input.status) : undefined,
-      ),
-    );
+
+    .innerJoin(user, eq(attendanceCorrections.appliedBy, user.id))
+    .where(eq(attendanceCorrections.employeeId, input.employeeId))
+    .orderBy(desc(attendanceCorrections.appliedAt));
+
+  return rows.map(({ correction, appliedByName }) => ({ ...correction, appliedByName }));
 }
 
 export async function createCorrection(ctx: Context, input: CreateCorrectionInput) {
@@ -49,9 +51,14 @@ export async function createCorrection(ctx: Context, input: CreateCorrectionInpu
       ...input,
       disputedEventId: input.disputedEventId ?? null,
       proposedTime: input.proposedTime ?? null,
-      requestedBy: requireSessionUser(ctx),
+      appliedBy: requireSessionUser(ctx),
     })
     .returning();
+  if (!correction) throw new Error("Failed to store the correction");
+  await deriveAttendanceDay(ctx, {
+    employeeId: correction.employeeId,
+    attendanceDate: correction.attendanceDate,
+  });
   return correction;
 }
 
@@ -67,18 +74,31 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
     "corrections:manage",
     await employeeBranchOrThrow(ctx, current.employeeId),
   );
-  if (current.status !== "pending") conflict("Only pending corrections can be changed");
-  if (current.requestedBy !== requireSessionUser(ctx))
-    forbidden("Only the requester can change a correction");
   const [correction] = await ctx.db
     .update(attendanceCorrections)
     .set(input.values)
     .where(eq(attendanceCorrections.id, input.id))
     .returning();
+  if (!correction) throw new Error("Failed to update the correction");
+
+  await deriveAttendanceDay(ctx, {
+    employeeId: current.employeeId,
+    attendanceDate: current.attendanceDate,
+  });
+  if (
+    correction.employeeId !== current.employeeId ||
+    correction.attendanceDate !== current.attendanceDate
+  ) {
+    await deriveAttendanceDay(ctx, {
+      employeeId: correction.employeeId,
+      attendanceDate: correction.attendanceDate,
+    });
+  }
   return correction;
 }
 
-export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInput) {
+
+export async function deleteCorrection(ctx: Context, input: DeleteCorrectionInput) {
   const [current] = await ctx.db
     .select()
     .from(attendanceCorrections)
@@ -87,27 +107,13 @@ export async function reviewCorrection(ctx: Context, input: ReviewCorrectionInpu
   if (!current) notFound("Correction");
   await requirePermission(
     ctx,
-    "corrections:review",
+    "corrections:manage",
     await employeeBranchOrThrow(ctx, current.employeeId),
   );
-  const reviewer = requireSessionUser(ctx);
-  if (current.requestedBy === reviewer) forbidden("A requester cannot review their own correction");
-  if (current.status !== "pending") conflict("Correction has already been reviewed");
-  const [correction] = await ctx.db
-    .update(attendanceCorrections)
-    .set({
-      status: input.status,
-      reviewNote: input.reviewNote ?? null,
-      reviewedBy: reviewer,
-      reviewedAt: new Date(),
-    })
-    .where(eq(attendanceCorrections.id, input.id))
-    .returning();
-  if (correction?.status === "approved") {
-    await deriveAttendanceDay(ctx, {
-      employeeId: correction.employeeId,
-      attendanceDate: correction.attendanceDate,
-    });
-  }
-  return correction;
+  await ctx.db.delete(attendanceCorrections).where(eq(attendanceCorrections.id, input.id));
+  await deriveAttendanceDay(ctx, {
+    employeeId: current.employeeId,
+    attendanceDate: current.attendanceDate,
+  });
+  return current;
 }
