@@ -6,6 +6,7 @@ import { clientKeys, clientsApi } from "./clients";
 import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
 import { organizationApi, organizationKeys } from "./organization";
+import { overviewApi, overviewKeys } from "./overview";
 import { workforceApi, workforceKeys } from "./workforce";
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000;
@@ -168,6 +169,17 @@ export const attendanceQueries = {
     }),
 };
 
+export const overviewQueries = {
+  operations: (query: Parameters<typeof overviewApi.operations>[0]) =>
+    queryOptions({
+      queryKey: overviewKeys.operations(query),
+      queryFn: ({ signal }) => overviewApi.operations(query, signal),
+      // The landing page is a live board, so it refreshes itself rather than
+      // showing whatever was true when the tab was opened.
+      refetchInterval: 60_000,
+    }),
+};
+
 export const correctionsQueries = {
   list: (query: CorrectionsQuery) =>
     queryOptions({
@@ -315,5 +327,6 @@ export const queries = {
   devices: devicesQueries,
   attendance: attendanceQueries,
   corrections: correctionsQueries,
+  overview: overviewQueries,
   clients: clientQueries,
 };

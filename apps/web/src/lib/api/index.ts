@@ -5,6 +5,7 @@ import { clientKeys, clientsApi } from "./clients";
 import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
 import { organizationApi, organizationKeys } from "./organization";
+import { overviewApi, overviewKeys } from "./overview";
 import { workforceApi, workforceKeys } from "./workforce";
 
 export * from "./client";
@@ -14,6 +15,7 @@ export * from "./clients";
 export * from "./corrections";
 export * from "./devices";
 export * from "./organization";
+export * from "./overview";
 export * from "./workforce";
 export * from "./queries";
 
@@ -27,6 +29,7 @@ export const api = {
   attendance: attendanceApi,
   clients: clientsApi,
   corrections: correctionsApi,
+  overview: overviewApi,
 };
 
 /** React Query keys, kept beside the fetchers they invalidate. */
@@ -38,4 +41,5 @@ export const queryKeys = {
   attendance: attendanceKeys,
   clients: clientKeys,
   corrections: correctionsKeys,
+  overview: overviewKeys,
 };
