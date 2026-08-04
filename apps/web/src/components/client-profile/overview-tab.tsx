@@ -51,9 +51,7 @@ export function ProjectSummaryCard({
     <article className="rounded-[13px] bg-[var(--surface-subtle)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-strong text-sm font-bold">{project.project.name}</h4>
-        <p className={`text-xs font-bold ${status.className}`}>
-          {status.label}
-        </p>
+        <p className={`text-xs font-bold ${status.className}`}>{status.label}</p>
       </div>
       <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-muted-foreground">
         <div className="flex gap-1.5">
@@ -115,20 +113,6 @@ export function OverviewTab({
             <Detail label="VAT number">{record.vatNumber || "—"}</Detail>
             <Detail label="Registration no.">{record.registrationNumber || "—"}</Detail>
             <Detail label="Business licence">{record.businessLicenseNumber || "—"}</Detail>
-            <Detail label="Website">
-              {record.website ? (
-                <a
-                  href={record.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-info underline-offset-4 hover:underline"
-                >
-                  {record.website.replace(/^https?:\/\//, "")}
-                </a>
-              ) : (
-                "—"
-              )}
-            </Detail>
             <Detail label="Industry">{client.industry.name}</Detail>
           </dl>
         </TabPanel>

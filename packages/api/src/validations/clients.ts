@@ -66,7 +66,6 @@ export const updateClientInput = z.object({
   vatNumber: nullableText,
   registrationNumber: nullableText,
   businessLicenseNumber: nullableText,
-  website: z.url().nullable().optional(),
   relationshipStartedOn: date.optional(),
   priority: z.enum(CLIENT_PRIORITIES).nullable().optional(),
 });
