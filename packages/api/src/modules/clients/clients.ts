@@ -65,6 +65,19 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
 
   return withTransaction(ctx, async (ctx) => {
     await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+
+    // TIN is unique per organization where it is set. Now that it can be supplied at
+    // creation, check it under the lock already held — otherwise a duplicate surfaces
+    // as a raw unique-violation rather than something the form can show.
+    if (input.tin) {
+      const [duplicate] = await ctx.db
+        .select({ clientCode: clients.clientCode })
+        .from(clients)
+        .where(and(eq(clients.organizationId, organization.id), eq(clients.tin, input.tin)))
+        .limit(1);
+      if (duplicate) conflict(`TIN ${input.tin} already belongs to ${duplicate.clientCode}`);
+    }
+
     const year = relationshipStartedOn.slice(0, 4);
     const [row] = await ctx.db
       .select({ value: count() })
@@ -84,10 +97,15 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
         ownerEmployeeId: input.ownerEmployeeId,
         clientCode,
         legalName: input.legalName,
+        tradingName: input.tradingName ?? null,
         industryId: input.industryId,
         clientTypeId: input.clientTypeId,
         phone: input.phone ?? null,
         email: input.email ?? null,
+        tin: input.tin ?? null,
+        vatNumber: input.vatNumber ?? null,
+        registrationNumber: input.registrationNumber ?? null,
+        businessLicenseNumber: input.businessLicenseNumber ?? null,
         relationshipStartedOn,
       })
       .returning();
