@@ -1,7 +1,23 @@
-import { AttendanceWorkspace } from "@/components/attendance";
+import { type AttendanceSection, AttendanceWorkspace } from "@/components/attendance";
 import { requireAccess } from "@/lib/access-server";
 
-export default async function AttendancePage() {
+const attendanceSections = new Set<AttendanceSection>(["register", "corrections"]);
+
+export default async function AttendancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>;
+}) {
   await requireAccess("attendance:read");
-  return <AttendanceWorkspace />;
+  const { section } = await searchParams;
+
+  return (
+    <AttendanceWorkspace
+      section={
+        attendanceSections.has(section as AttendanceSection)
+          ? (section as AttendanceSection)
+          : "register"
+      }
+    />
+  );
 }

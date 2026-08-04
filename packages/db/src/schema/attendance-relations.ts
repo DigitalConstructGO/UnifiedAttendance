@@ -61,6 +61,5 @@ export const attendanceCorrectionsRelations = relations(attendanceCorrections, (
     fields: [attendanceCorrections.disputedEventId],
     references: [attendanceEvents.id],
   }),
-  requester: one(user, { fields: [attendanceCorrections.requestedBy], references: [user.id] }),
-  reviewer: one(user, { fields: [attendanceCorrections.reviewedBy], references: [user.id] }),
+  appliedByUser: one(user, { fields: [attendanceCorrections.appliedBy], references: [user.id] }),
 }));

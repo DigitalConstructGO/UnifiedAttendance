@@ -51,7 +51,7 @@ export const attendanceDays = pgTable(
     earlyDepartureMinutes: integer("early_departure_minutes"),
     missingCheckIn: boolean("missing_check_in").notNull().default(false),
     missingCheckOut: boolean("missing_check_out").notNull().default(false),
-    hasApprovedCorrection: boolean("has_approved_correction").notNull().default(false),
+    hasCorrection: boolean("has_correction").notNull().default(false),
     calculatedAt: timestamp("calculated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => new Date())

@@ -39,10 +39,9 @@ export async function deriveAttendanceDay(
       and(
         eq(attendanceCorrections.employeeId, employeeId),
         eq(attendanceCorrections.attendanceDate, attendanceDate),
-        eq(attendanceCorrections.status, "approved"),
       ),
     )
-    .orderBy(asc(attendanceCorrections.reviewedAt));
+    .orderBy(asc(attendanceCorrections.appliedAt));
 
   const manualEntries = await ctx.db
     .select()
@@ -91,7 +90,7 @@ export async function deriveAttendanceDay(
     earlyDepartureMinutes,
     missingCheckIn: !firstIn,
     missingCheckOut: !lastOut,
-    hasApprovedCorrection: corrections.length > 0,
+    hasCorrection: corrections.length > 0,
   } as const;
 
   const [day] = await ctx.db

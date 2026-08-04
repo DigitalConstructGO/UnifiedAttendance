@@ -12,21 +12,21 @@ describe("deriveAttendanceDay overlays", () => {
     fixture = await setUpDeriveDayFixture();
   });
 
-  it("applies an approved time Correction", async () => {
+  it("applies a time Correction", async () => {
     await fixture.addEvent("2026-03-02T09:00:00+03:00", "in");
-    await fixture.addCorrection("approved");
+    await fixture.addCorrection();
 
     await expect(fixture.derive()).resolves.toMatchObject({
       outcome: "present",
       lastOut: new Date("2026-03-02T17:00:00+03:00"),
-      hasApprovedCorrection: true,
+      hasCorrection: true,
     });
   });
 
-  it("applies an approved mark-absent Correction", async () => {
+  it("applies a mark-absent Correction", async () => {
     await fixture.addEvent("2026-03-02T09:00:00+03:00", "in");
     await fixture.addEvent("2026-03-02T17:00:00+03:00", "out");
-    await fixture.addCorrection("approved", "mark_absent");
+    await fixture.addCorrection("mark_absent");
 
     await expect(fixture.derive()).resolves.toMatchObject({
       outcome: "absent",
@@ -37,16 +37,16 @@ describe("deriveAttendanceDay overlays", () => {
     });
   });
 
-  it("applies an approved mark-present Correction", async () => {
-    await fixture.addCorrection("approved", "mark_present");
+  it("applies a mark-present Correction", async () => {
+    await fixture.addCorrection("mark_present");
 
     await expect(fixture.derive()).resolves.toMatchObject({ outcome: "present" });
   });
 
-  it("applies an approved excuse-lateness Correction", async () => {
+  it("applies an excuse-lateness Correction", async () => {
     await fixture.addEvent("2026-03-02T09:15:00+03:00", "in");
     await fixture.addEvent("2026-03-02T17:00:00+03:00", "out");
-    await fixture.addCorrection("approved", "excuse_lateness");
+    await fixture.addCorrection("excuse_lateness");
 
     await expect(fixture.derive()).resolves.toMatchObject({
       outcome: "present",
@@ -79,14 +79,13 @@ describe("deriveAttendanceDay overlays", () => {
     });
   });
 
-  it.each(["pending", "rejected"] as const)("ignores a %s Correction", async (status) => {
+  it("leaves the day uncorrected when nothing was corrected", async () => {
     await fixture.addEvent("2026-03-02T09:00:00+03:00", "in");
-    await fixture.addCorrection(status);
 
     await expect(fixture.derive()).resolves.toMatchObject({
       outcome: "partial",
       lastOut: null,
-      hasApprovedCorrection: false,
+      hasCorrection: false,
     });
   });
 });
