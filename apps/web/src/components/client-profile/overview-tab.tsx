@@ -14,7 +14,7 @@ import {
   PROJECT_PROGRESS_TONE,
   PROJECT_STATUS_META,
 } from "@/lib/client-presentation";
-import { ethiopianDate, relativeTime } from "@/lib/ethiopian-date";
+import { formatDate, relativeTime } from "@/lib/format-date";
 
 import { summarizeClientBilling } from "./profile-metrics";
 import { TabPanel } from "./tab-shell";
@@ -63,7 +63,7 @@ export function ProjectSummaryCard({
         <div className="flex gap-1.5">
           <dt>Due</dt>
           <dd className="text-strong font-semibold">
-            {ethiopianDate(project.project.dueOn, timeZone)}
+            {formatDate(project.project.dueOn, timeZone)}
           </dd>
         </div>
       </dl>

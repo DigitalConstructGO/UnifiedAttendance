@@ -16,7 +16,7 @@ import type {
   OpportunityRow,
 } from "@/lib/api";
 import { clientName, initials, personName, type ProjectStatus } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { clientTabHref } from "./profile-model";
 
@@ -115,7 +115,7 @@ export function ProfileHeader({
                 <CalendarDays className="size-3.5" aria-hidden="true" />
                 <dt>Client since</dt>
                 <dd className="text-strong font-semibold">
-                  {ethiopianDate(client.client.relationshipStartedOn, timeZone)}
+                  {formatDate(client.client.relationshipStartedOn, timeZone)}
                 </dd>
               </div>
             </dl>

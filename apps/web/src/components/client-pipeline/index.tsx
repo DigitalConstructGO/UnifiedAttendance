@@ -26,7 +26,7 @@ import {
   OPPORTUNITY_PRIORITY_META,
   personName,
 } from "@/lib/client-presentation";
-import { relativeTime } from "@/lib/ethiopian-date";
+import { relativeTime } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 

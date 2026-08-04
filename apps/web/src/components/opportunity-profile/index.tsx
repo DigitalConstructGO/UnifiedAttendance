@@ -24,7 +24,7 @@ import {
   OPPORTUNITY_PRIORITY_META,
   personName,
 } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 import { OPPORTUNITY_TAB_LABELS, OPPORTUNITY_TABS, type OpportunityTab } from "./model";
@@ -115,7 +115,7 @@ export function OpportunityProfile({
                     <div className="flex items-center gap-1.5">
                       <CalendarDays className="size-3.5" aria-hidden="true" />
                       <dt>Created</dt>
-                      <dd>{ethiopianDate(row.opportunity.createdAt, row.branch.timezone)}</dd>
+                      <dd>{formatDate(row.opportunity.createdAt, row.branch.timezone)}</dd>
                     </div>
                   </dl>
                 </div>
@@ -169,7 +169,7 @@ export function OpportunityProfile({
                 </Detail>
                 <Detail label="Account owner">{personName(row.owner.person)}</Detail>
                 <Detail label="Last activity">
-                  {ethiopianDate(row.opportunity.lastActivityAt, row.branch.timezone)}
+                  {formatDate(row.opportunity.lastActivityAt, row.branch.timezone)}
                 </Detail>
               </dl>
               <p className="mt-6 rounded-[11px] bg-info/8 px-4 py-3 text-xs text-muted-foreground">
@@ -218,7 +218,7 @@ export function OpportunityProfile({
                         ) : null}
                       </div>
                       <time className="text-xs text-muted-foreground">
-                        {ethiopianDate(transition.occurredAt, row.branch.timezone)}
+                        {formatDate(transition.occurredAt, row.branch.timezone)}
                       </time>
                     </li>
                   ))}

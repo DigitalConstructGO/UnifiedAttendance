@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clientKeys, clientsApi, workforceQueries, type InvoiceRow } from "@/lib/api";
 import { money, personName } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 
 import { DialogField, dialogFieldClass, RecordDialog } from "../client-agreements/record-dialog";
@@ -110,7 +110,7 @@ export function PaymentsTab({
                   <tr key={payment.id} className="border-t border-border">
                     <td className="text-strong px-5 py-4 font-bold">{invoiceNumber}</td>
                     <td className="px-4 py-4 text-muted-foreground">
-                      {ethiopianDate(payment.paidOn, timeZone)}
+                      {formatDate(payment.paidOn, timeZone)}
                     </td>
                     <td className="px-4 py-4 text-muted-foreground">{payment.method || "—"}</td>
                     <td className="px-4 py-4 text-muted-foreground">{payment.reference || "—"}</td>

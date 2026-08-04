@@ -2,7 +2,7 @@ import { History } from "lucide-react";
 
 import type { ClientAuditEntry } from "@/lib/api";
 import { initials } from "@/lib/client-presentation";
-import { clockTime, ethiopianDate } from "@/lib/ethiopian-date";
+import { clockTime, formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -41,7 +41,7 @@ export function AuditTab({ entries, timeZone }: { entries: ClientAuditEntry[]; t
                 <span className="capitalize">{actionLabel(entry.action)}</span>
               </p>
               <time className="shrink-0 text-xs text-muted-foreground">
-                {ethiopianDate(entry.occurredAt, timeZone)} ·{" "}
+                {formatDate(entry.occurredAt, timeZone)} ·{" "}
                 {clockTime(entry.occurredAt, timeZone)}
               </time>
             </li>

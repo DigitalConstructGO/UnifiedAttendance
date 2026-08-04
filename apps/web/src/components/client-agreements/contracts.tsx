@@ -16,7 +16,7 @@ import {
   RENEWAL_MODE_LABELS,
   type CommercialContractStatus,
 } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 
@@ -150,10 +150,10 @@ export function ClientContracts() {
                         {row.client ? clientName(row.client) : "—"}
                       </td>
                       <td className="px-4 py-4 text-muted-foreground">
-                        {ethiopianDate(contract.startsOn)}
+                        {formatDate(contract.startsOn)}
                         <span aria-hidden="true"> → </span>
                         <span className="sr-only">to </span>
-                        {ethiopianDate(contract.endsOn)}
+                        {formatDate(contract.endsOn)}
                       </td>
                       <td className="text-strong px-4 py-4 font-semibold">
                         {RENEWAL_MODE_LABELS[contract.renewalMode]}

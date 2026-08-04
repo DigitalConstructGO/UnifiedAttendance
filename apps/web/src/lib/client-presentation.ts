@@ -34,8 +34,6 @@ export const CLIENT_DOCUMENT_KINDS = [
 ] as const;
 export type ClientDocumentKind = (typeof CLIENT_DOCUMENT_KINDS)[number];
 
-export const FOUNDING_CALENDARS = ["gregorian", "ethiopian"] as const;
-export type FoundingCalendar = (typeof FOUNDING_CALENDARS)[number];
 
 type Tone = { label: string; className: string };
 

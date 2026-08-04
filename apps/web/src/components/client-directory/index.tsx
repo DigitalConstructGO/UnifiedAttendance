@@ -25,7 +25,7 @@ import {
   initials,
   personName,
 } from "@/lib/client-presentation";
-import { relativeTime } from "@/lib/ethiopian-date";
+import { relativeTime } from "@/lib/format-date";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 import { EmptyState, TabPanel } from "../client-profile/tab-shell";

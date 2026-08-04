@@ -7,7 +7,7 @@ import {
   PROJECT_PROGRESS_TONE,
   PROJECT_STATUS_META,
 } from "@/lib/client-presentation";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -44,7 +44,7 @@ export function ProjectsTab({ projects, timeZone }: { projects: ProjectRow[]; ti
               <div className="flex gap-1.5">
                 <dt>Deadline</dt>
                 <dd className="text-strong font-semibold">
-                  ·&nbsp;{ethiopianDate(project.dueOn, timeZone)}
+                  ·&nbsp;{formatDate(project.dueOn, timeZone)}
                 </dd>
               </div>
             </dl>

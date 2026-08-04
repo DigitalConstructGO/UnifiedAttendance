@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import type { ClientTimeline } from "@/lib/api";
-import { ethiopianDate } from "@/lib/ethiopian-date";
+import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
 
@@ -62,7 +62,7 @@ export function TimelineTab({
                 <p className="text-strong text-xs font-bold">
                   {item.title}
                   <time className="ml-2 font-medium text-muted-foreground">
-                    {ethiopianDate(item.occurredAt, timeZone)}
+                    {formatDate(item.occurredAt, timeZone)}
                   </time>
                 </p>
                 {item.detail ? (
