@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookOpen,
   Building,
   Building2,
   CalendarCheck2,
@@ -143,6 +144,19 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   <Link href="/dashboard">
                     <Gauge aria-hidden="true" />
                     <span>Overview</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Guide"
+                  isActive={pathname.startsWith("/dashboard/guide")}
+                  className={menuButtonClass}
+                >
+                  <Link href="/dashboard/guide">
+                    <BookOpen aria-hidden="true" />
+                    <span>Guide</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
