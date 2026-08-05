@@ -1,14 +1,21 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
+import { type DeviceSection, DevicesWorkspace } from "@/components/devices";
 import { requireAccess } from "@/lib/access-server";
 
-export default async function DevicesPage() {
-  const { access } = await requireAccess("devices:read");
+const deviceSections = new Set<DeviceSection>(["readers", "enrolments"]);
+
+export default async function DevicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>;
+}) {
+  await requireAccess("devices:read");
+  const { section } = await searchParams;
 
   return (
-    <ModulePlaceholder
-      title="Devices"
-      description="Attendance devices and their employee enrolments."
-      role={access.role}
+    <DevicesWorkspace
+      section={
+        deviceSections.has(section as DeviceSection) ? (section as DeviceSection) : "readers"
+      }
     />
   );
 }

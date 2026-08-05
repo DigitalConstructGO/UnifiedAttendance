@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 import {
   attendanceDevices,
@@ -6,7 +6,7 @@ import {
   employees,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { notFound } from "../../errors";
+import { conflict, notFound } from "../../errors";
 import { requirePermission } from "../shared/guards";
 
 import type {
@@ -78,15 +78,37 @@ export async function updateDevice(ctx: Context, input: UpdateDeviceInput) {
 export async function listIdentities(ctx: Context, input: ListIdentitiesInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
   await requirePermission(ctx, "devices:read", employee.branchId);
+  // Newest first, so the badge currently in force leads the history.
   return ctx.db
     .select()
     .from(employeeDeviceIdentities)
-    .where(eq(employeeDeviceIdentities.employeeId, input.employeeId));
+    .where(eq(employeeDeviceIdentities.employeeId, input.employeeId))
+    .orderBy(desc(employeeDeviceIdentities.validFrom), desc(employeeDeviceIdentities.createdAt));
 }
 
 export async function assignIdentity(ctx: Context, input: AssignIdentityInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
   await requirePermission(ctx, "devices:manage", employee.branchId);
+  // A badge number can only be live for one person at a time, which the partial
+  // unique index enforces. Checking first turns that into an explanation rather
+  // than a constraint violation the caller has to decode.
+  const [held] = await ctx.db
+    .select({ employeeId: employeeDeviceIdentities.employeeId })
+    .from(employeeDeviceIdentities)
+    .where(
+      and(
+        eq(employeeDeviceIdentities.deviceIdentityNumber, input.deviceIdentityNumber),
+        isNull(employeeDeviceIdentities.validTo),
+      ),
+    )
+    .limit(1);
+  if (held) {
+    conflict(
+      held.employeeId === input.employeeId
+        ? `Badge ${input.deviceIdentityNumber} is already enrolled to this employee`
+        : `Badge ${input.deviceIdentityNumber} is still in use by another employee`,
+    );
+  }
   const [identity] = await ctx.db
     .insert(employeeDeviceIdentities)
     .values({ ...input, validTo: input.validTo ?? null })
@@ -94,7 +116,6 @@ export async function assignIdentity(ctx: Context, input: AssignIdentityInput) {
   return identity;
 }
 
-/** Ends an identity's validity rather than deleting it — the history stays auditable. */
 export async function closeIdentity(ctx: Context, input: CloseIdentityInput) {
   const [identity] = await ctx.db
     .select()
