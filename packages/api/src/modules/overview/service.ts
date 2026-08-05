@@ -11,15 +11,13 @@ import {
   people,
 } from "@UnifiedAttendance/db/schema/index";
 
+import { deviceHealth } from "../devices/health";
 import { requirePermission } from "../shared/guards";
 
 import type { OperationsOverviewInput } from "../../validations/overview";
 import type { Context } from "../../context";
 
 const TREND_DAYS = 7;
-/** A device that has not spoken in this long is not merely quiet. */
-const WARNING_AFTER_MINUTES = 15;
-const OFFLINE_AFTER_MINUTES = 60;
 
 function shiftDate(date: string, days: number) {
   const shifted = new Date(`${date}T12:00:00Z`);
@@ -27,16 +25,7 @@ function shiftDate(date: string, days: number) {
   return shifted.toISOString().slice(0, 10);
 }
 
-/**
- * One read for the whole landing page, aggregated in SQL.
- *
- * Deliberately does NOT call `deriveAttendanceDay` the way the register does.
- * The register derives per employee because it must show a correct row for each
- * one; doing that org-wide would be one round trip per head every time anyone
- * opens the dashboard. Here the stored `attendance_days` are read as they
- * stand, and the headcount they do not cover is reported as `notRecorded`
- * rather than quietly counted as present or absent.
- */
+
 export async function getOperationsOverview(ctx: Context, input: OperationsOverviewInput) {
   await requirePermission(ctx, "attendance:read");
 
@@ -65,7 +54,6 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
 
     ctx.db.select({ value: count() }).from(branches),
 
-    // Today's outcomes, one row per bucket.
     ctx.db
       .select({
         outcome: attendanceDays.outcome,
@@ -79,7 +67,6 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
       .where(eq(attendanceDays.attendanceDate, date))
       .groupBy(attendanceDays.outcome, attendanceDays.dayType),
 
-    // The last seven days, so the page can show a shape and not just a number.
     ctx.db
       .select({
         date: attendanceDays.attendanceDate,
@@ -109,7 +96,6 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
       .innerJoin(branches, eq(attendanceDevices.branchId, branches.id))
       .orderBy(desc(attendanceDevices.lastSeenAt)),
 
-    // The live feed. Left-joined: a punch from an unenrolled badge still happened.
     ctx.db
       .select({
         id: attendanceEvents.id,
@@ -155,9 +141,7 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
   const sum = (pick: (row: (typeof todayRows)[number]) => number) =>
     working.reduce((total, row) => total + pick(row), 0);
 
-  // Coverage counts every stored day; the outcome figures below count only the
-  // ones anyone is expected to show up for. Mixing the two would report a whole
-  // branch as uncomputed every Saturday.
+  
   const recorded = todayRows.reduce((total, row) => total + row.value, 0);
   const onWorkingDay = sum((row) => row.value);
   const late = sum((row) => row.late);
@@ -166,18 +150,8 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
     .reduce((total, row) => total + row.value, 0);
   const headcountValue = headcount?.value ?? 0;
 
-  const now = Date.now();
-  const deviceAge = (lastSeenAt: Date | null) =>
-    lastSeenAt === null ? Infinity : (now - lastSeenAt.getTime()) / 60_000;
-  const devices = deviceRows.map((device) => ({
-    ...device,
-    health:
-      device.status === "inactive" || deviceAge(device.lastSeenAt) > OFFLINE_AFTER_MINUTES
-        ? ("offline" as const)
-        : deviceAge(device.lastSeenAt) > WARNING_AFTER_MINUTES
-          ? ("warning" as const)
-          : ("online" as const),
-  }));
+  const now = new Date();
+  const devices = deviceRows.map((device) => ({ ...device, health: deviceHealth(device, now) }));
 
   return {
     date,
@@ -194,7 +168,6 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
         .reduce((total, row) => total + row.value, 0),
       missingPunch: sum((row) => row.missingPunch),
       corrected: sum((row) => row.corrected),
-      // Days nobody has computed yet. Named, not guessed at.
       notRecorded: Math.max(0, headcountValue - recorded),
     },
     trend: Array.from({ length: TREND_DAYS }, (_, index) => {
