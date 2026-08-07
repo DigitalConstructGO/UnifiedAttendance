@@ -242,6 +242,15 @@ export async function receivePush(
 }
 
 /**
+ * How many days are derived at once. Each derivation is several round trips, so
+ * doing them strictly in sequence made a batch cost (employees × latency) —
+ * on a remote database a reader catching up after an outage took minutes.
+ * Different (employee, day) pairs never touch the same row, so overlapping them
+ * is safe; the cap is there to leave connections for everyone else.
+ */
+const DERIVE_CONCURRENCY = 8;
+
+/**
  * A stored punch changes nothing until the day it belongs to is derived again.
  * Each (employee, day) is recomputed once however many punches arrived for it.
  */
@@ -255,10 +264,15 @@ async function recomputeTouchedDays(
     const employeeId = owners.get(`${record.identityNumber}@${record.localDate}`);
     if (employeeId) days.add(`${employeeId}|${record.localDate}`);
   }
-  for (const day of days) {
-    const [employeeId, attendanceDate] = day.split("|") as [string, string];
-    await deriveAttendanceDay(ctx, { employeeId, attendanceDate });
-  }
+
+  const pending = [...days];
+  const workers = Array.from({ length: Math.min(DERIVE_CONCURRENCY, pending.length) }, async () => {
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      const [employeeId, attendanceDate] = next.split("|") as [string, string];
+      await deriveAttendanceDay(ctx, { employeeId, attendanceDate });
+    }
+  });
+  await Promise.all(workers);
 }
 
 /**
