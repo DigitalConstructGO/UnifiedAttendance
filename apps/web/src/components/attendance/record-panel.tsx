@@ -3,6 +3,7 @@ import { CalendarClock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TablePagination } from "@/components/table-pagination";
 
 import type { QuickKind, RegisterRow } from "./register-model";
 import { attendanceSelectClass } from "./register-controls";
@@ -10,9 +11,12 @@ import { avatarTone, formatTime, registerStatus, today } from "./register-presen
 
 export function RecordPanel({
   rows,
+  total,
   page,
   pageCount,
+  pageSize,
   loading,
+  refreshing,
   timeZone,
   isToday,
   searchTerm,
@@ -23,9 +27,12 @@ export function RecordPanel({
   onGoToToday,
 }: {
   rows: RegisterRow[];
+  total: number;
   page: number;
   pageCount: number;
+  pageSize: number;
   loading: boolean;
+  refreshing: boolean;
   timeZone: string;
   isToday: boolean;
   searchTerm: string;
@@ -89,7 +96,10 @@ export function RecordPanel({
         ) : null}
 
         {isToday ? (
-          <ul className="divide-y divide-border">
+          <ul
+            className={`divide-y divide-border ${refreshing ? "opacity-50" : ""} transition-opacity`}
+            aria-busy={refreshing}
+          >
             {rows.map((row) => (
               <RecordRow
                 key={row.employee.id}
@@ -122,32 +132,16 @@ export function RecordPanel({
           </div>
         ) : null}
 
-        {isToday && !loading && pageCount > 1 ? (
-          <footer className="flex items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground">
-            <span className="font-numeric">
-              Page {page + 1} of {pageCount}
-            </span>
-            <span className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-[9px] px-3"
-                disabled={page === 0}
-                onClick={() => onPageChange(page - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 rounded-[9px] px-3"
-                disabled={page >= pageCount - 1}
-                onClick={() => onPageChange(page + 1)}
-              >
-                Next
-              </Button>
-            </span>
-          </footer>
+        {isToday && !loading && rows.length > 0 ? (
+          <TablePagination
+            noun="employees"
+            shown={rows.length}
+            total={total}
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+          />
         ) : null}
       </CardContent>
     </Card>
@@ -187,8 +181,6 @@ function RecordRow({
       </span>
       <RecordState row={row} timeZone={timeZone} />
       <RecordEntryForm
-        // Remount when the day's ends change, so the suggested action and the
-        // pre-filled time follow what was just recorded.
         key={`${row.day.firstIn ?? ""}|${row.day.lastOut ?? ""}`}
         row={row}
         recording={recording}

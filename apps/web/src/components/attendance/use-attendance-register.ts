@@ -22,7 +22,7 @@ import {
   type RegisterFilter,
   type RegisterRow,
 } from "./register-model";
-import { formatTime, localDateTimeToIso, registerStatus, today } from "./register-presentation";
+import { formatTime, localDateTimeToIso, today } from "./register-presentation";
 
 const REGISTER_PAGE_SIZE = 10;
 
@@ -63,6 +63,9 @@ export function useAttendanceRegister({ registerActive = true } = {}) {
       branchId,
       date,
       search: search || undefined,
+      // The server classifies the whole branch, so the filter and the summary
+      // counts describe every employee — not whichever page happens to load.
+      status: filter === "all" ? undefined : filter,
       limit: REGISTER_PAGE_SIZE,
       offset: page * REGISTER_PAGE_SIZE,
     }),
@@ -93,13 +96,15 @@ export function useAttendanceRegister({ registerActive = true } = {}) {
   const departmentNames = new Map(
     departments.map((department) => [department.id, department.name]),
   );
-  const statusRows = register?.rows.map((row) => ({ row, status: registerStatus(row) })) ?? [];
-  const counts = { ...EMPTY_COUNTS };
-  for (const item of statusRows) counts[item.status] += 1;
-  const visibleRows = statusRows
-    .filter((item) => filter === "all" || item.status === filter)
-    .map((item) => item.row);
+  const counts = register?.counts ?? EMPTY_COUNTS;
+  const visibleRows = register?.rows ?? [];
   const selected = register?.rows.find((row) => row.employee.id === selectedId) ?? null;
+
+  function changeFilter(next: RegisterFilter) {
+    setFilter(next);
+    setPage(0);
+    setSelectedId(null);
+  }
 
   function changeBranch(nextBranchId: string) {
     setChosenBranchId(nextBranchId);
@@ -180,12 +185,13 @@ export function useAttendanceRegister({ registerActive = true } = {}) {
     error,
     loading:
       branchesQuery.isPending || (registerActive && branchId !== "" && registerQuery.isPending),
+    refreshing: registerQuery.isFetching && !registerQuery.isPending,
     busy: manualEntry.isPending,
     quickEmployeeId,
     counts,
     visibleRows,
     departmentNames,
-    setFilter,
+    setFilter: changeFilter,
     setSelectedId,
     setManualKind,
     changeBranch,

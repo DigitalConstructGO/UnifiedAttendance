@@ -72,6 +72,7 @@ export function ReportsWorkspace({ section }: { section: ReportsSection }) {
         pageCount={report.pageCount}
         pageSize={report.pageSize}
         loading={report.loading}
+        refreshing={report.refreshing}
         sort={report.sort}
         onSortChange={report.changeSort}
         onPageChange={report.changePage}

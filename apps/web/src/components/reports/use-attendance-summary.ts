@@ -14,7 +14,6 @@ import { periodFor, shiftPeriod, type ReportPreset, type ReportRange } from "./p
 import type { AttendanceSummary } from "@/lib/api";
 
 const PAGE_SIZE = 10;
-/** The API's row ceiling; the export fetches the whole filtered set at once. */
 const EXPORT_LIMIT = 500;
 
 export type SummarySort = "name" | "lateDays" | "lateMinutes" | "absentDays" | "attendanceRate";
@@ -147,8 +146,6 @@ export function useAttendanceSummary() {
   return {
     preset,
     range,
-    // Paging past the newest period only ever shows zeros — nothing is
-    // expected in the future, so the pager stops at the period holding today.
     canGoNext: range.to < today,
     branches,
     branchId,
@@ -161,6 +158,7 @@ export function useAttendanceSummary() {
     pageSize: PAGE_SIZE,
     summary,
     loading: summaryQuery.isPending,
+    refreshing: summaryQuery.isFetching && !summaryQuery.isPending,
     exporting,
     error,
     retry: loadFailure?.retry,

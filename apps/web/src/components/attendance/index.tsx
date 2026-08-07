@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, ChevronRight } from "lucide-react";
+import { useEffect } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
@@ -29,6 +30,13 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
   const showsRecord = activeSection === "record";
   const register = useAttendanceRegister({ registerActive: showsRegister || showsRecord });
   const meta = sectionMeta(activeSection);
+
+  const { filter, setFilter } = register;
+  // The register's status filter now narrows the server query itself, so a
+  // leftover filter would silently hide people from the Record roster.
+  useEffect(() => {
+    if (showsRecord && filter !== "all") setFilter("all");
+  }, [showsRecord, filter, setFilter]);
 
   return (
     <div className="mx-auto w-full max-w-[1240px] space-y-5">
@@ -81,6 +89,7 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
             pageCount={register.pageCount}
             pageSize={register.pageSize}
             loading={register.loading}
+            refreshing={register.refreshing}
             filter={register.filter}
             departmentNames={register.departmentNames}
             timeZone={register.timeZone}
@@ -106,9 +115,12 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
       {showsRecord ? (
         <RecordPanel
           rows={register.loading ? [] : (register.register?.rows ?? [])}
+          total={register.register?.total ?? 0}
           page={register.page}
           pageCount={register.pageCount}
+          pageSize={register.pageSize}
           loading={register.loading}
+          refreshing={register.refreshing}
           timeZone={register.timeZone}
           isToday={register.isToday}
           searchTerm={register.searchTerm}

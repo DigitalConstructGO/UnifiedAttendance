@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TablePagination } from "@/components/table-pagination";
 
 import { FILTERS, type RegisterFilter, type RegisterRow } from "./register-model";
 import { registerTitle } from "./register-presentation";
@@ -13,6 +14,7 @@ export function RegisterTable({
   pageCount,
   pageSize,
   loading,
+  refreshing,
   filter,
   departmentNames,
   timeZone,
@@ -27,6 +29,7 @@ export function RegisterTable({
   pageCount: number;
   pageSize: number;
   loading: boolean;
+  refreshing: boolean;
   filter: RegisterFilter;
   departmentNames: Map<string, string>;
   timeZone: string;
@@ -34,8 +37,6 @@ export function RegisterTable({
   onSelect: (employeeId: string) => void;
   onPageChange: (page: number) => void;
 }) {
-  const pageStart = page * pageSize;
-
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
       <CardHeader className="border-b border-border px-5 py-4">
@@ -72,7 +73,12 @@ export function RegisterTable({
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
-            <tbody>
+            {/* Dimming the outgoing rows makes a page flip register instantly,
+                even while the next page is still on the wire. */}
+            <tbody
+              className={refreshing ? "opacity-50 transition-opacity" : "transition-opacity"}
+              aria-busy={refreshing}
+            >
               {rows.map((row) => (
                 <RegisterTableRow
                   key={row.employee.id}
@@ -102,36 +108,15 @@ export function RegisterTable({
           </div>
         ) : null}
         {!loading && rows.length > 0 ? (
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground">
-            <span>
-              Showing {pageStart + 1}–{pageStart + rows.length} of {total} employees
-            </span>
-            {pageCount > 1 ? (
-              <span className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 rounded-[9px] px-3"
-                  disabled={page === 0}
-                  onClick={() => onPageChange(page - 1)}
-                >
-                  Previous
-                </Button>
-                <span className="font-numeric">
-                  Page {page + 1} of {pageCount}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 rounded-[9px] px-3"
-                  disabled={page >= pageCount - 1}
-                  onClick={() => onPageChange(page + 1)}
-                >
-                  Next
-                </Button>
-              </span>
-            ) : null}
-          </footer>
+          <TablePagination
+            noun="employees"
+            shown={rows.length}
+            total={total}
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+          />
         ) : null}
       </CardContent>
     </Card>

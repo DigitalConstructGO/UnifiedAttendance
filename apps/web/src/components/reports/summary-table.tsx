@@ -1,8 +1,8 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 
 import { avatarTone } from "@/components/attendance/register-presentation";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TablePagination } from "@/components/table-pagination";
 import type { AttendanceSummaryRow } from "@/lib/api";
 
 import { formatRangeLabel, type ReportPreset, type ReportRange } from "./period";
@@ -24,6 +24,7 @@ export function SummaryTable({
   pageCount,
   pageSize,
   loading,
+  refreshing,
   sort,
   onSortChange,
   onPageChange,
@@ -36,6 +37,7 @@ export function SummaryTable({
   pageCount: number;
   pageSize: number;
   loading: boolean;
+  refreshing: boolean;
   sort: SummarySort;
   onSortChange: (sort: SummarySort) => void;
   onPageChange: (page: number) => void;
@@ -53,8 +55,6 @@ export function SummaryTable({
     { label: "Unrecorded", align: "right" },
     { label: "Rate", sort: "attendanceRate", align: "right" },
   ];
-  const pageStart = page * pageSize;
-
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
       <CardHeader className="border-b border-border px-5 py-4">
@@ -101,7 +101,10 @@ export function SummaryTable({
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody
+              className={refreshing ? "opacity-50 transition-opacity" : "transition-opacity"}
+              aria-busy={refreshing}
+            >
               {rows.map((row) => {
                 const fullName = `${row.person.firstName} ${row.person.lastName}`;
                 return (
@@ -175,36 +178,15 @@ export function SummaryTable({
           </div>
         ) : null}
         {!loading && rows.length > 0 ? (
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-muted-foreground">
-            <span>
-              Showing {pageStart + 1}–{pageStart + rows.length} of {total} employees
-            </span>
-            {pageCount > 1 ? (
-              <span className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 rounded-[9px] px-3"
-                  disabled={page === 0}
-                  onClick={() => onPageChange(page - 1)}
-                >
-                  Previous
-                </Button>
-                <span className="font-numeric">
-                  Page {page + 1} of {pageCount}
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 rounded-[9px] px-3"
-                  disabled={page >= pageCount - 1}
-                  onClick={() => onPageChange(page + 1)}
-                >
-                  Next
-                </Button>
-              </span>
-            ) : null}
-          </footer>
+          <TablePagination
+            noun="employees"
+            shown={rows.length}
+            total={total}
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+          />
         ) : null}
       </CardContent>
     </Card>
