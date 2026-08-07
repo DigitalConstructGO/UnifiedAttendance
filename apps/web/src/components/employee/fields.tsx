@@ -18,7 +18,6 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-/** Employment types shared by the create form and the transition form. */
 export function EmploymentTypeOptions() {
   return (
     <>
@@ -56,11 +55,24 @@ export function DepartmentOptions({ departments }: { departments: Department[] }
   );
 }
 
-export function PositionOptions({ positions }: { positions: Position[] }) {
+/**
+ * Positions follow the chosen department: a department-bound position is only
+ * offered under its own department, one without a department fits anywhere.
+ */
+export function PositionOptions({
+  positions,
+  departmentId,
+}: {
+  positions: Position[];
+  departmentId: string;
+}) {
+  const offered = positions.filter(
+    (item) => !item.departmentId || item.departmentId === departmentId,
+  );
   return (
     <>
       <option value="">No position</option>
-      {positions.map((item) => (
+      {offered.map((item) => (
         <option key={item.id} value={item.id}>
           {item.title}
         </option>

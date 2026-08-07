@@ -30,7 +30,6 @@ export function createEmployeePayload(
       branchId: text(data, "branchId"),
       departmentId: optionalText(data, "departmentId"),
       positionId: optionalText(data, "positionId"),
-      employeeCode: text(data, "employeeCode"),
       employmentType: text(data, "employmentType") as z.input<
         typeof validations.createEmployeeInput
       >["employee"]["employmentType"],

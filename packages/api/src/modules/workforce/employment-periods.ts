@@ -5,7 +5,12 @@ import { employmentPeriods, employees } from "@UnifiedAttendance/db/schema/index
 import { requirePermission } from "../shared/guards";
 import { unprocessableContent } from "../../errors";
 import { withTransaction } from "../../context";
-import { employeeOrThrow, openEmploymentOrThrow, previousDate } from "./shared";
+import {
+  employeeOrThrow,
+  openEmploymentOrThrow,
+  positionFitsDepartmentOrThrow,
+  previousDate,
+} from "./shared";
 
 import type {
   ListEmploymentPeriodsInput,
@@ -31,6 +36,7 @@ export async function transitionEmployment(ctx: Context, input: TransitionEmploy
   if (input.branchId !== current.branchId) {
     await requirePermission(ctx, "workforce:manage", input.branchId);
   }
+  await positionFitsDepartmentOrThrow(ctx, input.positionId, input.departmentId);
   if (input.effectiveFrom <= current.effectiveFrom) {
     unprocessableContent(
       "An employment transition must take effect after the current period begins",

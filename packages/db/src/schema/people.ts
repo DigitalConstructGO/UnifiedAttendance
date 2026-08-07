@@ -41,6 +41,8 @@ export const departments = pgTable("departments", {
 
 export const positions = pgTable("positions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** Null means the position is open to any department. */
+  departmentId: uuid("department_id").references(() => departments.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description"),
   status: activeStatus("status").notNull().default(ACTIVE_STATUSES[0]),
