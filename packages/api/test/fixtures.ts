@@ -3,11 +3,9 @@ import { sql } from "drizzle-orm";
 
 import { seedRbac } from "../scripts/seed";
 import { createInnerContext, type Context } from "../src/context";
+import { forgetBranches } from "../src/modules/reports/expected-days";
+import { forgetGrantedPermissions } from "../src/modules/shared/guards";
 
-/**
- * A context bound to the test pool. Pass a user id to make the caller
- * authenticated; omit it to exercise the anonymous path.
- */
 export function testContext(userId?: string): Context {
   return createInnerContext({
     session: (userId ? { user: { id: userId } } : null) as Context["session"],
@@ -17,6 +15,8 @@ export function testContext(userId?: string): Context {
 export async function resetDatabase() {
   await db.execute(sql.raw(`truncate table ${await tableList()} restart identity cascade`));
   await seedRbac();
+  forgetGrantedPermissions();
+  forgetBranches();
 }
 
 let cachedTableList: string | undefined;

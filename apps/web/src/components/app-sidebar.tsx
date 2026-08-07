@@ -99,8 +99,13 @@ export function AppSidebar({ brand }: { brand: Brand }) {
   return (
     <Sidebar collapsible="icon" className="bg-sidebar-gradient border-sidebar-border">
       <SidebarHeader className="gap-4 border-b border-sidebar-border px-3 py-4">
+        {/* Dashboard pages render per-request (session + database), so a
+            prefetched copy can never be reused — prefetching them only turns
+            every visible link into a full server render, and on the Next 16
+            dev server it loops doing so. Navigation itself is unaffected. */}
         <Link
           href="/dashboard"
+          prefetch={false}
           className="flex items-center gap-3 px-1 text-sidebar-foreground hover:text-white"
         >
           <BrandMark
@@ -138,7 +143,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   isActive={pathname === "/dashboard"}
                   className={menuButtonClass}
                 >
-                  <Link href="/dashboard">
+                  <Link href="/dashboard" prefetch={false}>
                     <Gauge aria-hidden="true" />
                     <span>Overview</span>
                   </Link>
@@ -151,7 +156,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   isActive={pathname.startsWith("/dashboard/guide")}
                   className={menuButtonClass}
                 >
-                  <Link href="/dashboard/guide">
+                  <Link href="/dashboard/guide" prefetch={false}>
                     <BookOpen aria-hidden="true" />
                     <span>Guide</span>
                   </Link>
@@ -176,7 +181,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                         isActive={isCurrent(pathname, item.href)}
                         className={menuButtonClass}
                       >
-                        <Link href={item.href}>
+                        <Link href={item.href} prefetch={false}>
                           <Icon aria-hidden="true" />
                           <span>{item.label}</span>
                         </Link>

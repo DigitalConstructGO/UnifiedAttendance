@@ -31,8 +31,32 @@ async function loadGrantedPermissions(ctx: Context) {
   return rows.map((row) => row.code);
 }
 
+/**
+ * Grants change when an administrator reassigns a role — rarely — yet every
+ * API request was paying the four-table join to re-learn them. A short cache
+ * bounds that to once a minute per user; the price is that a role change can
+ * take up to a minute to bite on this server process.
+ */
+const GRANT_CACHE_TTL_MS = 60_000;
+const grantCache = new Map<string, { permissions: string[]; expiresAt: number }>();
+
+/** Tests truncate and re-seed the database; the cache must not outlive that. */
+export function forgetGrantedPermissions() {
+  grantCache.clear();
+}
+
+function grantedPermissionsFor(ctx: Context) {
+  const id = userId(ctx);
+  const cached = grantCache.get(id);
+  if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached.permissions);
+  return loadGrantedPermissions(ctx).then((granted) => {
+    grantCache.set(id, { permissions: granted, expiresAt: Date.now() + GRANT_CACHE_TTL_MS });
+    return granted;
+  });
+}
+
 export async function requirePermission(ctx: Context, permission: Permission, _branchId?: string) {
-  ctx.grantedPermissions ??= loadGrantedPermissions(ctx);
+  ctx.grantedPermissions ??= grantedPermissionsFor(ctx);
 
   let grantedPermissions: string[];
   try {

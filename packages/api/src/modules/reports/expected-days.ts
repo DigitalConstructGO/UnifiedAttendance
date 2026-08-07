@@ -7,40 +7,34 @@ import { localBusinessDate } from "../clients/shared";
 import type { Context } from "../../context";
 
 export type ExpectedDaysParams = {
-  /** Inclusive YYYY-MM-DD range. */
   from: string;
   to: string;
-  /** Branch id → that branch's local business date, from `loadBranchToday`. */
   branchToday: Map<string, string>;
   branchId?: string;
   departmentId?: string;
   employeeId?: string;
 };
 
-/** Each branch's "today", read in its own timezone — a branch ahead of the
- * server must not see tomorrow counted, one behind must not see today judged. */
-export async function loadBranchToday(ctx: Context) {
-  const rows = await ctx.db.select({ id: branches.id, timezone: branches.timezone }).from(branches);
-  return new Map(rows.map((row) => [row.id, localBusinessDate(row.timezone)]));
+
+const BRANCH_CACHE_TTL_MS = 60_000;
+let branchCache: { rows: Array<{ id: string; timezone: string }>; expiresAt: number } | null = null;
+
+export function forgetBranches() {
+  branchCache = null;
 }
 
-/**
- * The keystone of every attendance report: the set of days each employee was
- * *supposed* to work. `attendance_days` rows only exist where some write path
- * derived them, so reporting cannot read absence out of storage — it has to be
- * reconstructed as "expected day with nothing recorded".
- *
- * Emits CTEs ending in `expected(employee_id, branch_id, department_id, day,
- * is_before_today)`: one row per employee per scheduled working day, built from
- * active employment periods (so hire and termination dates bound the range),
- * the branch's working-week, minus holidays, never beyond the branch's local
- * today. The caller appends its own SELECT over `expected`.
- *
- * Two things this deliberately trusts over stored rows: the *current* schedule
- * and holiday calendar decide expectedness (a stored day's frozen `day_type`
- * does not), and a mid-range branch transfer counts each day under the branch
- * that actually applied that day.
- */
+
+export async function loadBranchToday(ctx: Context) {
+  if (!branchCache || branchCache.expiresAt <= Date.now()) {
+    const rows = await ctx.db
+      .select({ id: branches.id, timezone: branches.timezone })
+      .from(branches);
+    branchCache = { rows, expiresAt: Date.now() + BRANCH_CACHE_TTL_MS };
+  }
+  return new Map(branchCache.rows.map((row) => [row.id, localBusinessDate(row.timezone)]));
+}
+
+
 export function expectedDaysCte(params: ExpectedDaysParams): SQL {
   const branchToday = sql.join(
     [...params.branchToday].map(([id, today]) => sql`(${id}::uuid, ${today}::date)`),
@@ -59,8 +53,6 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
       select d::date as day
       from generate_series(${params.from}::date, ${params.to}::date, interval '1 day') d
     ),
-    -- distinct on: only open periods are unique per employee in the schema, so
-    -- overlapping closed periods must not double-count a day.
     expected as (
       select distinct on (ep.employee_id, d.day)
              ep.employee_id,
@@ -74,17 +66,12 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
        and (ep.effective_to is null or d.day <= ep.effective_to)
       join branch_today bt
         on bt.branch_id = ep.branch_id
-      -- isodow is Monday=1; the schedule stores Monday-first weekdays (see
-      -- mondayFirstWeekday in attendance/day-context.ts — dow would be the
-      -- Sunday-first off-by-one this codebase already shipped and fixed once).
       join branch_working_days w
         on w.branch_id = ep.branch_id
        and w.weekday = extract(isodow from d.day)::int - 1
        and w.is_working_day
       where ep.status = 'active'
         and d.day <= bt.today
-        -- not exists, not a join: a date that is both a branch holiday and a
-        -- global (null-branch) holiday must remove the day exactly once.
         and not exists (
           select 1 from holidays h
           where h.holiday_date = d.day

@@ -26,6 +26,7 @@ export function AttendanceNavigation({ section }: { section: AttendanceSection }
           <Link
             key={item.id}
             href={item.href}
+            prefetch={false}
             aria-current={active ? "page" : undefined}
             className={`flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-4 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${
               active
