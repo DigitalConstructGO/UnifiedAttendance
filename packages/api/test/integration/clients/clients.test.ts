@@ -31,7 +31,6 @@ import {
   createProject,
   convertOpportunity,
   getClient,
-  getOpportunity,
   getClientProfile,
   getClientTimeline,
   getClientOverview,
@@ -480,7 +479,7 @@ describe("clients", () => {
       phone: "+251911234002",
       isPrimary: true,
     });
-    const opportunity = await createOpportunity(context, {
+    await createOpportunity(context, {
       branchId,
       clientId: client.client.id,
       name: "Managed service renewal",
