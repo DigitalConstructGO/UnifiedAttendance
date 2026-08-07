@@ -10,7 +10,6 @@ import {
 
 import { CreateEmployeePanel } from "./create-employee-panel";
 import { DepartmentManager } from "./department-manager";
-import { EmployeeDetails } from "./employee-details";
 import { EmployeeDirectory } from "./employee-directory";
 import { EmployeeNavigation } from "./employee-navigation";
 import { BranchOptions, selectClass } from "./fields";
@@ -76,25 +75,7 @@ export function EmployeeWorkspace({
       />
 
       {activeSection === "employees" ? (
-        <>
-          <EmployeeDirectory
-            employees={workspace.employees}
-            manageable={manageable}
-            onSelect={(employee) => void workspace.selectEmployee(employee)}
-          />
-          {workspace.selected ? (
-            <EmployeeDetails
-              selected={workspace.selected}
-              periods={workspace.periods}
-              catalogs={workspace.catalogs}
-              manageable={manageable}
-              busy={workspace.busy}
-              onUpdate={workspace.updateEmployee}
-              onTransition={workspace.transitionEmployee}
-              onDelete={workspace.deleteEmployee}
-            />
-          ) : null}
-        </>
+        <EmployeeDirectory employees={workspace.employees} manageable={manageable} />
       ) : null}
 
       {activeSection === "create" ? (

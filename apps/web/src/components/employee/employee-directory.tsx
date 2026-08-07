@@ -12,11 +12,9 @@ import { exportEmployees } from "./export-employees";
 export function EmployeeDirectory({
   employees,
   manageable,
-  onSelect,
 }: {
   employees: EmployeeRow[];
   manageable: boolean;
-  onSelect: (employee: EmployeeRow) => void;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -57,7 +55,7 @@ export function EmployeeDirectory({
         />
       </CardHeader>
       <CardContent className="p-0">
-        <DirectoryTable employees={currentEmployees} onSelect={onSelect} />
+        <DirectoryTable employees={currentEmployees} />
         <DirectoryPagination
           shown={currentEmployees.length}
           total={visibleEmployees.length}

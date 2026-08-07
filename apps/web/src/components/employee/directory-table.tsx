@@ -1,4 +1,5 @@
 import { MoreVertical, UsersRound } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import type { EmployeeRow } from "@/lib/api";
@@ -23,13 +24,7 @@ function EmployeeCell({ row }: { row: EmployeeRow }) {
   );
 }
 
-export function DirectoryTable({
-  employees,
-  onSelect,
-}: {
-  employees: EmployeeRow[];
-  onSelect: (employee: EmployeeRow) => void;
-}) {
+export function DirectoryTable({ employees }: { employees: EmployeeRow[] }) {
   return (
     <>
       <div className="overflow-x-auto">
@@ -64,12 +59,14 @@ export function DirectoryTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Button
+                    asChild
                     variant="ghost"
                     size="icon-sm"
                     aria-label={`View ${row.person.firstName} ${row.person.lastName}`}
-                    onClick={() => onSelect(row)}
                   >
-                    <MoreVertical aria-hidden="true" />
+                    <Link href={`/dashboard/employees/${row.employee.id}`} prefetch={false}>
+                      <MoreVertical aria-hidden="true" />
+                    </Link>
                   </Button>
                 </td>
               </tr>
