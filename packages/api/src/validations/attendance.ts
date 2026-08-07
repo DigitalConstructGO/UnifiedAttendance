@@ -25,11 +25,15 @@ export const listPushBatchesInput = z.object({
   limit: limit(200, 50),
 });
 
+export const REGISTER_STATUSES = ["present", "late", "absent", "off_day", "missing_punch"] as const;
+export type RegisterStatus = (typeof REGISTER_STATUSES)[number];
+
 export const listDailyRegisterInput = z.object({
   branchId: id,
   date,
   departmentId: id.optional(),
   search: z.string().trim().max(120).optional(),
+  status: z.enum(REGISTER_STATUSES).optional(),
   limit: limit(200, 50),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -40,9 +44,6 @@ export const createManualAttendanceEntryInput = z
     attendanceDate: date,
     kind: z.enum(MANUAL_ATTENDANCE_ENTRY_KINDS),
     occurredAt: z.coerce.date().optional(),
-    // Optional because a branch without a reader records every day by hand —
-    // there, "why manual?" has one standing answer and typing it per person
-    // per day is pure friction. The audit trail still gets a true sentence.
     reason: z.string().trim().min(3).max(1_000).default("Recorded from the daily register"),
   })
   .superRefine((value, issue) => {

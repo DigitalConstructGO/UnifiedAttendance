@@ -6,6 +6,7 @@ import type {
 } from "@UnifiedAttendance/db/schema/index";
 
 import type { Employee, EmploymentPeriod, Person } from "./workforce";
+import type { RegisterStatus } from "../validations/attendance";
 
 export type AttendanceEvent = typeof attendanceEvents.$inferSelect;
 export type AttendanceDay = typeof attendanceDays.$inferSelect;
@@ -21,6 +22,7 @@ export type DailyRegisterRow = {
 
 export type DailyRegister = {
   rows: DailyRegisterRow[];
+  counts: Record<RegisterStatus, number>;
   total: number;
 };
 
