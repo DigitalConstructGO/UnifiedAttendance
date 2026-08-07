@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, ChevronRight } from "lucide-react";
+import { useEffect } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
@@ -9,6 +10,7 @@ import { AttendanceNavigation } from "./attendance-navigation";
 import { CorrectionsPanel } from "./corrections";
 import { DayDetails } from "./day-details";
 import { type AttendanceSection, sectionMeta } from "./navigation";
+import { RecordPanel } from "./record-panel";
 import { RegisterControls } from "./register-controls";
 import { RegisterTable } from "./register-table";
 import { SummaryCards } from "./summary-cards";
@@ -18,13 +20,23 @@ export type { AttendanceSection } from "./navigation";
 
 export function AttendanceWorkspace({ section }: { section: AttendanceSection }) {
   const { can } = useAccess();
-  // Corrections is a separate permission, so a link straight to it falls back
-  // to the register rather than showing an empty tab.
+  const sectionPermission = {
+    corrections: "corrections:read",
+    record: "attendance:manage",
+  } as const;
   const activeSection =
-    section === "corrections" && !can("corrections:read") ? "register" : section;
+    section !== "register" && !can(sectionPermission[section]) ? "register" : section;
   const showsRegister = activeSection === "register";
-  const register = useAttendanceRegister({ registerActive: showsRegister });
+  const showsRecord = activeSection === "record";
+  const register = useAttendanceRegister({ registerActive: showsRegister || showsRecord });
   const meta = sectionMeta(activeSection);
+
+  const { filter, setFilter } = register;
+  // The register's status filter now narrows the server query itself, so a
+  // leftover filter would silently hide people from the Record roster.
+  useEffect(() => {
+    if (showsRecord && filter !== "all") setFilter("all");
+  }, [showsRecord, filter, setFilter]);
 
   return (
     <div className="mx-auto w-full max-w-[1240px] space-y-5">
@@ -73,12 +85,17 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
             date={register.date}
             rows={register.loading ? [] : register.visibleRows}
             total={register.register?.total ?? 0}
+            page={register.page}
+            pageCount={register.pageCount}
+            pageSize={register.pageSize}
             loading={register.loading}
+            refreshing={register.refreshing}
             filter={register.filter}
             departmentNames={register.departmentNames}
             timeZone={register.timeZone}
             onFilterChange={register.setFilter}
             onSelect={register.setSelectedId}
+            onPageChange={register.changePage}
           />
 
           {register.selected ? (
@@ -93,9 +110,31 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
             />
           ) : null}
         </>
-      ) : (
+      ) : null}
+
+      {showsRecord ? (
+        <RecordPanel
+          rows={register.loading ? [] : (register.register?.rows ?? [])}
+          total={register.register?.total ?? 0}
+          page={register.page}
+          pageCount={register.pageCount}
+          pageSize={register.pageSize}
+          loading={register.loading}
+          refreshing={register.refreshing}
+          timeZone={register.timeZone}
+          isToday={register.isToday}
+          searchTerm={register.searchTerm}
+          busyEmployeeId={register.quickEmployeeId}
+          onSearchChange={register.setSearchTerm}
+          onRecord={(row, kind, time) => void register.recordQuickEntry(row, kind, time)}
+          onPageChange={register.changePage}
+          onGoToToday={register.changeDate}
+        />
+      ) : null}
+
+      {activeSection === "corrections" ? (
         <CorrectionsPanel branchId={register.branchId} timeZone={register.timeZone} />
-      )}
+      ) : null}
     </div>
   );
 }

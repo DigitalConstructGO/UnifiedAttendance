@@ -11,6 +11,7 @@ export const PERMISSIONS = {
   correctionsManage: "corrections:manage",
   clientsRead: "clients:read",
   clientsManage: "clients:manage",
+  reportsRead: "reports:read",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -46,6 +47,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "corrections:read",
     // HR corrects attendance themselves; nobody signs off on their edits.
     "corrections:manage",
+    "reports:read",
   ],
   [ROLES.manager]: ["workforce:read", "clients:read"],
 };

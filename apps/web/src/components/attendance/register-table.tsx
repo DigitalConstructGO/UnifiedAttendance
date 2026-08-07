@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TablePagination } from "@/components/table-pagination";
 
 import { FILTERS, type RegisterFilter, type RegisterRow } from "./register-model";
 import { registerTitle } from "./register-presentation";
@@ -9,22 +10,32 @@ export function RegisterTable({
   date,
   rows,
   total,
+  page,
+  pageCount,
+  pageSize,
   loading,
+  refreshing,
   filter,
   departmentNames,
   timeZone,
   onFilterChange,
   onSelect,
+  onPageChange,
 }: {
   date: string;
   rows: RegisterRow[];
   total: number;
+  page: number;
+  pageCount: number;
+  pageSize: number;
   loading: boolean;
+  refreshing: boolean;
   filter: RegisterFilter;
   departmentNames: Map<string, string>;
   timeZone: string;
   onFilterChange: (filter: RegisterFilter) => void;
   onSelect: (employeeId: string) => void;
+  onPageChange: (page: number) => void;
 }) {
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
@@ -62,7 +73,12 @@ export function RegisterTable({
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
-            <tbody>
+            {/* Dimming the outgoing rows makes a page flip register instantly,
+                even while the next page is still on the wire. */}
+            <tbody
+              className={refreshing ? "opacity-50 transition-opacity" : "transition-opacity"}
+              aria-busy={refreshing}
+            >
               {rows.map((row) => (
                 <RegisterTableRow
                   key={row.employee.id}
@@ -92,9 +108,15 @@ export function RegisterTable({
           </div>
         ) : null}
         {!loading && rows.length > 0 ? (
-          <footer className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
-            Showing {rows.length} of {total} employees
-          </footer>
+          <TablePagination
+            noun="employees"
+            shown={rows.length}
+            total={total}
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+          />
         ) : null}
       </CardContent>
     </Card>

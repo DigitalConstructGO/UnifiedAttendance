@@ -4,7 +4,6 @@ import type { Branch } from "@/lib/api";
 export const attendanceSelectClass =
   "h-10 rounded-[11px] border border-input bg-background px-3 text-xs font-normal outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50";
 
-
 export function RegisterControls({
   branches,
   branchId,

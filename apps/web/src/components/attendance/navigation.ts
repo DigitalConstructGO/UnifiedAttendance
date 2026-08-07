@@ -1,15 +1,9 @@
-import { CalendarCheck, ScrollText } from "lucide-react";
+import { CalendarCheck, ScrollText, UserCheck } from "lucide-react";
 
 import type { Permission } from "@UnifiedAttendance/api/rbac/permissions";
 
-export type AttendanceSection = "register" | "corrections";
+export type AttendanceSection = "register" | "record" | "corrections";
 
-/**
- * Corrections live here rather than under Employees because a correction is an
- * edit to an attendance day: the same branch, the same record, the same people
- * arguing about the same morning. Splitting the two meant leaving the register
- * to fix what the register showed you.
- */
 export const ATTENDANCE_SECTIONS = [
   {
     id: "register",
@@ -19,6 +13,16 @@ export const ATTENDANCE_SECTIONS = [
     href: "/dashboard/attendance",
     icon: CalendarCheck,
     permission: "attendance:read",
+  },
+  {
+    id: "record",
+    label: "Record",
+    heading: "Record today's attendance",
+    description:
+      "Check people in and out by hand — for branches that work without a reader, or while one is down.",
+    href: "/dashboard/attendance?section=record",
+    icon: UserCheck,
+    permission: "attendance:manage",
   },
   {
     id: "corrections",

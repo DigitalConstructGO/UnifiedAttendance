@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import {
   attendanceDays,
@@ -12,8 +12,10 @@ import {
 import { EMPLOYEE_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums";
 
 import { deriveAttendanceDay } from "../../attendance/derive-day";
+import { expectedDaysCte, loadBranchToday } from "../reports/expected-days";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
 
+import type { RegisterStatus } from "../../validations/attendance";
 import type {
   ListDaysInput,
   ListDailyRegisterInput,
@@ -86,26 +88,65 @@ export async function recomputeDay(ctx: Context, input: RecomputeDayInput) {
   });
 }
 
-/** Enough to hide latency on a cold day, few enough to leave the pool usable. */
 const DERIVE_CONCURRENCY = 8;
 
 export async function listDailyRegister(ctx: Context, input: ListDailyRegisterInput) {
   await requirePermission(ctx, "attendance:read", input.branchId);
-  const periods = await ctx.db
-    .select({ period: employmentPeriods, employee: employees, person: people })
-    .from(employmentPeriods)
-    .innerJoin(employees, eq(employmentPeriods.employeeId, employees.id))
-    .innerJoin(people, eq(employees.personId, people.id))
-    .where(
-      and(
-        eq(employmentPeriods.branchId, input.branchId),
-        eq(employmentPeriods.status, EMPLOYEE_STATUSES[0]),
-        lte(employmentPeriods.effectiveFrom, input.date),
-        or(isNull(employmentPeriods.effectiveTo), gte(employmentPeriods.effectiveTo, input.date)),
-        input.departmentId ? eq(employmentPeriods.departmentId, input.departmentId) : undefined,
-      ),
-    )
-    .orderBy(asc(people.firstName), asc(people.lastName));
+  const branchToday = await loadBranchToday(ctx);
+  const cte = expectedDaysCte({
+    from: input.date,
+    to: input.date,
+    branchToday,
+    branchId: input.branchId,
+    departmentId: input.departmentId,
+  });
+  const [periods, { rows: statusRows }] = await Promise.all([
+    ctx.db
+      .select({ period: employmentPeriods, employee: employees, person: people })
+      .from(employmentPeriods)
+      .innerJoin(employees, eq(employmentPeriods.employeeId, employees.id))
+      .innerJoin(people, eq(employees.personId, people.id))
+      .where(
+        and(
+          eq(employmentPeriods.branchId, input.branchId),
+          eq(employmentPeriods.status, EMPLOYEE_STATUSES[0]),
+          lte(employmentPeriods.effectiveFrom, input.date),
+          or(isNull(employmentPeriods.effectiveTo), gte(employmentPeriods.effectiveTo, input.date)),
+          input.departmentId ? eq(employmentPeriods.departmentId, input.departmentId) : undefined,
+        ),
+      )
+      .orderBy(asc(people.firstName), asc(people.lastName)),
+    ctx.db.execute<{
+      employee_id: string;
+      status: RegisterStatus;
+    }>(sql`
+    ${cte}
+    select ep.employee_id,
+           case
+             when ad.id is null then (case when e.employee_id is not null then 'absent' else 'off_day' end)
+             when ad.day_type <> 'working_day' and ad.outcome = 'absent' then 'off_day'
+             when coalesce(ad.late_minutes, 0) > 0 then 'late'
+             when ad.outcome = 'absent' then 'absent'
+             when ad.outcome in ('partial', 'unknown') then 'missing_punch'
+             else 'present'
+           end as status
+    from (
+      select distinct ep.employee_id
+      from employment_periods ep
+      where ep.status = 'active'
+        and ep.effective_from <= ${input.date}
+        and (ep.effective_to is null or ep.effective_to >= ${input.date})
+        and ep.branch_id = ${input.branchId}
+        ${input.departmentId ? sql`and ep.department_id = ${input.departmentId}` : sql``}
+    ) ep
+    left join expected e on e.employee_id = ep.employee_id
+    left join attendance_days ad
+      on ad.employee_id = ep.employee_id
+     and ad.attendance_date = ${input.date}
+  `),
+  ]);
+  const statusOf = new Map(statusRows.map((row) => [row.employee_id, row.status]));
+
   const search = input.search?.toLocaleLowerCase();
   const matching = search
     ? periods.filter(({ employee, person }) =>
@@ -114,18 +155,25 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
           .includes(search),
       )
     : periods;
-  const page = matching.slice(input.offset, input.offset + input.limit);
-  if (page.length === 0) return { rows: [], total: matching.length };
 
-  /*
-   * Read the stored days first, derive only what is missing.
-   *
-   * This used to derive every employee on the page on every read, which cost
-   * one multi-query derivation per head: fifty people took twenty to thirty
-   * seconds, and re-opening the same day was no faster because nothing was
-   * reused. Every write path already derives — device pushes, manual entries,
-   * corrections — so a stored day is authoritative and only a gap needs filling.
-   */
+  const counts: Record<RegisterStatus, number> = {
+    present: 0,
+    late: 0,
+    absent: 0,
+    off_day: 0,
+    missing_punch: 0,
+  };
+  for (const { employee } of matching) {
+    const status = statusOf.get(employee.id);
+    if (status) counts[status] += 1;
+  }
+
+  const filtered = input.status
+    ? matching.filter(({ employee }) => statusOf.get(employee.id) === input.status)
+    : matching;
+  const page = filtered.slice(input.offset, input.offset + input.limit);
+  if (page.length === 0) return { rows: [], counts, total: filtered.length };
+
   const employeeIds = page.map(({ employee }) => employee.id);
   const stored = await ctx.db
     .select()
@@ -138,15 +186,15 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     );
   const byEmployee = new Map(stored.map((day) => [day.employeeId, day]));
 
-  // Days nobody has computed yet: a date before any punch arrived, or an
-  // employee added after the fact. Bounded so a cold branch cannot open fifty
-  // derivations at once and exhaust the pool.
   const missing = employeeIds.filter((id) => !byEmployee.has(id));
   const queue = [...missing];
   await Promise.all(
     Array.from({ length: Math.min(DERIVE_CONCURRENCY, queue.length) }, async () => {
       for (let id = queue.pop(); id !== undefined; id = queue.pop()) {
-        byEmployee.set(id, await deriveAttendanceDay(ctx, { employeeId: id, attendanceDate: input.date }));
+        byEmployee.set(
+          id,
+          await deriveAttendanceDay(ctx, { employeeId: id, attendanceDate: input.date }),
+        );
       }
     }),
   );
@@ -157,7 +205,7 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     period,
     day: byEmployee.get(employee.id)!,
   }));
-  return { rows, total: matching.length };
+  return { rows, counts, total: filtered.length };
 }
 
 export async function listManualAttendanceEntries(

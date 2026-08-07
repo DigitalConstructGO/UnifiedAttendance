@@ -11,6 +11,7 @@ export const MANUAL_ATTENDANCE_ENTRY_KINDS = [
   "mark_absent",
 ] as const;
 export type ManualKind = (typeof MANUAL_ATTENDANCE_ENTRY_KINDS)[number];
+export type QuickKind = Extract<ManualKind, "check_in" | "check_out">;
 
 export const SUMMARY_STATUSES = REGISTER_STATUSES;
 

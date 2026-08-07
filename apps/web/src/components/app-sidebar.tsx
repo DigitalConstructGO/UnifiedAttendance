@@ -5,6 +5,7 @@ import {
   Building,
   Building2,
   CalendarCheck2,
+  ChartColumnBig,
   FileSignature,
   Gauge,
   Laptop2,
@@ -42,6 +43,7 @@ const moduleIcons = {
   Employees: UsersRound,
   Devices: Laptop2,
   Attendance: CalendarCheck2,
+  Reports: ChartColumnBig,
   Dashboard: PieChart,
   "All clients": Building,
   "Leads & pipeline": UserRoundPlus,
@@ -55,11 +57,6 @@ const groupLabelClass =
 const menuButtonClass =
   "h-11 rounded-[11px] px-3 text-sidebar-foreground/75 hover:bg-white/7 hover:text-white data-[active=true]:bg-sidebar-accent data-[active=true]:text-white data-[active=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)]";
 
-/**
- * `/dashboard/clients` is a prefix of every other client route, so a plain
- * `startsWith` would light up All clients while you are on Invoices. Only the
- * longest matching nav href wins.
- */
 function isCurrent(pathname: string, href: string) {
   if (pathname === href) return true;
   if (!pathname.startsWith(`${href}/`)) return false;
@@ -102,8 +99,13 @@ export function AppSidebar({ brand }: { brand: Brand }) {
   return (
     <Sidebar collapsible="icon" className="bg-sidebar-gradient border-sidebar-border">
       <SidebarHeader className="gap-4 border-b border-sidebar-border px-3 py-4">
+        {/* Dashboard pages render per-request (session + database), so a
+            prefetched copy can never be reused — prefetching them only turns
+            every visible link into a full server render, and on the Next 16
+            dev server it loops doing so. Navigation itself is unaffected. */}
         <Link
           href="/dashboard"
+          prefetch={false}
           className="flex items-center gap-3 px-1 text-sidebar-foreground hover:text-white"
         >
           <BrandMark
@@ -141,7 +143,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   isActive={pathname === "/dashboard"}
                   className={menuButtonClass}
                 >
-                  <Link href="/dashboard">
+                  <Link href="/dashboard" prefetch={false}>
                     <Gauge aria-hidden="true" />
                     <span>Overview</span>
                   </Link>
@@ -154,7 +156,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   isActive={pathname.startsWith("/dashboard/guide")}
                   className={menuButtonClass}
                 >
-                  <Link href="/dashboard/guide">
+                  <Link href="/dashboard/guide" prefetch={false}>
                     <BookOpen aria-hidden="true" />
                     <span>Guide</span>
                   </Link>
@@ -179,7 +181,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                         isActive={isCurrent(pathname, item.href)}
                         className={menuButtonClass}
                       >
-                        <Link href={item.href}>
+                        <Link href={item.href} prefetch={false}>
                           <Icon aria-hidden="true" />
                           <span>{item.label}</span>
                         </Link>

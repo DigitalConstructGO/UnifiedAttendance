@@ -6,6 +6,7 @@ import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
 import { organizationApi, organizationKeys } from "./organization";
 import { overviewApi, overviewKeys } from "./overview";
+import { reportKeys, reportsApi } from "./reports";
 import { workforceApi, workforceKeys } from "./workforce";
 
 export * from "./client";
@@ -16,10 +17,10 @@ export * from "./corrections";
 export * from "./devices";
 export * from "./organization";
 export * from "./overview";
+export * from "./reports";
 export * from "./workforce";
 export * from "./queries";
 
-/** One entry point for callers: `api.workforce.departments()`. */
 export const api = {
   health: () => apiFetch<string>("/health"),
   access: accessApi,
@@ -30,9 +31,9 @@ export const api = {
   clients: clientsApi,
   corrections: correctionsApi,
   overview: overviewApi,
+  reports: reportsApi,
 };
 
-/** React Query keys, kept beside the fetchers they invalidate. */
 export const queryKeys = {
   access: accessKeys,
   organization: organizationKeys,
@@ -42,4 +43,5 @@ export const queryKeys = {
   clients: clientKeys,
   corrections: correctionsKeys,
   overview: overviewKeys,
+  reports: reportKeys,
 };
