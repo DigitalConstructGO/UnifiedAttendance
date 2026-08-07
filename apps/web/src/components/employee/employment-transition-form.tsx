@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,7 @@ export function EmploymentTransitionForm({
   onSubmit: (form: HTMLFormElement) => void;
   onDelete: () => void;
 }) {
+  const [departmentId, setDepartmentId] = useState("");
   return (
     <Card className="rounded-[18px] shadow-[var(--shadow-card)] ring-border">
       <CardHeader>
@@ -57,11 +60,24 @@ export function EmploymentTransitionForm({
           >
             <BranchOptions branches={catalogs.branches} />
           </select>
-          <select name="departmentId" aria-label="Department" className={compactSelectClass}>
+          <select
+            name="departmentId"
+            value={departmentId}
+            onChange={(event) => setDepartmentId(event.target.value)}
+            aria-label="Department"
+            className={compactSelectClass}
+          >
             <DepartmentOptions departments={catalogs.departments} />
           </select>
-          <select name="positionId" aria-label="Position" className={compactSelectClass}>
-            <PositionOptions positions={catalogs.positions} />
+          {/* Remounts when the department changes, dropping a position that
+              no longer belongs to the offered list. */}
+          <select
+            key={departmentId}
+            name="positionId"
+            aria-label="Position"
+            className={compactSelectClass}
+          >
+            <PositionOptions positions={catalogs.positions} departmentId={departmentId} />
           </select>
           <select
             name="employmentType"

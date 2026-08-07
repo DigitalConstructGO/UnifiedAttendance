@@ -24,6 +24,9 @@ export function PositionManager() {
 
   const positionsQuery = useQuery(workforceQueries.positions());
   const positions = positionsQuery.data ?? [];
+  const departmentsQuery = useQuery(workforceQueries.departments());
+  const departments = departmentsQuery.data ?? [];
+  const departmentNames = new Map(departments.map((item) => [item.id, item.name]));
 
   async function invalidatePositions() {
     await queryClient.invalidateQueries({ queryKey: workforceKeys.positions });
@@ -35,6 +38,7 @@ export function PositionManager() {
       title: string;
       description: string | null;
       status: ActiveStatus;
+      departmentId: string | null;
     }) =>
       values.id
         ? workforceApi.updatePosition({ ...values, id: values.id })
@@ -59,7 +63,10 @@ export function PositionManager() {
     : deletePosition.error
       ? presentRequestError(deletePosition.error, "Could not delete the position.")
       : null;
-  const loadFailure = firstQueryFailure([[positionsQuery, "Could not load positions."]]);
+  const loadFailure = firstQueryFailure([
+    [positionsQuery, "Could not load positions."],
+    [departmentsQuery, "Could not load departments."],
+  ]);
   const error = writeError ?? loadFailure?.error ?? null;
 
   function save(form: HTMLFormElement) {
@@ -72,6 +79,7 @@ export function PositionManager() {
         title: String(data.get("title")),
         description: String(data.get("description")) || null,
         status: String(data.get("status")) as ActiveStatus,
+        departmentId: String(data.get("departmentId")) || null,
       },
       { onSuccess: () => form.reset() },
     );
@@ -116,6 +124,20 @@ export function PositionManager() {
             className="h-9 rounded-[9px]"
           />
           <select
+            name="departmentId"
+            defaultValue={editing?.departmentId ?? ""}
+            key={`${editing?.id ?? "new"}-department`}
+            aria-label="Department"
+            className={compactSelectClass}
+          >
+            <option value="">Any department</option>
+            {departments.map((department) => (
+              <option key={department.id} value={department.id}>
+                {department.name}
+              </option>
+            ))}
+          </select>
+          <select
             name="status"
             defaultValue={editing?.status ?? ACTIVE_STATUSES[0]}
             key={`${editing?.id ?? "new"}-status`}
@@ -147,11 +169,12 @@ export function PositionManager() {
                 <span className="ml-2 rounded-md bg-muted px-2 py-1 text-[0.625rem] font-bold text-muted-foreground">
                   {position.status}
                 </span>
-                {position.description ? (
-                  <span className="block text-xs text-muted-foreground">
-                    {position.description}
-                  </span>
-                ) : null}
+                <span className="block text-xs text-muted-foreground">
+                  {position.departmentId
+                    ? (departmentNames.get(position.departmentId) ?? "Unknown department")
+                    : "Any department"}
+                  {position.description ? ` · ${position.description}` : ""}
+                </span>
               </span>
               <span className="flex gap-1">
                 <Button size="xs" variant="ghost" onClick={() => setEditing(position)}>

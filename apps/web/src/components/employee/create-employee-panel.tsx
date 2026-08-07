@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,13 +31,15 @@ export function CreateEmployeePanel({
   onSubmit: (form: HTMLFormElement) => void;
 }) {
   const inputClass = "h-10 rounded-[11px] px-3 font-normal";
+  const [departmentId, setDepartmentId] = useState("");
 
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
       <CardHeader className="border-b border-border px-5 py-5">
         <CardTitle className="text-base font-bold">Employee information</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Required fields create both the employee profile and the first employment period.
+          Required fields create both the employee profile and the first employment period. The
+          employee ID is assigned automatically from the organization, branch and department.
         </p>
       </CardHeader>
       <CardContent className="p-5">
@@ -52,14 +55,6 @@ export function CreateEmployeePanel({
           </Field>
           <Field label="Last name">
             <Input required name="lastName" autoComplete="family-name" className={inputClass} />
-          </Field>
-          <Field label="Employee ID">
-            <Input
-              required
-              name="employeeCode"
-              placeholder="e.g. EMP-1042"
-              className={inputClass}
-            />
           </Field>
           <Field label="Phone">
             <Input
@@ -94,13 +89,18 @@ export function CreateEmployeePanel({
             </select>
           </Field>
           <Field label="Department">
-            <select name="departmentId" className={selectClass}>
+            <select
+              name="departmentId"
+              value={departmentId}
+              onChange={(event) => setDepartmentId(event.target.value)}
+              className={selectClass}
+            >
               <DepartmentOptions departments={catalogs.departments} />
             </select>
           </Field>
           <Field label="Position">
-            <select name="positionId" className={selectClass}>
-              <PositionOptions positions={catalogs.positions} />
+            <select key={departmentId} name="positionId" className={selectClass}>
+              <PositionOptions positions={catalogs.positions} departmentId={departmentId} />
             </select>
           </Field>
           <Field label="Employment type">

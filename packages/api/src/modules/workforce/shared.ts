@@ -1,10 +1,27 @@
 import { asc, eq } from "drizzle-orm";
 
-import { employmentPeriods, employees } from "@UnifiedAttendance/db/schema/index";
+import { employmentPeriods, employees, positions } from "@UnifiedAttendance/db/schema/index";
 
-import { notFound } from "../../errors";
+import { badRequest, notFound } from "../../errors";
 
 import type { Context } from "../../context";
+
+export async function positionFitsDepartmentOrThrow(
+  ctx: Context,
+  positionId: string | null | undefined,
+  departmentId: string | null | undefined,
+) {
+  if (!positionId) return;
+  const [position] = await ctx.db
+    .select({ departmentId: positions.departmentId })
+    .from(positions)
+    .where(eq(positions.id, positionId))
+    .limit(1);
+  if (!position) notFound("Position");
+  if (position.departmentId && position.departmentId !== (departmentId ?? null)) {
+    badRequest("That position belongs to a different department");
+  }
+}
 
 export async function employeeOrThrow(ctx: Context, employeeId: string) {
   const [employee] = await ctx.db

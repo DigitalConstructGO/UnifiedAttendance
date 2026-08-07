@@ -15,7 +15,8 @@ import { EMPLOYEE_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums"
 import { badRequest, conflict } from "../../errors";
 import { withTransaction } from "../../context";
 import { requirePermission } from "../shared/guards";
-import { employeeOrThrow } from "./shared";
+import { isDuplicateEmployeeCode, nextEmployeeCode } from "./employee-code";
+import { employeeOrThrow, positionFitsDepartmentOrThrow } from "./shared";
 
 import type {
   CreateEmployeeInput,
@@ -71,6 +72,36 @@ export async function getEmployee(ctx: Context, input: ResourceIdInput) {
 
 export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
   await requirePermission(ctx, "workforce:manage", input.employee.branchId);
+  await positionFitsDepartmentOrThrow(ctx, input.employee.positionId, input.employee.departmentId);
+  const manualCode = input.employee.employeeCode;
+  if (manualCode) {
+    const [taken] = await ctx.db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(eq(employees.employeeCode, manualCode))
+      .limit(1);
+    if (taken) conflict("Employee ID already in use");
+  }
+  // A generated code can be claimed by a concurrent creation between reading
+  // the sequence and inserting; the unique index catches that, and the next
+  // attempt reads a fresh number.
+  for (let attempt = 0; ; attempt += 1) {
+    const employeeCode =
+      manualCode ??
+      (await nextEmployeeCode(ctx, input.employee.branchId, input.employee.departmentId ?? null));
+    try {
+      return await createEmployeeRecords(ctx, input, employeeCode);
+    } catch (error) {
+      if (manualCode || attempt >= 2 || !isDuplicateEmployeeCode(error)) throw error;
+    }
+  }
+}
+
+async function createEmployeeRecords(
+  ctx: Context,
+  input: CreateEmployeeInput,
+  employeeCode: string,
+) {
   return withTransaction(ctx, async (ctx) => {
     const [person] = await ctx.db.insert(people).values(input.person).returning();
     if (!person) throw new Error("Person creation failed");
@@ -78,6 +109,7 @@ export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
       .insert(employees)
       .values({
         ...input.employee,
+        employeeCode,
         personId: person.id,
         departmentId: input.employee.departmentId ?? null,
         positionId: input.employee.positionId ?? null,

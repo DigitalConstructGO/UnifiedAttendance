@@ -44,12 +44,17 @@ export const updateDepartmentInput = z.object({
   branchId: id.nullable().optional(),
 });
 
-export const createPositionInput = z.object({ title: text, description: nullableText });
+export const createPositionInput = z.object({
+  title: text,
+  description: nullableText,
+  departmentId: id.nullable().optional(),
+});
 export const updatePositionInput = z.object({
   id,
   title: text.optional(),
   description: nullableText,
   status: z.enum(ACTIVE_STATUSES).optional(),
+  departmentId: id.nullable().optional(),
 });
 
 export const createCosignerInput = z.object({
@@ -116,7 +121,8 @@ export const createEmployeeInput = z.object({
     branchId: id,
     departmentId: id.nullable().optional(),
     positionId: id.nullable().optional(),
-    employeeCode: text,
+    /** Left out, the ID is generated from the organization, branch and department. */
+    employeeCode: text.optional(),
     employmentType: z.enum(EMPLOYMENT_TYPES).default(EMPLOYMENT_TYPES[0]),
     hireDate: date,
   }),
