@@ -34,6 +34,7 @@ export function can(access: Access, permission: Permission) {
 export const DASHBOARD_NAV = [
   { href: "/dashboard/attendance", label: "Attendance", permission: "attendance:read" },
   { href: "/dashboard/employees", label: "Employees", permission: "workforce:read" },
+  { href: "/dashboard/reports", label: "Reports", permission: "reports:read" },
   { href: "/dashboard/clients/overview", label: "Dashboard", permission: "clients:read" },
   { href: "/dashboard/clients", label: "All clients", permission: "clients:read" },
   { href: "/dashboard/clients/pipeline", label: "Leads & pipeline", permission: "clients:read" },
@@ -47,7 +48,7 @@ export type NavItem = (typeof DASHBOARD_NAV)[number];
 export type NavLabel = NavItem["label"];
 
 export const NAV_SECTIONS = [
-  { label: "Office", items: ["Attendance", "Employees"] },
+  { label: "Office", items: ["Attendance", "Employees", "Reports"] },
   {
     label: "Clients",
     items: ["Dashboard", "All clients", "Leads & pipeline", "Contracts", "Invoices"],
@@ -62,7 +63,6 @@ export function visibleNavItems(access: Access) {
   });
 }
 
-/** The same items grouped for display; a section with nothing visible is dropped. */
 export function visibleNavSections(access: Access) {
   const visible = new Map(visibleNavItems(access).map((item) => [item.label, item] as const));
   return NAV_SECTIONS.map((section) => ({

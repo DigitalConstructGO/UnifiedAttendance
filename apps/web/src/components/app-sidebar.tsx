@@ -5,6 +5,7 @@ import {
   Building,
   Building2,
   CalendarCheck2,
+  ChartColumnBig,
   FileSignature,
   Gauge,
   Laptop2,
@@ -42,6 +43,7 @@ const moduleIcons = {
   Employees: UsersRound,
   Devices: Laptop2,
   Attendance: CalendarCheck2,
+  Reports: ChartColumnBig,
   Dashboard: PieChart,
   "All clients": Building,
   "Leads & pipeline": UserRoundPlus,
@@ -55,11 +57,6 @@ const groupLabelClass =
 const menuButtonClass =
   "h-11 rounded-[11px] px-3 text-sidebar-foreground/75 hover:bg-white/7 hover:text-white data-[active=true]:bg-sidebar-accent data-[active=true]:text-white data-[active=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)]";
 
-/**
- * `/dashboard/clients` is a prefix of every other client route, so a plain
- * `startsWith` would light up All clients while you are on Invoices. Only the
- * longest matching nav href wins.
- */
 function isCurrent(pathname: string, href: string) {
   if (pathname === href) return true;
   if (!pathname.startsWith(`${href}/`)) return false;

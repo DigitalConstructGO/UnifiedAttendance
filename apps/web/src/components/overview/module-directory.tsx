@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Building2,
   CalendarCheck2,
+  ChartColumnBig,
   Laptop2,
   ShieldCheck,
   UsersRound,
@@ -31,6 +32,11 @@ const moduleMeta: Record<NavLabel, { icon: typeof Building2; description: string
       icon: CalendarCheck2,
       description: "Daily register and the corrections that change it.",
       tone: "text-success bg-success/10",
+    },
+    Reports: {
+      icon: ChartColumnBig,
+      description: "Lateness and absence summaries by day, week or month.",
+      tone: "text-info bg-info/10",
     },
     Dashboard: {
       icon: CalendarCheck2,

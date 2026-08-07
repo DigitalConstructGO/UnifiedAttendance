@@ -7,6 +7,7 @@ import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
 import { organizationApi, organizationKeys } from "./organization";
 import { overviewApi, overviewKeys } from "./overview";
+import { reportKeys, reportsApi } from "./reports";
 import { workforceApi, workforceKeys } from "./workforce";
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000;
@@ -177,6 +178,14 @@ export const overviewQueries = {
       // The landing page is a live board, so it refreshes itself rather than
       // showing whatever was true when the tab was opened.
       refetchInterval: 60_000,
+    }),
+};
+
+export const reportQueries = {
+  attendanceSummary: (query: Parameters<typeof reportsApi.attendanceSummary>[0]) =>
+    queryOptions({
+      queryKey: reportKeys.attendanceSummary(query),
+      queryFn: ({ signal }) => reportsApi.attendanceSummary(query, signal),
     }),
 };
 
