@@ -97,7 +97,8 @@ describe("ADMS ingestion", () => {
     branchId = branch!.id;
     await db.insert(branchWorkingDays).values({
       branchId,
-      weekday: 1,
+      // Monday-first, the order the organization screen stores.
+      weekday: 0,
       isWorkingDay: true,
       openingTime: "09:00",
       closingTime: "17:00",

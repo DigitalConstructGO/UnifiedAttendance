@@ -43,7 +43,8 @@ export async function setUpDeriveDayFixture(): Promise<DeriveDayFixture> {
 
   await db.insert(branchWorkingDays).values({
     branchId,
-    weekday: 1,
+    // Monday, in the Monday-first order the organization screen stores.
+    weekday: 0,
     isWorkingDay: true,
     openingTime: "09:00:00",
     closingTime: "17:00:00",

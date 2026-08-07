@@ -44,8 +44,8 @@ describe("corrections", () => {
       .returning();
     await db.insert(branchWorkingDays).values({
       branchId: branch!.id,
-      // JS weekday numbering: Monday is 1, matching loadDayContext's getUTCDay().
-      weekday: 1,
+      // Monday-first, the order the organization screen stores.
+      weekday: 0,
       isWorkingDay: true,
       openingTime: "09:00",
       closingTime: "17:00",

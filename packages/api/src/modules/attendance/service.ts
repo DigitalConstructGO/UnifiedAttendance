@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 
 import {
   attendanceDays,
@@ -86,6 +86,9 @@ export async function recomputeDay(ctx: Context, input: RecomputeDayInput) {
   });
 }
 
+/** Enough to hide latency on a cold day, few enough to leave the pool usable. */
+const DERIVE_CONCURRENCY = 8;
+
 export async function listDailyRegister(ctx: Context, input: ListDailyRegisterInput) {
   await requirePermission(ctx, "attendance:read", input.branchId);
   const periods = await ctx.db
@@ -112,14 +115,48 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
       )
     : periods;
   const page = matching.slice(input.offset, input.offset + input.limit);
-  const rows = await Promise.all(
-    page.map(async ({ employee, person, period }) => ({
-      employee,
-      person,
-      period,
-      day: await deriveAttendanceDay(ctx, { employeeId: employee.id, attendanceDate: input.date }),
-    })),
+  if (page.length === 0) return { rows: [], total: matching.length };
+
+  /*
+   * Read the stored days first, derive only what is missing.
+   *
+   * This used to derive every employee on the page on every read, which cost
+   * one multi-query derivation per head: fifty people took twenty to thirty
+   * seconds, and re-opening the same day was no faster because nothing was
+   * reused. Every write path already derives — device pushes, manual entries,
+   * corrections — so a stored day is authoritative and only a gap needs filling.
+   */
+  const employeeIds = page.map(({ employee }) => employee.id);
+  const stored = await ctx.db
+    .select()
+    .from(attendanceDays)
+    .where(
+      and(
+        inArray(attendanceDays.employeeId, employeeIds),
+        eq(attendanceDays.attendanceDate, input.date),
+      ),
+    );
+  const byEmployee = new Map(stored.map((day) => [day.employeeId, day]));
+
+  // Days nobody has computed yet: a date before any punch arrived, or an
+  // employee added after the fact. Bounded so a cold branch cannot open fifty
+  // derivations at once and exhaust the pool.
+  const missing = employeeIds.filter((id) => !byEmployee.has(id));
+  const queue = [...missing];
+  await Promise.all(
+    Array.from({ length: Math.min(DERIVE_CONCURRENCY, queue.length) }, async () => {
+      for (let id = queue.pop(); id !== undefined; id = queue.pop()) {
+        byEmployee.set(id, await deriveAttendanceDay(ctx, { employeeId: id, attendanceDate: input.date }));
+      }
+    }),
   );
+
+  const rows = page.map(({ employee, person, period }) => ({
+    employee,
+    person,
+    period,
+    day: byEmployee.get(employee.id)!,
+  }));
   return { rows, total: matching.length };
 }
 
