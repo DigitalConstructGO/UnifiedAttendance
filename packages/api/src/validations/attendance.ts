@@ -40,7 +40,10 @@ export const createManualAttendanceEntryInput = z
     attendanceDate: date,
     kind: z.enum(MANUAL_ATTENDANCE_ENTRY_KINDS),
     occurredAt: z.coerce.date().optional(),
-    reason: z.string().trim().min(3).max(1_000),
+    // Optional because a branch without a reader records every day by hand —
+    // there, "why manual?" has one standing answer and typing it per person
+    // per day is pure friction. The audit trail still gets a true sentence.
+    reason: z.string().trim().min(3).max(1_000).default("Recorded from the daily register"),
   })
   .superRefine((value, issue) => {
     if ((value.kind === "check_in" || value.kind === "check_out") && !value.occurredAt) {

@@ -1,7 +1,7 @@
 import { type AttendanceSection, AttendanceWorkspace } from "@/components/attendance";
 import { requireAccess } from "@/lib/access-server";
 
-const attendanceSections = new Set<AttendanceSection>(["register", "corrections"]);
+const attendanceSections = new Set<AttendanceSection>(["register", "record", "corrections"]);
 
 export default async function AttendancePage({
   searchParams,
