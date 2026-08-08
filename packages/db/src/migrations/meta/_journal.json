@@ -113,6 +113,13 @@
       "when": 1785847005000,
       "tag": "0015_invoice_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1785847006000,
+      "tag": "0016_contract_payment_structure",
+      "breakpoints": true
     }
   ]
 }

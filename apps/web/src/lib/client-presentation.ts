@@ -22,6 +22,9 @@ export type CommercialContractStatus = (typeof COMMERCIAL_CONTRACT_STATUSES)[num
 export const CONTRACT_RENEWAL_MODES = ["automatic", "manual", "none"] as const;
 export type ContractRenewalMode = (typeof CONTRACT_RENEWAL_MODES)[number];
 
+export const CONTRACT_PAYMENT_STRUCTURES = ["full", "prepaid", "half_upfront"] as const;
+export type ContractPaymentStructure = (typeof CONTRACT_PAYMENT_STRUCTURES)[number];
+
 export const CRM_ACTIVITY_TYPES = ["call", "meeting", "email", "site_visit"] as const;
 export type CrmActivityType = (typeof CRM_ACTIVITY_TYPES)[number];
 
@@ -76,6 +79,12 @@ export const RENEWAL_MODE_LABELS = {
   manual: "Manual",
   none: "None",
 } as const satisfies Record<ContractRenewalMode, string>;
+
+export const PAYMENT_STRUCTURE_LABELS = {
+  full: "Paid in full",
+  prepaid: "Prepaid",
+  half_upfront: "Half upfront",
+} as const satisfies Record<ContractPaymentStructure, string>;
 
 export const CLIENT_STATUS_META = {
   active: { label: "Active", className: "bg-success/10 text-success" },

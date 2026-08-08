@@ -13,6 +13,8 @@ export const COMMERCIAL_CONTRACT_STATUSES = [
   "cancelled",
 ] as const;
 export const CONTRACT_RENEWAL_MODES = ["automatic", "manual", "none"] as const;
+/** How the contract's amount is settled: everything up front, everything on completion, or half now. */
+export const CONTRACT_PAYMENT_STRUCTURES = ["full", "prepaid", "half_upfront"] as const;
 export const CLIENT_DOCUMENT_KINDS = [
   "contract",
   "proposal",
@@ -34,6 +36,10 @@ export const commercialContractStatus = pgEnum(
   COMMERCIAL_CONTRACT_STATUSES,
 );
 export const contractRenewalMode = pgEnum("contract_renewal_mode", CONTRACT_RENEWAL_MODES);
+export const contractPaymentStructure = pgEnum(
+  "contract_payment_structure",
+  CONTRACT_PAYMENT_STRUCTURES,
+);
 export const clientDocumentKind = pgEnum("client_document_kind", CLIENT_DOCUMENT_KINDS);
 export const clientDocumentAccessLevel = pgEnum(
   "client_document_access_level",

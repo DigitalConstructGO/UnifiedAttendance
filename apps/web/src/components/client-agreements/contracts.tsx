@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { clientKeys, clientQueries, clientsApi } from "@/lib/api";
 import {
   clientName,
+  CONTRACT_PAYMENT_STRUCTURES,
   CONTRACT_RENEWAL_MODES,
   CONTRACT_STATUS_META,
+  PAYMENT_STRUCTURE_LABELS,
   RENEWAL_MODE_LABELS,
   type CommercialContractStatus,
 } from "@/lib/client-presentation";
@@ -142,6 +144,7 @@ export function ClientContracts() {
                             <span className="block text-muted-foreground">
                               {contract.serviceName}
                               {contract.billingCadence ? ` · ${contract.billingCadence}` : ""}
+                              {` · ${PAYMENT_STRUCTURE_LABELS[contract.paymentStructure]}`}
                             </span>
                           </span>
                         </div>
@@ -200,6 +203,9 @@ export function ClientContracts() {
               ) as (typeof CONTRACT_RENEWAL_MODES)[number],
               amount: String(data.get("amount")) || null,
               currency: String(data.get("amount")) ? "ETB" : null,
+              paymentStructure: String(
+                data.get("paymentStructure"),
+              ) as (typeof CONTRACT_PAYMENT_STRUCTURES)[number],
             });
           }}
         >
@@ -237,6 +243,15 @@ export function ClientContracts() {
             </DialogField>
             <DialogField label="Amount (ETB)">
               <Input name="amount" inputMode="decimal" placeholder="1740000.00" />
+            </DialogField>
+            <DialogField label="Payment">
+              <select name="paymentStructure" className={dialogFieldClass} defaultValue="full">
+                {CONTRACT_PAYMENT_STRUCTURES.map((structure) => (
+                  <option key={structure} value={structure}>
+                    {PAYMENT_STRUCTURE_LABELS[structure]}
+                  </option>
+                ))}
+              </select>
             </DialogField>
           </div>
           <p className="text-xs text-muted-foreground">

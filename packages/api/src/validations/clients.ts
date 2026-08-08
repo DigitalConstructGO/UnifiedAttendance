@@ -6,6 +6,7 @@ import {
   CLIENT_DOCUMENT_ACCESS_LEVELS,
   CLIENT_DOCUMENT_KINDS,
   COMMERCIAL_CONTRACT_STATUSES,
+  CONTRACT_PAYMENT_STRUCTURES,
   CONTRACT_RENEWAL_MODES,
   OPPORTUNITY_PRIORITIES,
   PIPELINE_STAGE_OUTCOMES,
@@ -183,6 +184,7 @@ export const createCommercialContractInput = z.object({
   signedOn: date.nullable().optional(),
   amount: optionalMoney,
   currency: nullableText,
+  paymentStructure: z.enum(CONTRACT_PAYMENT_STRUCTURES).optional(),
 });
 export const updateCommercialContractInput = createCommercialContractInput
   .omit({ clientId: true })

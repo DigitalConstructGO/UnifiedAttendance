@@ -18,6 +18,7 @@ import {
   COMMERCIAL_CONTRACT_STATUSES,
   CONTRACT_RENEWAL_MODES,
   commercialContractStatus,
+  contractPaymentStructure,
   contractRenewalMode,
 } from "./client-enums";
 
@@ -44,6 +45,7 @@ export const commercialContracts = pgTable(
     signedOn: date("signed_on"),
     amount: numeric("amount", { precision: 14, scale: 2 }),
     currency: text("currency"),
+    paymentStructure: contractPaymentStructure("payment_structure").notNull().default("full"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

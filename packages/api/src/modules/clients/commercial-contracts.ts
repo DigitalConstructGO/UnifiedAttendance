@@ -152,6 +152,7 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
         signedOn,
         amount,
         currency,
+        paymentStructure: input.paymentStructure ?? "full",
       })
       .returning({ id: commercialContracts.id });
     if (!contract) throw new Error("Commercial Contract creation failed");
