@@ -11,14 +11,7 @@ import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 import { emptyBranchDraft, type BranchDraft, type WorkspaceTab } from "./workspace-model";
 
-/**
- * Server state comes from queries; the tabs edit drafts layered over it. A draft
- * of `null` means "show what the server says", so clearing it after a successful
- * save is all it takes for the form to follow the refetched record.
- *
- * The schedule draft is tagged with its branch: without that, switching branches
- * would show the previous branch's edits over the new branch's days.
- */
+
 export function useOrganizationWorkspace() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
@@ -27,6 +20,8 @@ export function useOrganizationWorkspace() {
     name: string;
     code: string;
     timezone: string;
+    tin: string;
+    address: string;
   } | null>(null);
   const [branchDraft, setBranchDraft] = useState<BranchDraft | null>(null);
   const [daysDraft, setDaysDraft] = useState<{ branchId: string; days: WorkingDay[] } | null>(null);
@@ -45,11 +40,21 @@ export function useOrganizationWorkspace() {
   const name = orgDraft?.name ?? organization?.name ?? "";
   const code = orgDraft?.code ?? organization?.code ?? "";
   const timezone = orgDraft?.timezone ?? organization?.timezone ?? "";
+  const tin = orgDraft?.tin ?? organization?.tin ?? "";
+  const address = orgDraft?.address ?? organization?.address ?? "";
   const days =
     daysDraft?.branchId === selectedBranch ? daysDraft.days : (workingDaysQuery.data ?? []);
 
-  function patchOrganization(changes: Partial<{ name: string; code: string; timezone: string }>) {
-    setOrgDraft({ name, code, timezone, ...changes });
+  function patchOrganization(
+    changes: Partial<{
+      name: string;
+      code: string;
+      timezone: string;
+      tin: string;
+      address: string;
+    }>,
+  ) {
+    setOrgDraft({ name, code, timezone, tin, address, ...changes });
   }
 
   const setDays: Dispatch<SetStateAction<WorkingDay[]>> = (update) => {
@@ -153,6 +158,8 @@ export function useOrganizationWorkspace() {
     name,
     code,
     timezone,
+    tin,
+    address,
     branchDraft: branchDraft ?? emptyBranchDraft(organization?.timezone),
     notice,
     error,
@@ -163,11 +170,20 @@ export function useOrganizationWorkspace() {
     setName: (value: string) => patchOrganization({ name: value }),
     setCode: (value: string) => patchOrganization({ code: value }),
     setTimezone: (value: string) => patchOrganization({ timezone: value }),
+    setTin: (value: string) => patchOrganization({ tin: value }),
+    setAddress: (value: string) => patchOrganization({ address: value }),
     setBranchDraft,
     saveOrganization: () => {
       if (!organization) return;
       clearFeedback();
-      saveOrganization.mutate({ id: organization.id, name, code, timezone });
+      saveOrganization.mutate({
+        id: organization.id,
+        name,
+        code,
+        timezone,
+        tin: tin.trim() || null,
+        address: address.trim() || null,
+      });
     },
     saveDays: () => {
       if (!selectedBranch) return;

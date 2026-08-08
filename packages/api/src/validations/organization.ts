@@ -72,6 +72,8 @@ export const updateOrganizationInput = z.object({
   timezone: timeZone.optional(),
   logoUrl: nullableUrl,
   status: z.enum(ORGANIZATION_STATUSES).optional(),
+  tin: nullableText,
+  address: nullableText,
 });
 
 /** Branch routes nest (`/branches/:branchId/working-days`), so every level names the segment alike. */

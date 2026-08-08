@@ -22,6 +22,9 @@ export type CommercialContractStatus = (typeof COMMERCIAL_CONTRACT_STATUSES)[num
 export const CONTRACT_RENEWAL_MODES = ["automatic", "manual", "none"] as const;
 export type ContractRenewalMode = (typeof CONTRACT_RENEWAL_MODES)[number];
 
+export const CONTRACT_PAYMENT_STRUCTURES = ["full", "prepaid", "half_upfront"] as const;
+export type ContractPaymentStructure = (typeof CONTRACT_PAYMENT_STRUCTURES)[number];
+
 export const CRM_ACTIVITY_TYPES = ["call", "meeting", "email", "site_visit"] as const;
 export type CrmActivityType = (typeof CRM_ACTIVITY_TYPES)[number];
 
@@ -33,7 +36,6 @@ export const CLIENT_DOCUMENT_KINDS = [
   "invoice",
 ] as const;
 export type ClientDocumentKind = (typeof CLIENT_DOCUMENT_KINDS)[number];
-
 
 type Tone = { label: string; className: string };
 
@@ -77,6 +79,12 @@ export const RENEWAL_MODE_LABELS = {
   manual: "Manual",
   none: "None",
 } as const satisfies Record<ContractRenewalMode, string>;
+
+export const PAYMENT_STRUCTURE_LABELS = {
+  full: "Paid in full",
+  prepaid: "Prepaid",
+  half_upfront: "Half upfront",
+} as const satisfies Record<ContractPaymentStructure, string>;
 
 export const CLIENT_STATUS_META = {
   active: { label: "Active", className: "bg-success/10 text-success" },
@@ -133,6 +141,17 @@ export function money(amount: string | number | null | undefined, currency = "ET
   const value = typeof amount === "string" ? Number(amount) : amount;
   if (Number.isNaN(value)) return "—";
   return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)} ${currency}`;
+}
+
+/** Document money: cents always shown, the way an invoice states an amount. */
+export function exactMoney(amount: string | number, currency: string) {
+  const value = typeof amount === "string" ? Number(amount) : amount;
+  if (Number.isNaN(value)) return `${amount} ${currency}`;
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  return `${formatted} ${currency}`;
 }
 
 export function fileSize(bytes: number | null | undefined) {

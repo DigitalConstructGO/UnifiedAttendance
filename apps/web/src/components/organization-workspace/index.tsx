@@ -57,10 +57,14 @@ export function OrganizationWorkspace() {
           name={workspace.name}
           code={workspace.code}
           timezone={workspace.timezone}
+          tin={workspace.tin}
+          address={workspace.address}
           busy={workspace.busy}
           onNameChange={workspace.setName}
           onCodeChange={workspace.setCode}
           onTimezoneChange={workspace.setTimezone}
+          onTinChange={workspace.setTin}
+          onAddressChange={workspace.setAddress}
           onSave={workspace.saveOrganization}
         />
       ) : null}
