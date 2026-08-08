@@ -43,6 +43,8 @@ export const invoices = pgTable(
     dueOn: date("due_on"),
     currency: text("currency").notNull(),
     totalAmount: numeric("total_amount", { precision: 14, scale: 2 }).notNull(),
+    description: text("description"),
+    note: text("note"),
     lifecycleStatus: invoiceLifecycleStatus("lifecycle_status").notNull().default("draft"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

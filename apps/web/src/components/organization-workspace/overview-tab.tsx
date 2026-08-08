@@ -7,10 +7,14 @@ type Props = {
   name: string;
   code: string;
   timezone: string;
+  tin: string;
+  address: string;
   busy: boolean;
   onNameChange: (value: string) => void;
   onCodeChange: (value: string) => void;
   onTimezoneChange: (value: string) => void;
+  onTinChange: (value: string) => void;
+  onAddressChange: (value: string) => void;
   onSave: () => void;
 };
 
@@ -18,10 +22,14 @@ export function OverviewTab({
   name,
   code,
   timezone,
+  tin,
+  address,
   busy,
   onNameChange,
   onCodeChange,
   onTimezoneChange,
+  onTinChange,
+  onAddressChange,
   onSave,
 }: Props) {
   return (
@@ -57,6 +65,22 @@ export function OverviewTab({
             value={timezone}
             onChange={(event) => onTimezoneChange(event.target.value)}
             placeholder="e.g. Africa/Addis_Ababa"
+          />
+        </label>
+        <label className="text-strong space-y-2 text-xs font-bold">
+          TIN
+          <Input
+            value={tin}
+            onChange={(event) => onTinChange(event.target.value)}
+            placeholder="Printed on invoices"
+          />
+        </label>
+        <label className="text-strong space-y-2 text-xs font-bold">
+          Address
+          <Input
+            value={address}
+            onChange={(event) => onAddressChange(event.target.value)}
+            placeholder="Printed on invoices"
           />
         </label>
       </div>

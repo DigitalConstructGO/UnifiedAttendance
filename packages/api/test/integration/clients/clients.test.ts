@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@UnifiedAttendance/db";
 import {
   branches,
+  invoices,
   organizations,
   roles,
   user,
@@ -57,6 +58,7 @@ import {
   transitionOpportunityStage,
   issueInvoice,
   recordInvoicePayment,
+  updateOrganization,
   updateProject,
   voidInvoice,
 } from "../../../src/index";
@@ -399,6 +401,65 @@ describe("clients", () => {
     expect(await listCommercialContracts(context, { clientId: client.client.id })).toHaveLength(1);
   });
 
+  it("numbers invoices the way the paper does and keeps the printed line detail", async () => {
+    const industry = await createIndustry(context, { name: "Banking" });
+    const clientType = await createClientType(context, { name: "Enterprise" });
+    const client = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Commercial Bank of Ethiopia",
+      industryId: industry.id,
+      clientTypeId: clientType.id,
+    });
+    // A legacy number from the old scheme must not disturb the new sequence.
+    const [organization] = await db.select().from(organizations).limit(1);
+    await db.insert(invoices).values({
+      organizationId: organization!.id,
+      clientId: client.client.id,
+      branchId,
+      invoiceNumber: "INV-2026-000001",
+      currency: "ETB",
+      totalAmount: "1000.00",
+    });
+
+    const first = await createInvoice(context, {
+      clientId: client.client.id,
+      branchId,
+      currency: "ETB",
+      totalAmount: "6050.00",
+      description: "Website maintenance",
+      note: "May retainer",
+    });
+    const second = await createInvoice(context, {
+      clientId: client.client.id,
+      branchId,
+      currency: "ETB",
+      totalAmount: "1200.00",
+    });
+    expect(first.invoice.invoiceNumber).toMatch(/^ABY-INV-\d{4}-1$/);
+    expect(second.invoice.invoiceNumber).toMatch(/^ABY-INV-\d{4}-2$/);
+    expect(first.invoice.description).toBe("Website maintenance");
+    expect(first.invoice.note).toBe("May retainer");
+
+    const updated = await updateInvoice(context, {
+      id: second.invoice.id,
+      description: "Consulting hours",
+      note: null,
+    });
+    expect(updated.invoice.description).toBe("Consulting hours");
+    expect(updated.invoice.note).toBeNull();
+
+    const branded = await updateOrganization(context, {
+      id: organization!.id,
+      tin: "0105805820",
+      address: "Addis Ababa Ethiopia, Lemi Kura Sub City",
+    });
+    expect(branded).toMatchObject({
+      tin: "0105805820",
+      address: "Addis Ababa Ethiopia, Lemi Kura Sub City",
+    });
+  });
+
   it("derives sent, overdue, paid, and outstanding values from invoices and append-only payments", async () => {
     const industry = await createIndustry(context, { name: "Banking" });
     const clientType = await createClientType(context, { name: "Enterprise" });
@@ -415,7 +476,7 @@ describe("clients", () => {
       currency: "ETB",
       totalAmount: "420000.00",
     });
-    expect(invoice.invoice.invoiceNumber).toMatch(/^INV-\d{4}-000001$/);
+    expect(invoice.invoice.invoiceNumber).toMatch(/^ABY-INV-\d{4}-1$/);
     expect(invoice.paymentSummary.presentationStatus).toBe("draft");
 
     const issued = await issueInvoice(context, {

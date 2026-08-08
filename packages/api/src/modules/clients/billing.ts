@@ -177,6 +177,7 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
   const actorUserId = requireSessionUser(ctx);
   const invoiceId = await withTransaction(ctx, async (ctx) => {
     await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+    // Numbered the way the paper invoices are: DC-INV-2026-13.
     const year = localBusinessDate(organization.timezone).slice(0, 4);
     const [row] = await ctx.db
       .select({ value: count() })
@@ -184,10 +185,10 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
       .where(
         and(
           eq(invoices.organizationId, organization.id),
-          ilike(invoices.invoiceNumber, `INV-${year}-%`),
+          ilike(invoices.invoiceNumber, `${organization.code}-INV-${year}-%`),
         ),
       );
-    const invoiceNumber = `INV-${year}-${String((row?.value ?? 0) + 1).padStart(6, "0")}`;
+    const invoiceNumber = `${organization.code}-INV-${year}-${(row?.value ?? 0) + 1}`;
     const [invoice] = await ctx.db
       .insert(invoices)
       .values({
@@ -199,6 +200,8 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
         invoiceNumber,
         currency: input.currency,
         totalAmount: input.totalAmount,
+        description: input.description ?? null,
+        note: input.note ?? null,
       })
       .returning({ id: invoices.id });
     if (!invoice) throw new Error("Invoice creation failed");

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, ReceiptText } from "lucide-react";
+import { FileDown, Plus, ReceiptText } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
@@ -138,6 +139,9 @@ export function ClientInvoices() {
                   <th scope="col" className="px-4 py-3.5 font-bold">
                     Status
                   </th>
+                  <th scope="col" className="w-14 px-4 py-3.5">
+                    <span className="sr-only">Document</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -170,6 +174,18 @@ export function ClientInvoices() {
                         >
                           {tone.label}
                         </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Open invoice ${invoice.invoiceNumber} as a document`}
+                        >
+                          <Link href={`/dashboard/clients/invoices/${invoice.id}`} prefetch={false}>
+                            <FileDown aria-hidden="true" />
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   );
@@ -207,6 +223,8 @@ export function ClientInvoices() {
               branchId,
               currency: "ETB",
               totalAmount: String(data.get("totalAmount")),
+              description: String(data.get("description")) || null,
+              note: String(data.get("note")) || null,
             });
           }}
         >
@@ -221,6 +239,15 @@ export function ClientInvoices() {
           </DialogField>
           <DialogField label="Amount (ETB)">
             <Input required name="totalAmount" inputMode="decimal" placeholder="420000.00" />
+          </DialogField>
+          <DialogField label="Description">
+            <Input
+              name="description"
+              placeholder="What the amount is for (printed on the invoice)"
+            />
+          </DialogField>
+          <DialogField label="Note">
+            <Input name="note" placeholder="Optional remark (printed on the invoice)" />
           </DialogField>
           <p className="text-xs text-muted-foreground">
             The branch is taken from the client. A draft has no issue or due date until it is

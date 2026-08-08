@@ -203,6 +203,8 @@ export const createInvoiceInput = z.object({
   branchId: id,
   currency: text,
   totalAmount: positiveMoney,
+  description: nullableText,
+  note: nullableText,
 });
 export const updateInvoiceInput = z.object({
   id,
@@ -211,6 +213,8 @@ export const updateInvoiceInput = z.object({
   branchId: id.optional(),
   currency: text.optional(),
   totalAmount: positiveMoney.optional(),
+  description: nullableText,
+  note: nullableText,
 });
 export const issueInvoiceInput = z.object({ id, issuedOn: date, dueOn: date });
 export const listInvoicesInput = z.object({

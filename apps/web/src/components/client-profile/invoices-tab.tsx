@@ -1,5 +1,7 @@
-import { ReceiptText } from "lucide-react";
+import { FileDown, ReceiptText } from "lucide-react";
+import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
 import type { InvoiceRow } from "@/lib/api";
 import { money } from "@/lib/client-presentation";
 import { formatDate } from "@/lib/format-date";
@@ -52,6 +54,9 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
               <th scope="col" className="px-4 py-3.5">
                 Status
               </th>
+              <th scope="col" className="w-14 px-4 py-3.5">
+                <span className="sr-only">Document</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -82,6 +87,18 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
                     >
                       {status.label}
                     </span>
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Open invoice ${row.invoice.invoiceNumber} as a document`}
+                    >
+                      <Link href={`/dashboard/clients/invoices/${row.invoice.id}`} prefetch={false}>
+                        <FileDown aria-hidden="true" />
+                      </Link>
+                    </Button>
                   </td>
                 </tr>
               );

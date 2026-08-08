@@ -34,7 +34,6 @@ export const CLIENT_DOCUMENT_KINDS = [
 ] as const;
 export type ClientDocumentKind = (typeof CLIENT_DOCUMENT_KINDS)[number];
 
-
 type Tone = { label: string; className: string };
 
 export const PROJECT_STATUS_META = {
@@ -133,6 +132,17 @@ export function money(amount: string | number | null | undefined, currency = "ET
   const value = typeof amount === "string" ? Number(amount) : amount;
   if (Number.isNaN(value)) return "—";
   return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)} ${currency}`;
+}
+
+/** Document money: cents always shown, the way an invoice states an amount. */
+export function exactMoney(amount: string | number, currency: string) {
+  const value = typeof amount === "string" ? Number(amount) : amount;
+  if (Number.isNaN(value)) return `${amount} ${currency}`;
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  return `${formatted} ${currency}`;
 }
 
 export function fileSize(bytes: number | null | undefined) {

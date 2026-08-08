@@ -27,6 +27,9 @@ export const organizations = pgTable("organizations", {
   code: text("code").notNull().unique(),
   timezone: text("timezone").notNull().default(DEFAULT_TIME_ZONE),
   logoUrl: text("logo_url"),
+  /** Printed on documents such as invoices; blank fields are simply omitted. */
+  tin: text("tin"),
+  address: text("address"),
   status: organizationStatus("status").notNull().default(ORGANIZATION_STATUSES[0]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
