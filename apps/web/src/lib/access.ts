@@ -1,20 +1,15 @@
-import {
-  PERMISSIONS,
-  isRole,
-  type Permission,
-  type Role,
-} from "@UnifiedAttendance/api/rbac/permissions";
+import { PERMISSIONS, type Permission } from "@UnifiedAttendance/api/rbac/permissions";
 
 export type Access = {
-  role: Role | null;
+  role: string | null;
   permissions: readonly Permission[];
 };
 
-const KNOWN_PERMISSIONS = new Set<string>(Object.values(PERMISSIONS));
+const KNOWN_PERMISSIONS = new Set<string>(PERMISSIONS);
 
 export function toAccess(rows: readonly { roleName: string; permission: string | null }[]): Access {
   const [first] = rows;
-  if (!first || !isRole(first.roleName)) return { role: null, permissions: [] };
+  if (!first) return { role: null, permissions: [] };
 
   return {
     role: first.roleName,
@@ -32,17 +27,17 @@ export function can(access: Access, permission: Permission) {
 }
 
 export const DASHBOARD_NAV = [
-  { href: "/dashboard/attendance", label: "Attendance", permission: "attendance:read" },
-  { href: "/dashboard/employees", label: "Employees", permission: "workforce:read" },
-  { href: "/dashboard/reports", label: "Reports", permission: "reports:read" },
-  { href: "/dashboard/clients/overview", label: "Dashboard", permission: "clients:read" },
-  { href: "/dashboard/clients", label: "All clients", permission: "clients:read" },
-  { href: "/dashboard/clients/pipeline", label: "Leads & pipeline", permission: "clients:read" },
-  { href: "/dashboard/clients/contracts", label: "Contracts", permission: "clients:read" },
-  { href: "/dashboard/clients/invoices", label: "Invoices", permission: "clients:read" },
-  { href: "/dashboard/devices", label: "Devices", permission: "devices:read" },
-  { href: "/dashboard/organization", label: "Organization", permission: "organization:read" },
-  { href: "/dashboard/access", label: "Users & access", permission: "organization:manage" },
+  { href: "/dashboard/attendance", label: "Attendance", permission: "attendance.read" },
+  { href: "/dashboard/employees", label: "Employees", permission: "employees.read" },
+  { href: "/dashboard/reports", label: "Reports", permission: "reports.read" },
+  { href: "/dashboard/clients/overview", label: "Dashboard", permission: "clients.read" },
+  { href: "/dashboard/clients", label: "All clients", permission: "clients.read" },
+  { href: "/dashboard/clients/pipeline", label: "Leads & pipeline", permission: "clients.read" },
+  { href: "/dashboard/clients/contracts", label: "Contracts", permission: "clients.read" },
+  { href: "/dashboard/clients/invoices", label: "Invoices", permission: "clients.read" },
+  { href: "/dashboard/devices", label: "Devices", permission: "devices.read" },
+  { href: "/dashboard/organization", label: "Organization", permission: "organization.update" },
+  { href: "/dashboard/access", label: "Users & access", permission: "organization.update" },
 ] as const satisfies readonly { href: string; label: string; permission: Permission }[];
 
 export type NavItem = (typeof DASHBOARD_NAV)[number];
@@ -59,12 +54,6 @@ export const NAV_SECTIONS = [
 
 export function visibleNavItems(access: Access) {
   return DASHBOARD_NAV.filter((item) => {
-    if (
-      item.label === "Organization" &&
-      access.role !== "Admin" &&
-      access.role !== "Super Administrator"
-    )
-      return false;
     if (item.label === "Users & access" && access.role !== "Super Administrator") return false;
     return can(access, item.permission);
   });

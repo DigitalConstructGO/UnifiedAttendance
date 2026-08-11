@@ -5,8 +5,10 @@ import { Check, LoaderCircle } from "lucide-react";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { authClient } from "@/lib/auth-client";
 
+import { CreateRoleCard } from "./create-role-card";
 import { CreateUserCard } from "./create-user-card";
 import { RolePermissionsCard } from "./role-permissions-card";
+import { RolesCard } from "./roles-card";
 import { UsersCard } from "./users-card";
 import { useAccessWorkspace } from "./use-access-workspace";
 
@@ -34,8 +36,8 @@ export function AccessWorkspace() {
           Users &amp; access
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Create the people who run this workspace, give each one a role, and decide what every role
-          may do.
+          Create the people who run this workspace, shape roles out of fine-grained permissions, and
+          give each person exactly one role.
         </p>
       </header>
 
@@ -52,6 +54,27 @@ export function AccessWorkspace() {
         <RequestErrorAlert error={workspace.error} onRetry={workspace.retry} />
       ) : null}
 
+      <RolesCard
+        roles={workspace.roles}
+        busy={workspace.busy}
+        onArchive={(role) => {
+          if (window.confirm(`Archive the ${role.name} role?`)) workspace.archiveRole(role.id);
+        }}
+      />
+
+      <CreateRoleCard busy={workspace.creatingRole} onSubmit={workspace.createRole} />
+
+      <RolePermissionsCard
+        roles={workspace.editableRoles}
+        selectedRole={workspace.selectedRole}
+        grantedCodes={workspace.grantedCodes}
+        busy={workspace.busy}
+        onSelectRole={workspace.selectRole}
+        onTogglePermission={workspace.togglePermission}
+        onSetModule={workspace.setModulePermissions}
+        onSave={workspace.savePermissions}
+      />
+
       <CreateUserCard
         roles={workspace.roles}
         busy={workspace.creatingUser}
@@ -64,17 +87,6 @@ export function AccessWorkspace() {
         currentUserId={session?.user.id ?? ""}
         busy={workspace.busy}
         onRoleChange={workspace.changeUserRole}
-      />
-
-      <RolePermissionsCard
-        roles={workspace.editableRoles}
-        permissionCatalog={workspace.permissionCatalog}
-        selectedRole={workspace.selectedRole}
-        grantedCodes={workspace.grantedCodes}
-        busy={workspace.busy}
-        onSelectRole={workspace.selectRole}
-        onTogglePermission={workspace.togglePermission}
-        onSave={workspace.savePermissions}
       />
     </div>
   );

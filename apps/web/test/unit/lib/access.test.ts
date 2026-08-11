@@ -6,10 +6,10 @@ describe("toAccess", () => {
   it("collapses the one-row-per-permission shape into a single Access", () => {
     expect(
       toAccess([
-        { roleName: "HR", permission: "workforce:read" },
-        { roleName: "HR", permission: "workforce:manage" },
+        { roleName: "HR", permission: "employees.read" },
+        { roleName: "HR", permission: "employees.create" },
       ]),
-    ).toEqual({ role: "HR", permissions: ["workforce:read", "workforce:manage"] });
+    ).toEqual({ role: "HR", permissions: ["employees.read", "employees.create"] });
   });
 
   it("reads the Role of a user whose Role grants nothing", () => {
@@ -25,26 +25,26 @@ describe("toAccess", () => {
 });
 
 describe("can", () => {
-  const hr = toAccess([{ roleName: "HR", permission: "workforce:read" }]);
+  const hr = toAccess([{ roleName: "HR", permission: "employees.read" }]);
 
   it("allows a permission the Role was granted", () => {
-    expect(can(hr, "workforce:read")).toBe(true);
+    expect(can(hr, "employees.read")).toBe(true);
   });
 
   it("denies a permission the Role was not granted", () => {
-    expect(can(hr, "workforce:manage")).toBe(false);
+    expect(can(hr, "employees.create")).toBe(false);
   });
 
   it("denies everything to a user with no Role", () => {
-    expect(can(toAccess([]), "workforce:read")).toBe(false);
+    expect(can(toAccess([]), "employees.read")).toBe(false);
   });
 });
 
 describe("visibleNavItems", () => {
   it("shows only the modules the user can read", () => {
     const access = toAccess([
-      { roleName: "Manager", permission: "workforce:read" },
-      { roleName: "Manager", permission: "attendance:read" },
+      { roleName: "Manager", permission: "employees.read" },
+      { roleName: "Manager", permission: "attendance.read" },
     ]);
 
     expect(visibleNavItems(access).map((item) => item.href)).toEqual([
@@ -55,8 +55,8 @@ describe("visibleNavItems", () => {
 
   it("groups visible modules without rendering empty sections", () => {
     const access = toAccess([
-      { roleName: "HR", permission: "attendance:read" },
-      { roleName: "HR", permission: "clients:read" },
+      { roleName: "HR", permission: "attendance.read" },
+      { roleName: "HR", permission: "clients.read" },
     ]);
 
     expect(visibleNavSections(access).map((section) => section.label)).toEqual([
@@ -65,12 +65,23 @@ describe("visibleNavItems", () => {
     ]);
   });
 
-  it("shows every module to a Role holding every read permission", () => {
+  it("shows every module to the Super Administrator", () => {
+    const access = toAccess(
+      DASHBOARD_NAV.map((item) => ({
+        roleName: "Super Administrator",
+        permission: item.permission,
+      })),
+    );
+
+    expect(visibleNavItems(access)).toHaveLength(DASHBOARD_NAV.length);
+  });
+
+  it("keeps Users & access from everyone but the Super Administrator", () => {
     const access = toAccess(
       DASHBOARD_NAV.map((item) => ({ roleName: "Admin", permission: item.permission })),
     );
 
-    expect(visibleNavItems(access)).toHaveLength(DASHBOARD_NAV.length);
+    expect(visibleNavItems(access).map((item) => item.label)).not.toContain("Users & access");
   });
 
   it("shows nothing to a user with no Role", () => {

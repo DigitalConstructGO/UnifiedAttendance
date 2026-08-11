@@ -5,7 +5,7 @@ import type React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { RoleRecord } from "@/lib/api";
+import type { RoleSummary } from "@/lib/api";
 
 import { selectClass } from "./styles";
 
@@ -14,7 +14,7 @@ export function CreateUserCard({
   busy,
   onSubmit,
 }: {
-  roles: RoleRecord[];
+  roles: RoleSummary[];
   busy: boolean;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {

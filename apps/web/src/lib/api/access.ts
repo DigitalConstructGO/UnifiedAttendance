@@ -7,6 +7,7 @@ import { apiFetch, type JsonOf } from "./client";
 export type MyAccess = JsonOf<contracts.MyAccessEntry[]>;
 export type PermissionRecord = JsonOf<contracts.PermissionRecord>;
 export type RoleRecord = JsonOf<contracts.RoleRecord>;
+export type RoleSummary = JsonOf<contracts.RoleSummary>;
 export type RoleAssignment = JsonOf<contracts.RoleAssignment>;
 export type RoleGrant = JsonOf<contracts.RoleGrant>;
 export type UserAccount = JsonOf<contracts.UserAccount>;
@@ -25,7 +26,14 @@ export const accessApi = {
   me: (signal?: AbortSignal) => apiFetch<MyAccess>("/access/me", { signal }),
   permissions: (signal?: AbortSignal) =>
     apiFetch<PermissionRecord[]>("/access/permissions", { signal }),
-  roles: (signal?: AbortSignal) => apiFetch<RoleRecord[]>("/access/roles", { signal }),
+  roles: (signal?: AbortSignal) => apiFetch<RoleSummary[]>("/access/roles", { signal }),
+
+  createRole: (input: z.input<typeof validations.createRoleInput>) =>
+    apiFetch<RoleRecord>("/access/roles", { method: "POST", body: input }),
+  updateRole: (input: z.input<typeof validations.updateRoleInput>) =>
+    apiFetch<RoleRecord>(`/access/roles/${input.roleId}`, { method: "PATCH", body: input }),
+  archiveRole: (roleId: string) =>
+    apiFetch<RoleRecord>(`/access/roles/${roleId}`, { method: "DELETE" }),
   assignments: (signal?: AbortSignal) =>
     apiFetch<RoleAssignment[]>("/access/assignments", { signal }),
   users: (signal?: AbortSignal) => apiFetch<UserAccount[]>("/access/users", { signal }),
