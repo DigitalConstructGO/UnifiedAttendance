@@ -23,7 +23,6 @@ type RouteConfig<TSchema extends ZodType, TResult> = {
   }) => Promise<TResult> | TResult;
 };
 
-
 export function route<TResult, TSchema extends ZodType = NoInput>(
   config: RouteConfig<TSchema, TResult>,
 ): RouteHandler {
@@ -97,9 +96,9 @@ function json(body: unknown, status: number, requestId: string) {
 
 const PG_FOREIGN_KEY_VIOLATION = "23503";
 const PG_UNIQUE_VIOLATION = "23505";
+const PG_CHECK_VIOLATION = "23514";
 
 export function errorResponse(error: unknown, requestId = crypto.randomUUID()): Response {
-
   if (error instanceof Error && "code" in error && error.code === PG_FOREIGN_KEY_VIOLATION) {
     return json(
       {
@@ -119,6 +118,19 @@ export function errorResponse(error: unknown, requestId = crypto.randomUUID()): 
         error: {
           code: "CONFLICT",
           message: "Something with this name already exists.",
+          requestId,
+        },
+      },
+      409,
+      requestId,
+    );
+  }
+  if (error instanceof Error && "code" in error && error.code === PG_CHECK_VIOLATION) {
+    return json(
+      {
+        error: {
+          code: "CONFLICT",
+          message: "This change contradicts another record, so it was not saved.",
           requestId,
         },
       },
