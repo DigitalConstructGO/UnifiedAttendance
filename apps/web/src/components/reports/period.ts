@@ -1,8 +1,3 @@
-/**
- * Report periods are plain YYYY-MM-DD pairs; all arithmetic anchors at UTC noon
- * so DST and timezone offsets can never shift a date across midnight.
- */
-
 export type ReportPreset = "day" | "week" | "month";
 export type ReportRange = { from: string; to: string };
 
@@ -16,7 +11,6 @@ export function shiftDate(date: string, days: number) {
 }
 
 export function startOfWeekMonday(date: string) {
-  // getUTCDay is Sunday-first; fold onto the Monday-first index used everywhere.
   return shiftDate(date, -((at(date).getUTCDay() + 6) % 7));
 }
 

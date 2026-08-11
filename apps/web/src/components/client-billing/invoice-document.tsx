@@ -108,7 +108,6 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
       {data ? (
         <Card className="rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
           <CardContent className="p-8 sm:p-10">
-            {/* Screen preview of the same document the PDF prints. */}
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="font-heading text-3xl font-bold tracking-[-0.02em] text-[oklch(0.72_0.13_115)]">

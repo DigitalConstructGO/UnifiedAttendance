@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   const { session, access } = await loadAccess();
   const firstName = session.user.name?.split(" ")[0] || "there";
 
-  return can(access, "attendance:read") ? (
+  return can(access, "dashboard.read") ? (
     <OperationsOverview name={firstName} />
   ) : (
     <ModuleDirectory access={access} name={firstName} />

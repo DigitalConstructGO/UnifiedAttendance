@@ -4,7 +4,6 @@ function escapeCell(value: string | number) {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
-/** Downloads rows as a CSV through a transient object URL. Report-agnostic. */
 export function exportCsv(
   filename: string,
   header: readonly string[],

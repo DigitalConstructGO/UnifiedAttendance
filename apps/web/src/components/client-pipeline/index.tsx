@@ -149,7 +149,7 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [dialogOpen, setDialogOpen] = useState(createOpen && can("clients:manage"));
+  const [dialogOpen, setDialogOpen] = useState(createOpen && can("opportunities.create"));
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overStageId, setOverStageId] = useState<string | null>(null);
 
@@ -161,7 +161,8 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   const branchId = branchesQuery.data?.[0]?.id ?? "";
   const employeesQuery = useQuery(workforceQueries.employees(branchId));
 
-  const manageable = can("clients:manage");
+  const creatable = can("opportunities.create");
+  const manageable = can("opportunities.move_stage");
   const stages = stagesQuery.data ?? [];
   const opportunities = opportunitiesQuery.data ?? [];
 
@@ -229,7 +230,7 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
               : "Every open opportunity by stage. Select a card to open its client."}
           </p>
         </div>
-        {manageable ? (
+        {creatable ? (
           <Button
             className="h-10 rounded-[11px] px-4 font-bold"
             onClick={() => {

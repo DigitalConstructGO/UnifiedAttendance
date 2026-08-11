@@ -6,7 +6,7 @@ export default async function ClientPipelinePage({
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
-  await requireAccess("clients:read");
+  await requireAccess("clients.read");
   const { view } = await searchParams;
   return <ClientPipeline createOpen={view === "create"} />;
 }

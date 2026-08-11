@@ -8,7 +8,7 @@ export default async function AttendancePage({
 }: {
   searchParams: Promise<{ section?: string }>;
 }) {
-  await requireAccess("attendance:read");
+  await requireAccess("attendance.read");
   const { section } = await searchParams;
 
   return (

@@ -2,11 +2,6 @@ import { jsPDF } from "jspdf";
 
 import { exactMoney } from "@/lib/client-presentation";
 
-/**
- * Everything the PDF prints, and nothing else — the layout below is pure
- * geometry over this data, so a different organization (name, logo, TIN,
- * address) or invoice renders its own document with no code changes.
- */
 export type InvoiceDocumentData = {
   organization: {
     name: string;
@@ -25,7 +20,6 @@ export type InvoiceDocumentData = {
   };
 };
 
-/** The document's look in one place, matched to the paper original. */
 const THEME = {
   title: [176, 190, 60],
   label: [176, 190, 60],
@@ -87,7 +81,6 @@ function drawTable(doc: jsPDF, top: number, data: InvoiceDocumentData): number {
     x += column.width;
   }
 
-  // The paper form keeps a couple of blank rows; mirror that.
   const rows = [...data.invoice.rows];
   while (rows.length < 3) rows.push({ name: "", description: "", amount: "", note: "" });
 
@@ -122,7 +115,6 @@ export async function buildInvoicePdf(data: InvoiceDocumentData): Promise<jsPDF>
   const { organization, invoice } = data;
   const right = PAGE.width - PAGE.margin;
 
-  // Header — INVOICE title left; logo, name, number, TIN and address right.
   const logo = organization.logoUrl ? await loadLogo(organization.logoUrl) : null;
   let headerY = 20;
   if (logo) {
@@ -177,7 +169,6 @@ export async function buildInvoicePdf(data: InvoiceDocumentData): Promise<jsPDF>
 
   const tableBottom = drawTable(doc, Math.max(64, headerY + 8), data);
 
-  // Subtotal under the table, amount aligned with the Amount column.
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setColor(doc, THEME.text);

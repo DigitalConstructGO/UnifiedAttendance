@@ -16,7 +16,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     getSetupStatus(),
   ]);
 
-  // No Role means nothing in here is usable, so never render the shell around it.
   if (!access.role) redirect("/no-access");
   if (!setup.complete) redirect("/setup");
 

@@ -13,7 +13,7 @@ export const REPORT_SECTIONS = [
       "Who was present, late, or absent over any day, week, or month — every branch counted against its own schedule.",
     href: "/dashboard/reports",
     icon: ChartColumnBig,
-    permission: "reports:read",
+    permission: "reports.read",
   },
 ] as const satisfies ReadonlyArray<{
   id: ReportsSection;

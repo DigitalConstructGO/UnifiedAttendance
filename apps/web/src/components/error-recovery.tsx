@@ -13,7 +13,6 @@ type Props = {
   returnLabel: string;
 };
 
-/** Shared route-boundary recovery UI that moves focus to the changed page state. */
 export function ErrorRecovery({ error, reset, returnHref, returnLabel }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
 

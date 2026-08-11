@@ -32,7 +32,7 @@ export function DevicesWorkspace({ section }: { section: DeviceSection }) {
   const [editing, setEditing] = useState<Device | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const manageable = can("devices:manage");
+  const manageable = can("devices.create");
   const meta = sectionMeta(section);
 
   const branchesQuery = useQuery(organizationQueries.branches());
@@ -44,10 +44,7 @@ export function DevicesWorkspace({ section }: { section: DeviceSection }) {
   const devicesQuery = useQuery(devicesQueries.list(branchId));
   const devices = devicesQuery.data ?? [];
 
-  /**
-   * A reader can be moved to another branch, so the edited row may leave the
-   * list it was edited from. Invalidating the whole prefix refreshes both ends.
-   */
+
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["devices"] });
   }

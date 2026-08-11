@@ -34,7 +34,7 @@ export function EmployeeWorkspace({
   const { can } = useAccess();
   const workspace = useEmployeeWorkspace();
 
-  const manageable = can("workforce:manage");
+  const manageable = can("employees.create");
   const activeSection = !manageable && section !== "employees" ? "employees" : section;
   const meta = sectionMeta(activeSection);
   const showsBranchPicker =

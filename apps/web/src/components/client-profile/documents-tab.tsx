@@ -77,7 +77,7 @@ export function DocumentsTab({
   });
 
   const employees = employeesQuery.data ?? [];
-  const canManage = can("clients:manage");
+  const canManage = can("client_documents.upload");
   const latestDocuments = documents.filter(
     ({ document }, index, rows) =>
       rows.findIndex(

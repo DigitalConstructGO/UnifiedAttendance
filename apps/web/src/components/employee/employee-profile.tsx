@@ -14,7 +14,7 @@ import { WorkspaceBanners } from "./workspace-banners";
 export function EmployeeProfile({ employeeId }: { employeeId: string }) {
   const { can } = useAccess();
   const profile = useEmployeeProfile(employeeId);
-  const manageable = can("workforce:manage");
+  const manageable = can("employees.update");
   const employee = profile.employee;
   const fullName = employee ? `${employee.person.firstName} ${employee.person.lastName}` : null;
 

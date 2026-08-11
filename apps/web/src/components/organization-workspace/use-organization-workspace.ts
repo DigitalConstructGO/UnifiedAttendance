@@ -11,7 +11,6 @@ import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 import { emptyBranchDraft, type BranchDraft, type WorkspaceTab } from "./workspace-model";
 
-
 export function useOrganizationWorkspace() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
@@ -137,7 +136,6 @@ export function useOrganizationWorkspace() {
     ? presentRequestError(failedWrite[0].error, failedWrite[1])
     : (loadFailure?.error ?? null);
 
-  /** One action, one banner: drop the previous result before starting the next write. */
   function clearFeedback() {
     setNotice(null);
     for (const [mutation] of writes) mutation.reset();

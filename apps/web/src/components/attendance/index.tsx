@@ -21,8 +21,8 @@ export type { AttendanceSection } from "./navigation";
 export function AttendanceWorkspace({ section }: { section: AttendanceSection }) {
   const { can } = useAccess();
   const sectionPermission = {
-    corrections: "corrections:read",
-    record: "attendance:manage",
+    corrections: "corrections.read",
+    record: "attendance.record",
   } as const;
   const activeSection =
     section !== "register" && !can(sectionPermission[section]) ? "register" : section;
@@ -99,7 +99,7 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
           {register.selected ? (
             <DayDetails
               row={register.selected}
-              canManage={can("attendance:manage")}
+              canManage={can("attendance.record")}
               busy={register.busy}
               manualKind={register.manualKind}
               onKindChange={register.setManualKind}

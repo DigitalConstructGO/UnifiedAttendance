@@ -32,16 +32,12 @@ export function CorrectionsPanel({
 }) {
   const { can } = useAccess();
   const queryClient = useQueryClient();
-  /**
-   * The chosen employee is stored with the branch it was chosen in. Switching
-   * branch then drops the selection during render, instead of leaving the form
-   * pointed at someone the reader can no longer see.
-   */
+
   const [choice, setChoice] = useState({ branchId: "", employeeId: "" });
   const [notice, setNotice] = useState<string | null>(null);
 
   const employeeId = choice.branchId === branchId ? choice.employeeId : "";
-  const manageable = can("corrections:manage");
+  const manageable = can("corrections.create");
 
   const employeesQuery = useQuery(workforceQueries.employees(branchId));
   const employees = employeesQuery.data ?? [];
@@ -51,10 +47,7 @@ export function CorrectionsPanel({
   const correctionsQuery = useQuery(correctionsQueries.list({ employeeId }));
   const corrections = correctionsQuery.data ?? [];
 
-  /**
-   * Every correction recomputes an attendance day, so the register the operator
-   * came from is stale the moment one lands. Both prefixes are invalidated.
-   */
+
   async function refresh() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["corrections"] }),

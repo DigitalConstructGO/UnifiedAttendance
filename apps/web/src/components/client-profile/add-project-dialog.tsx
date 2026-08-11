@@ -20,8 +20,7 @@ export function AddProjectDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  // The manager is an employee of the client's own branch, which is already known
-  // here — unlike the create-client form, there is nothing for the user to pick first.
+
   const employeesQuery = useQuery(workforceQueries.employees(branchId));
   const employees = employeesQuery.data ?? [];
 
@@ -77,8 +76,6 @@ export function AddProjectDialog({
         </DialogField>
 
         <DialogField label="Status">
-          {/* `completed` is omitted on purpose: the schema's completion check requires
-              a completed_on date, which belongs to finishing a project, not starting one. */}
           <select name="status" className={dialogFieldClass} defaultValue="planning">
             {(["planning", "in_progress", "cancelled"] as const).map((status) => (
               <option key={status} value={status}>
