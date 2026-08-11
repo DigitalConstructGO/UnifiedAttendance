@@ -42,6 +42,7 @@ export const DASHBOARD_NAV = [
   { href: "/dashboard/clients/invoices", label: "Invoices", permission: "clients:read" },
   { href: "/dashboard/devices", label: "Devices", permission: "devices:read" },
   { href: "/dashboard/organization", label: "Organization", permission: "organization:read" },
+  { href: "/dashboard/access", label: "Users & access", permission: "organization:manage" },
 ] as const satisfies readonly { href: string; label: string; permission: Permission }[];
 
 export type NavItem = (typeof DASHBOARD_NAV)[number];
@@ -53,12 +54,13 @@ export const NAV_SECTIONS = [
     label: "Clients",
     items: ["Dashboard", "All clients", "Leads & pipeline", "Contracts", "Invoices"],
   },
-  { label: "Platform", items: ["Devices", "Organization"] },
+  { label: "Platform", items: ["Devices", "Organization", "Users & access"] },
 ] as const satisfies readonly { label: string; items: readonly NavLabel[] }[];
 
 export function visibleNavItems(access: Access) {
   return DASHBOARD_NAV.filter((item) => {
     if (item.label === "Organization" && access.role === "HR") return false;
+    if (item.label === "Users & access" && access.role !== "Super Administrator") return false;
     return can(access, item.permission);
   });
 }

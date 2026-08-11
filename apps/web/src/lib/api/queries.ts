@@ -35,6 +35,16 @@ export const accessQueries = {
       queryKey: accessKeys.assignments,
       queryFn: ({ signal }) => accessApi.assignments(signal),
     }),
+  users: () =>
+    queryOptions({
+      queryKey: accessKeys.users,
+      queryFn: ({ signal }) => accessApi.users(signal),
+    }),
+  roleGrants: () =>
+    queryOptions({
+      queryKey: accessKeys.roleGrants,
+      queryFn: ({ signal }) => accessApi.roleGrants(signal),
+    }),
 };
 
 export const organizationQueries = {
@@ -180,8 +190,6 @@ export const overviewQueries = {
     queryOptions({
       queryKey: overviewKeys.operations(query),
       queryFn: ({ signal }) => overviewApi.operations(query, signal),
-      // The landing page is a live board, so it refreshes itself rather than
-      // showing whatever was true when the tab was opened.
       refetchInterval: 60_000,
     }),
 };
