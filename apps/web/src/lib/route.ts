@@ -4,22 +4,17 @@ import { ApiError, createContext, isApiError, type Context } from "@UnifiedAtten
 
 import { createChildLogger } from "./logger";
 
-/** Next passes dynamic segments as a promise in the second handler argument. */
 type RouteSegment = { params?: Promise<Record<string, string | string[] | undefined>> };
 
 export type RouteHandler = (request: Request, segment?: RouteSegment) => Promise<Response>;
 
 type Access = "session" | "public";
 
-/** Stands in for the schema when a route takes no input, making `input` undefined. */
 type NoInput = ZodType<undefined>;
 
 type RouteConfig<TSchema extends ZodType, TResult> = {
-  /** Omit on routes that read nothing off the request. */
   input?: TSchema;
-  /** `session` (the default) rejects anonymous callers before the handler runs. */
   access?: Access;
-  /** Success status. Use 201 on the routes that create something. */
   status?: number;
   handler: (args: {
     ctx: Context;
@@ -28,16 +23,7 @@ type RouteConfig<TSchema extends ZodType, TResult> = {
   }) => Promise<TResult> | TResult;
 };
 
-/**
- * Wraps a service call as an HTTP route: reads the input off the request,
- * validates it, resolves the session, and maps thrown `ApiError`s onto status
- * codes. Route files stay a single expression, and the service underneath never
- * learns it was reached over HTTP.
- *
- * Input comes from the JSON body on POST/PUT/PATCH and from the query string
- * everywhere else. Dynamic path segments are merged in last, so `/branches/:id`
- * fills the schema's `id` without the caller repeating it.
- */
+
 export function route<TResult, TSchema extends ZodType = NoInput>(
   config: RouteConfig<TSchema, TResult>,
 ): RouteHandler {
@@ -110,17 +96,29 @@ function json(body: unknown, status: number, requestId: string) {
 }
 
 const PG_FOREIGN_KEY_VIOLATION = "23503";
+const PG_UNIQUE_VIOLATION = "23505";
 
-/** The one place an exception becomes a response, so every route fails alike. */
 export function errorResponse(error: unknown, requestId = crypto.randomUUID()): Response {
-  // A delete that other records still depend on is a fact about the data, not
-  // a server fault — surface it as a conflict rather than "Something went wrong".
+
   if (error instanceof Error && "code" in error && error.code === PG_FOREIGN_KEY_VIOLATION) {
     return json(
       {
         error: {
           code: "CONFLICT",
           message: "Other records still depend on this one, so it cannot be deleted.",
+          requestId,
+        },
+      },
+      409,
+      requestId,
+    );
+  }
+  if (error instanceof Error && "code" in error && error.code === PG_UNIQUE_VIOLATION) {
+    return json(
+      {
+        error: {
+          code: "CONFLICT",
+          message: "Something with this name already exists.",
           requestId,
         },
       },

@@ -134,6 +134,20 @@
       "when": 1785847008000,
       "tag": "0018_employee_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785847009000,
+      "tag": "0019_custom_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785847010000,
+      "tag": "0020_reusable_role_names",
+      "breakpoints": true
     }
   ]
 }
