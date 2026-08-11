@@ -15,14 +15,12 @@ export type ExpectedDaysParams = {
   employeeId?: string;
 };
 
-
 const BRANCH_CACHE_TTL_MS = 60_000;
 let branchCache: { rows: Array<{ id: string; timezone: string }>; expiresAt: number } | null = null;
 
 export function forgetBranches() {
   branchCache = null;
 }
-
 
 export async function loadBranchToday(ctx: Context) {
   if (!branchCache || branchCache.expiresAt <= Date.now()) {
@@ -33,7 +31,6 @@ export async function loadBranchToday(ctx: Context) {
   }
   return new Map(branchCache.rows.map((row) => [row.id, localBusinessDate(row.timezone)]));
 }
-
 
 export function expectedDaysCte(params: ExpectedDaysParams): SQL {
   const branchToday = sql.join(
@@ -64,6 +61,9 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
       join days d
         on d.day >= ep.effective_from
        and (ep.effective_to is null or d.day <= ep.effective_to)
+      join branches b
+        on b.id = ep.branch_id
+       and d.day >= b.created_at::date
       join branch_today bt
         on bt.branch_id = ep.branch_id
       join branch_working_days w

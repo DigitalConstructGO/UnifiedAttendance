@@ -55,7 +55,12 @@ describe("daily register", () => {
     await db.insert(userRoles).values({ userId: "officer", roleId: admin!.id });
     const [branch] = await db
       .insert(branches)
-      .values({ name: "HQ", code: "HQ", timezone: "Africa/Addis_Ababa" })
+      .values({
+        name: "HQ",
+        code: "HQ",
+        timezone: "Africa/Addis_Ababa",
+        createdAt: new Date("2025-01-01T00:00:00Z"),
+      })
       .returning();
     branchId = branch!.id;
     await db.insert(branchWorkingDays).values(
