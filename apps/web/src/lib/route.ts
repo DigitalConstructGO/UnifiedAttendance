@@ -109,8 +109,25 @@ function json(body: unknown, status: number, requestId: string) {
   });
 }
 
+const PG_FOREIGN_KEY_VIOLATION = "23503";
+
 /** The one place an exception becomes a response, so every route fails alike. */
 export function errorResponse(error: unknown, requestId = crypto.randomUUID()): Response {
+  // A delete that other records still depend on is a fact about the data, not
+  // a server fault — surface it as a conflict rather than "Something went wrong".
+  if (error instanceof Error && "code" in error && error.code === PG_FOREIGN_KEY_VIOLATION) {
+    return json(
+      {
+        error: {
+          code: "CONFLICT",
+          message: "Other records still depend on this one, so it cannot be deleted.",
+          requestId,
+        },
+      },
+      409,
+      requestId,
+    );
+  }
   if (isApiError(error)) {
     return json(
       {
