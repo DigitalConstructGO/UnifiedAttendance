@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 
 function formatTime(date: Date) {
   return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
+    hour12: true,
   }).format(date);
 }
 
