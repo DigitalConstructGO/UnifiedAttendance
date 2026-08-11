@@ -22,21 +22,20 @@ type Correction = {
   proposedTime: Date | null;
 };
 
-
 export function applyManualEntries(base: PunchTimes, entries: ManualEntry[]): PunchTimes {
   const { latenessExcused } = base;
   let { firstIn, lastOut, outcomeOverride } = base;
 
+  // Entries arrive oldest-first, so the newest statement of each punch wins:
+  // re-recording a wrong time replaces it rather than being ignored.
   for (const entry of entries) {
     switch (entry.kind) {
       case "check_in":
-        if (entry.occurredAt && (!firstIn || entry.occurredAt < firstIn))
-          firstIn = entry.occurredAt;
+        if (entry.occurredAt) firstIn = entry.occurredAt;
         outcomeOverride = null;
         break;
       case "check_out":
-        if (entry.occurredAt && (!lastOut || entry.occurredAt > lastOut))
-          lastOut = entry.occurredAt;
+        if (entry.occurredAt) lastOut = entry.occurredAt;
         outcomeOverride = null;
         break;
       case "mark_absent":
@@ -52,7 +51,6 @@ export function applyManualEntries(base: PunchTimes, entries: ManualEntry[]): Pu
 
   return { firstIn, lastOut, outcomeOverride, latenessExcused };
 }
-
 
 export function applyCorrections(base: PunchTimes, corrections: Correction[]): PunchTimes {
   let { firstIn, lastOut, outcomeOverride, latenessExcused } = base;

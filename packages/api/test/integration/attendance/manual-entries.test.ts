@@ -75,6 +75,27 @@ describe("manual attendance entries", () => {
     });
   });
 
+  it("lets a punch be re-recorded, the newest time winning in either direction", async () => {
+    const record = (kind: "check_in" | "check_out", occurredAt: string) =>
+      createManualAttendanceEntry(
+        officer,
+        createManualAttendanceEntryInput.parse({
+          employeeId,
+          attendanceDate: MONDAY,
+          kind,
+          occurredAt,
+        }),
+      );
+
+    await record("check_in", "2026-02-09T08:00:00+03:00");
+    const laterIn = await record("check_in", "2026-02-09T09:00:00+03:00");
+    expect(laterIn.day.firstIn).toEqual(new Date("2026-02-09T09:00:00+03:00"));
+
+    await record("check_out", "2026-02-09T17:00:00+03:00");
+    const earlierOut = await record("check_out", "2026-02-09T16:00:00+03:00");
+    expect(earlierOut.day.lastOut).toEqual(new Date("2026-02-09T16:00:00+03:00"));
+  });
+
   it("still refuses a check-in without a time", () => {
     const parsed = createManualAttendanceEntryInput.safeParse({
       employeeId,

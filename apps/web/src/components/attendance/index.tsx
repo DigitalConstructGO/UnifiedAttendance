@@ -32,8 +32,6 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
   const meta = sectionMeta(activeSection);
 
   const { filter, setFilter } = register;
-  // The register's status filter now narrows the server query itself, so a
-  // leftover filter would silently hide people from the Record roster.
   useEffect(() => {
     if (showsRecord && filter !== "all") setFilter("all");
   }, [showsRecord, filter, setFilter]);
@@ -56,7 +54,7 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
           branches={register.branches}
           branchId={register.branchId}
           date={register.date}
-          showDate={showsRegister}
+          showDate={showsRegister || showsRecord}
           onBranchChange={register.changeBranch}
           onDateChange={register.changeDate}
         />
@@ -121,8 +119,10 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
           pageSize={register.pageSize}
           loading={register.loading}
           refreshing={register.refreshing}
+          date={register.date}
           timeZone={register.timeZone}
           isToday={register.isToday}
+          isFuture={register.isFuture}
           searchTerm={register.searchTerm}
           busyEmployeeId={register.quickEmployeeId}
           onSearchChange={register.setSearchTerm}
