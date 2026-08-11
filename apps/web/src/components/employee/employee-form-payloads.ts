@@ -34,6 +34,7 @@ export function createEmployeePayload(
         typeof validations.createEmployeeInput
       >["employee"]["employmentType"],
       hireDate: text(data, "hireDate"),
+      hasFixedSchedule: text(data, "schedule") !== "flexible",
     },
   };
 }
@@ -53,6 +54,7 @@ export function updateEmployeePayload(
     employee: {
       employeeCode: text(data, "employeeCode"),
       hireDate: text(data, "hireDate"),
+      hasFixedSchedule: text(data, "schedule") !== "flexible",
     },
   };
 }

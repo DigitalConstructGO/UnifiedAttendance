@@ -58,6 +58,10 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
              d.day,
              (d.day < bt.today) as is_before_today
       from employment_periods ep
+      -- No fixed schedule means no expected days: silence is never absence.
+      join employees emp
+        on emp.id = ep.employee_id
+       and emp.has_fixed_schedule
       join days d
         on d.day >= ep.effective_from
        and (ep.effective_to is null or d.day <= ep.effective_to)
@@ -77,6 +81,30 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
           where h.holiday_date = d.day
             and (h.branch_id = ep.branch_id or h.branch_id is null)
         )
+        ${sql.join(periodFilters, sql` `)}
+      union all
+      -- People without a fixed schedule owe no days, so only the days they
+      -- actually came count: never absent, never unrecorded.
+      select distinct on (ep.employee_id, ad.attendance_date)
+             ep.employee_id,
+             ep.branch_id,
+             ep.department_id,
+             ad.attendance_date as day,
+             (ad.attendance_date < bt.today) as is_before_today
+      from employment_periods ep
+      join employees emp
+        on emp.id = ep.employee_id
+       and not emp.has_fixed_schedule
+      join attendance_days ad
+        on ad.employee_id = ep.employee_id
+       and ad.attendance_date >= ${params.from}::date
+       and ad.attendance_date <= ${params.to}::date
+       and ad.attendance_date >= ep.effective_from
+       and (ep.effective_to is null or ad.attendance_date <= ep.effective_to)
+      join branch_today bt
+        on bt.branch_id = ep.branch_id
+      where ep.status = 'active'
+        and ad.attendance_date <= bt.today
         ${sql.join(periodFilters, sql` `)}
     )
   `;

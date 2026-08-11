@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { EmployeeRow } from "@/lib/api";
 
+import { compactSelectClass } from "./fields";
+
 const fieldClass = "h-9 rounded-[9px]";
 
 export function EmployeeDetailForm({
@@ -71,6 +73,15 @@ export function EmployeeDetailForm({
             aria-label="Hire date"
             className={fieldClass}
           />
+          <select
+            name="schedule"
+            defaultValue={selected.employee.hasFixedSchedule ? "fixed" : "flexible"}
+            aria-label="Schedule"
+            className={compactSelectClass}
+          >
+            <option value="fixed">Fixed working days</option>
+            <option value="flexible">Comes as needed — never counted absent</option>
+          </select>
           <Button disabled={busy} className="h-9 rounded-[9px] font-bold">
             Save details
           </Button>

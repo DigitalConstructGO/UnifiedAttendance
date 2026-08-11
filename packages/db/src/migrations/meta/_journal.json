@@ -120,6 +120,13 @@
       "when": 1785847006000,
       "tag": "0016_contract_payment_structure",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785847007000,
+      "tag": "0017_flexible_schedules",
+      "breakpoints": true
     }
   ]
 }

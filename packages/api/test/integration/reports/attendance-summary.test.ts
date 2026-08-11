@@ -71,6 +71,7 @@ async function seedEmployee(options: {
   from?: string;
   to?: string | null;
   status?: "active" | "suspended" | "terminated";
+  fixedSchedule?: boolean;
 }) {
   const [person] = await db
     .insert(people)
@@ -83,6 +84,7 @@ async function seedEmployee(options: {
       branchId: options.branchId,
       employeeCode: options.code,
       hireDate: options.from ?? "2025-01-01",
+      hasFixedSchedule: options.fixedSchedule ?? true,
     })
     .returning();
   await db.insert(employmentPeriods).values({
@@ -236,6 +238,22 @@ describe("attendance summary report", () => {
     const report = await summary({ from: today, to: today });
 
     expect(report.rows[0]).toMatchObject({ expectedDays: 1, unrecordedDays: 1, absentDays: 0 });
+  });
+
+  it("counts a flexible employee only on the days they actually came", async () => {
+    const branchId = await seedBranch("HQ", [0, 1, 2, 3, 4]);
+    const flexible = await seedEmployee({ code: "FLEX", branchId, fixedSchedule: false });
+    await day(flexible, TUE, "present", { workedMinutes: 300 });
+
+    const report = await summary({ from: MON, to: SUN });
+
+    expect(report.rows[0]).toMatchObject({
+      expectedDays: 1, // only Tuesday, the day they came
+      presentDays: 1,
+      workedMinutes: 300,
+      absentDays: 0,
+      unrecordedDays: 0,
+    });
   });
 
   it("keeps the weekday alignment: a Friday-only branch expects Friday, not Saturday", async () => {

@@ -112,6 +112,12 @@ export function CreateEmployeePanel({
               <EmploymentTypeOptions />
             </select>
           </Field>
+          <Field label="Schedule">
+            <select name="schedule" defaultValue="fixed" className={selectClass}>
+              <option value="fixed">Fixed working days</option>
+              <option value="flexible">Comes as needed — never counted absent</option>
+            </select>
+          </Field>
           <div className="flex items-end gap-2 md:col-span-2 xl:col-span-3">
             <Button
               disabled={busy || !branchId}
