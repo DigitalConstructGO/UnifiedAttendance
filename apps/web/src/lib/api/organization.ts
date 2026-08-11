@@ -5,6 +5,12 @@ import type * as validations from "@UnifiedAttendance/api/validations/organizati
 import { apiFetch, type JsonOf } from "./client";
 
 export type Organization = JsonOf<contracts.Organization> | null;
+export type OrganizationLetterhead = {
+  name: string;
+  logoUrl: string | null;
+  tin: string | null;
+  address: string | null;
+} | null;
 export type Branch = JsonOf<contracts.Branch>;
 export type WorkingDay = JsonOf<contracts.WorkingDay>;
 export type Holiday = JsonOf<contracts.Holiday>;
@@ -12,6 +18,7 @@ export type BootstrapResult = JsonOf<contracts.BootstrapResult>;
 
 export const organizationKeys = {
   organization: ["organization"] as const,
+  letterhead: ["organization", "letterhead"] as const,
   branches: ["branches"] as const,
   branch: (branchId: string) => ["branches", branchId] as const,
   workingDays: (branchId: string) => ["branches", branchId, "working-days"] as const,
@@ -22,6 +29,8 @@ export const organizationApi = {
   bootstrap: (input: z.input<typeof validations.bootstrapOrganizationInput>) =>
     apiFetch<BootstrapResult>("/setup", { method: "POST", body: input }),
   get: (signal?: AbortSignal) => apiFetch<Organization>("/organization", { signal }),
+  letterhead: (signal?: AbortSignal) =>
+    apiFetch<OrganizationLetterhead>("/organization/letterhead", { signal }),
   create: (input: z.input<typeof validations.createOrganizationInput>) =>
     apiFetch<Organization>("/organization", { method: "POST", body: input }),
   update: ({ id, ...values }: z.input<typeof validations.updateOrganizationInput>) =>

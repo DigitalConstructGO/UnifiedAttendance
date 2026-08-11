@@ -9,7 +9,7 @@ import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { clientQueries, organizationQueries } from "@/lib/api";
-import { clientName, exactMoney } from "@/lib/client-presentation";
+import { exactMoney } from "@/lib/client-presentation";
 import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
@@ -27,7 +27,7 @@ function plainAmount(value: string) {
 
 export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
   const invoiceQuery = useQuery(clientQueries.invoice(invoiceId));
-  const organizationQuery = useQuery(organizationQueries.organization());
+  const organizationQuery = useQuery(organizationQueries.letterhead());
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<unknown>(null);
 
@@ -51,12 +51,12 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
             number: row.invoice.invoiceNumber,
             dueOn: row.invoice.dueOn ? formatDate(row.invoice.dueOn) : null,
             draft: row.invoice.lifecycleStatus === "draft",
-            billTo: clientName(row.client),
+            billTo: row.client.legalName || row.client.tradingName || "",
             currency: row.invoice.currency,
             totalAmount: row.invoice.totalAmount,
             rows: [
               {
-                name: clientName(row.client),
+                name: row.client.legalName || row.client.tradingName || "",
                 description: row.invoice.description ?? row.project?.name ?? "",
                 amount: plainAmount(row.invoice.totalAmount),
                 note: row.invoice.note ?? "",
@@ -125,7 +125,6 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
               </div>
               <div className="text-right text-xs">
                 {data.organization.logoUrl ? (
-                  // The document must show the logo exactly as uploaded.
                   <img
                     src={data.organization.logoUrl}
                     alt=""

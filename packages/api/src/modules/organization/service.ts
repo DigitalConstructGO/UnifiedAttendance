@@ -34,6 +34,24 @@ export async function getOrganization(ctx: Context) {
   return organization ?? null;
 }
 
+/**
+ * The identity printed on documents such as invoices. Any signed-in user may
+ * read it — the letterhead is on every page's sidebar already, and a clients
+ * user without organization:read still has to print an invoice.
+ */
+export async function getOrganizationLetterhead(ctx: Context) {
+  const [organization] = await ctx.db
+    .select({
+      name: organizations.name,
+      logoUrl: organizations.logoUrl,
+      tin: organizations.tin,
+      address: organizations.address,
+    })
+    .from(organizations)
+    .limit(1);
+  return organization ?? null;
+}
+
 export async function getSetupStatus(ctx: Pick<Context, "db"> = { db }) {
   const result = await ctx.db.execute(sql`
     select
