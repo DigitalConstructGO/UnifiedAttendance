@@ -43,6 +43,11 @@ export const organizationQueries = {
       queryKey: organizationKeys.organization,
       queryFn: ({ signal }) => organizationApi.get(signal),
     }),
+  letterhead: () =>
+    queryOptions({
+      queryKey: organizationKeys.letterhead,
+      queryFn: ({ signal }) => organizationApi.letterhead(signal),
+    }),
   branches: () =>
     queryOptions({
       queryKey: organizationKeys.branches,
