@@ -49,6 +49,7 @@ export function useAttendanceRegister({ registerActive = true } = {}) {
     branches.find((branch) => branch.id === branchId)?.timezone ?? detectedTimeZone();
   const date = chosenDate ?? today(timeZone);
   const isToday = date === today(timeZone);
+  const isFuture = date > today(timeZone);
 
   useEffect(() => {
     const settle = window.setTimeout(() => {
@@ -172,6 +173,7 @@ export function useAttendanceRegister({ registerActive = true } = {}) {
     timeZone,
     date,
     isToday,
+    isFuture,
     register,
     page,
     pageCount,

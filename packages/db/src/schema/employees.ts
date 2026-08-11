@@ -1,5 +1,6 @@
 import { isNull, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -37,6 +38,8 @@ export const employees = pgTable(
       onDelete: "set null",
     }),
     employeeCode: text("employee_code").notNull().unique(),
+    /** False for people who come as needed: no expected days, so no absences. */
+    hasFixedSchedule: boolean("has_fixed_schedule").notNull().default(true),
     employmentType: employmentType("employment_type").notNull().default(EMPLOYMENT_TYPES[0]),
     hireDate: date("hire_date").notNull(),
     status: employeeStatus("status").notNull().default(EMPLOYEE_STATUSES[0]),

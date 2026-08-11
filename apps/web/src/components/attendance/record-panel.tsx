@@ -9,6 +9,15 @@ import type { QuickKind, RegisterRow } from "./register-model";
 import { attendanceSelectClass } from "./register-controls";
 import { avatarTone, formatTime, registerStatus, today } from "./register-presentation";
 
+function dayLabel(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
 export function RecordPanel({
   rows,
   total,
@@ -17,8 +26,10 @@ export function RecordPanel({
   pageSize,
   loading,
   refreshing,
+  date,
   timeZone,
   isToday,
+  isFuture,
   searchTerm,
   busyEmployeeId,
   onSearchChange,
@@ -33,8 +44,10 @@ export function RecordPanel({
   pageSize: number;
   loading: boolean;
   refreshing: boolean;
+  date: string;
   timeZone: string;
   isToday: boolean;
+  isFuture: boolean;
   searchTerm: string;
   busyEmployeeId: string | null;
   onSearchChange: (value: string) => void;
@@ -51,9 +64,13 @@ export function RecordPanel({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-strong text-sm font-bold">
-              {isToday ? "Who is in today" : "Recording needs today's register"}
+              {isToday
+                ? "Who is in today"
+                : isFuture
+                  ? "Nothing to record yet"
+                  : `Recording for ${dayLabel(date)}`}
             </CardTitle>
-            {isToday ? (
+            {!isFuture ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 {checkedIn} of {rows.length} checked in{pageCount > 1 ? " on this page" : ""} ·{" "}
                 {done} finished for the day
@@ -77,12 +94,11 @@ export function RecordPanel({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {!isToday ? (
+        {isFuture ? (
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 text-sm text-amber-700 dark:text-warning">
             <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
             <p className="min-w-0 flex-1">
-              Entries are stamped with the current time, so recording only works on today. The
-              register keeps a day panel for backfilling other dates.
+              This day has not happened yet. Pick today or an earlier day to record attendance.
             </p>
             <Button
               size="sm"
@@ -95,10 +111,12 @@ export function RecordPanel({
           </div>
         ) : null}
 
-        {isToday ? (
+        {!isFuture ? (
+          // Recording one row must not grey the rest out — the dim is only for
+          // page and date changes, where the visible rows are stale.
           <ul
-            className={`divide-y divide-border ${refreshing ? "opacity-50" : ""} transition-opacity`}
-            aria-busy={refreshing}
+            className={`divide-y divide-border ${refreshing && !busyEmployeeId ? "opacity-50" : ""} transition-opacity`}
+            aria-busy={refreshing && !busyEmployeeId}
           >
             {rows.map((row) => (
               <RecordRow
@@ -112,12 +130,12 @@ export function RecordPanel({
           </ul>
         ) : null}
 
-        {isToday && loading ? (
+        {!isFuture && loading ? (
           <div className="grid min-h-48 place-items-center" role="status">
             <p className="text-xs text-muted-foreground">Loading the roster…</p>
           </div>
         ) : null}
-        {isToday && !loading && rows.length === 0 ? (
+        {!isFuture && !loading && rows.length === 0 ? (
           <div className="grid min-h-48 place-items-center px-5 text-center">
             <div>
               <p className="text-strong text-sm font-bold">
@@ -132,7 +150,7 @@ export function RecordPanel({
           </div>
         ) : null}
 
-        {isToday && !loading && rows.length > 0 ? (
+        {!isFuture && !loading && rows.length > 0 ? (
           <TablePagination
             noun="employees"
             shown={rows.length}
@@ -184,7 +202,6 @@ function RecordRow({
         key={`${row.day.firstIn ?? ""}|${row.day.lastOut ?? ""}`}
         row={row}
         recording={recording}
-        busy={busyEmployeeId !== null}
         timeZone={timeZone}
         onRecord={onRecord}
       />
@@ -209,22 +226,14 @@ function RecordState({ row, timeZone }: { row: RegisterRow; timeZone: string }) 
   return <span className="text-xs text-muted-foreground">Not in yet</span>;
 }
 
-/**
- * One line of controls per person: what happened, when it happened, record.
- * The action and time arrive pre-filled with the likely answer — next step in
- * the day, current clock — so the common case is still two clicks, while a
- * late catch-up ("Abebe came at 8:30") is just an edited time away.
- */
 function RecordEntryForm({
   row,
   recording,
-  busy,
   timeZone,
   onRecord,
 }: {
   row: RegisterRow;
   recording: boolean;
-  busy: boolean;
   timeZone: string;
   onRecord: (row: RegisterRow, kind: QuickKind, time: string) => void;
 }) {
@@ -260,7 +269,7 @@ function RecordEntryForm({
       />
       <Button
         size="sm"
-        disabled={busy}
+        disabled={recording}
         className="h-9 w-24 rounded-[9px] font-bold shadow-[var(--shadow-action)]"
       >
         {recording ? "Recording…" : "Record"}

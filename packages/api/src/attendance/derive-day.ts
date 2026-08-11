@@ -93,6 +93,12 @@ export async function deriveAttendanceDay(
     hasCorrection: corrections.length > 0,
   } as const;
 
+  // Silence is not a record: storing it would turn every "unrecorded"
+  // employee into a materialized absence the moment a register page loads.
+  if (events.length === 0 && manualEntries.length === 0 && corrections.length === 0) {
+    return { id: null, calculatedAt: null, ...values };
+  }
+
   const [day] = await ctx.db
     .insert(attendanceDays)
     .values(values)

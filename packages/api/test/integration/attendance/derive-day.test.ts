@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@UnifiedAttendance/db";
-import { holidays } from "@UnifiedAttendance/db/schema/index";
+import { attendanceDays, holidays } from "@UnifiedAttendance/db/schema/index";
 
 import {
   type DeriveDayFixture,
@@ -103,12 +103,20 @@ describe("deriveAttendanceDay", () => {
   });
 
   it("updates the existing Attendance Day when recomputed", async () => {
-    const first = await fixture.derive();
     await fixture.addEvent("2026-03-02T09:00:00+03:00", "in");
+    const first = await fixture.derive();
     await fixture.addEvent("2026-03-02T17:00:00+03:00", "out");
 
     const recomputed = await fixture.derive();
 
+    expect(first.id).not.toBeNull();
     expect(recomputed).toMatchObject({ id: first.id, outcome: "present" });
+  });
+
+  it("does not store a day that has nothing recorded", async () => {
+    const silent = await fixture.derive();
+
+    expect(silent).toMatchObject({ id: null, outcome: "absent" });
+    expect(await db.select().from(attendanceDays)).toHaveLength(0);
   });
 });

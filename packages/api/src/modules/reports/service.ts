@@ -89,19 +89,7 @@ const EMPTY_AGGREGATE: Omit<SummaryAggregateRow, "employee_id"> = {
   corrected_days: 0,
 };
 
-/**
- * The range report behind "who was late, who was absent". One aggregation over
- * the expected-days set joined to whatever was recorded:
- *
- * - absent   = a stored `absent` day, or an expected day strictly before the
- *              branch's local today with nothing recorded at all.
- * - unrecorded = a stored `unknown` day, or today's still-empty slot — today is
- *              expected (so this week's lates show) but its silence is not yet
- *              an absence, or a 9am report would mark the whole company absent.
- *
- * Rows are labeled with the employment period in force at the range end; the
- * day-by-day counting itself follows transfers branch by branch.
- */
+
 export async function getAttendanceSummary(ctx: Context, input: AttendanceSummaryInput) {
   await requirePermission(ctx, "reports:read", input.branchId);
 
@@ -154,13 +142,6 @@ export async function getAttendanceSummary(ctx: Context, input: AttendanceSummar
        and ad.attendance_date = e.day
       group by e.employee_id
     `),
-    /*
-     * The same set folded the other way, one row per calendar day, for charts.
-     * The five buckets partition each day's expected headcount: anyone late is
-     * "late" whatever their outcome, so on-time and partial exclude them.
-     * Charts cover the branch/department slice — the name search only narrows
-     * the table, since a chart of one person's week is what the profile is for.
-     */
     ctx.db.execute<ByDayRow>(sql`
       ${cte}
       select e.day::text as date,
@@ -206,8 +187,7 @@ export async function getAttendanceSummary(ctx: Context, input: AttendanceSummar
       ),
   ]);
 
-  // One label per employee: the period in force at the range end wins; for an
-  // employee whose period ended mid-range, the latest one that overlapped.
+
   const labels = new Map<string, (typeof labelRows)[number]>();
   for (const row of labelRows) {
     const current = labels.get(row.employee.id);

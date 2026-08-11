@@ -125,6 +125,7 @@ export const createEmployeeInput = z.object({
     employeeCode: text.optional(),
     employmentType: z.enum(EMPLOYMENT_TYPES).default(EMPLOYMENT_TYPES[0]),
     hireDate: date,
+    hasFixedSchedule: z.boolean().optional(),
   }),
 });
 
@@ -191,6 +192,7 @@ export const updateEmployeeInput = z.object({
       employmentType: z.enum(EMPLOYMENT_TYPES).optional(),
       hireDate: date.optional(),
       status: z.enum(EMPLOYEE_STATUSES).optional(),
+      hasFixedSchedule: z.boolean().optional(),
     })
     .optional(),
 });
