@@ -65,6 +65,15 @@ export function formatTime(value: string | null, timeZone = detectedTimeZone()) 
   }).format(new Date(value));
 }
 
+export function timeInputValue(value: string, timeZone = detectedTimeZone()) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
+}
+
 export function registerTitle(date: string, timeZone = detectedTimeZone()) {
   if (date === today(timeZone)) return "Today's attendance register";
   const label = new Intl.DateTimeFormat("en-US", {
