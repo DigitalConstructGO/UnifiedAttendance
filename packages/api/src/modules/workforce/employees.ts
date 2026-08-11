@@ -54,7 +54,7 @@ function employeeQuery(ctx: Context) {
 }
 
 export async function listEmployees(ctx: Context, input: ListEmployeesInput) {
-  await requirePermission(ctx, "workforce:read", input.branchId);
+  await requirePermission(ctx, "employees.read", input.branchId);
   return employeeQuery(ctx).where(
     and(
       eq(employees.branchId, input.branchId),
@@ -65,7 +65,7 @@ export async function listEmployees(ctx: Context, input: ListEmployeesInput) {
 
 export async function getEmployee(ctx: Context, input: ResourceIdInput) {
   const employee = await employeeOrThrow(ctx, input.id);
-  await requirePermission(ctx, "workforce:read", employee.branchId);
+  await requirePermission(ctx, "employees.read", employee.branchId);
   const [result] = await employeeQuery(ctx).where(eq(employees.id, input.id));
   const periods = await ctx.db
     .select({ period: employmentPeriods, department: departments, position: positions })
@@ -78,7 +78,7 @@ export async function getEmployee(ctx: Context, input: ResourceIdInput) {
 }
 
 export async function createEmployee(ctx: Context, input: CreateEmployeeInput) {
-  await requirePermission(ctx, "workforce:manage", input.employee.branchId);
+  await requirePermission(ctx, "employees.create", input.employee.branchId);
   await positionFitsDepartmentOrThrow(ctx, input.employee.positionId, input.employee.departmentId);
   const manualCode = input.employee.employeeCode;
   if (manualCode) {
@@ -144,9 +144,9 @@ export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
     badRequest("Use an effective-dated employment transition to change an assignment or status");
   }
   const current = await employeeOrThrow(ctx, input.id);
-  await requirePermission(ctx, "workforce:manage", current.branchId);
+  await requirePermission(ctx, "employees.update", current.branchId);
   if (input.employee?.branchId && input.employee.branchId !== current.branchId)
-    await requirePermission(ctx, "workforce:manage", input.employee.branchId);
+    await requirePermission(ctx, "employees.update", input.employee.branchId);
   return withTransaction(ctx, async (ctx) => {
     const [person] =
       input.person && Object.keys(input.person).length > 0
@@ -176,7 +176,7 @@ export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
 
 export async function archiveEmployee(ctx: Context, input: ResourceIdInput) {
   const employee = await employeeOrThrow(ctx, input.id);
-  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  await requirePermission(ctx, "employees.archive", employee.branchId);
   const [archived] = await ctx.db
     .update(employees)
     .set({ archivedAt: new Date() })
@@ -187,7 +187,7 @@ export async function archiveEmployee(ctx: Context, input: ResourceIdInput) {
 
 export async function restoreEmployee(ctx: Context, input: ResourceIdInput) {
   const employee = await employeeOrThrow(ctx, input.id);
-  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  await requirePermission(ctx, "employees.restore", employee.branchId);
   const [restored] = await ctx.db
     .update(employees)
     .set({ archivedAt: null })
@@ -198,7 +198,7 @@ export async function restoreEmployee(ctx: Context, input: ResourceIdInput) {
 
 export async function deleteEmployee(ctx: Context, input: ResourceIdInput) {
   const employee = await employeeOrThrow(ctx, input.id);
-  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  await requirePermission(ctx, "employees.delete", employee.branchId);
   if (!employee.archivedAt) {
     conflict("Archive the employee first; delete for good is only offered from the archive");
   }

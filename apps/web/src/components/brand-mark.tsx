@@ -16,7 +16,6 @@ export function BrandMark({
       className={`grid shrink-0 place-items-center overflow-hidden rounded-[11px] bg-primary text-primary-foreground ${className}`}
     >
       {brand.logoUrl ? (
-        // Organization logos are configured by the tenant and may be hosted outside this app.
         <img src={brand.logoUrl} alt="" className="size-full object-cover" />
       ) : (
         <Fingerprint className={iconClassName} aria-hidden="true" />

@@ -15,10 +15,7 @@ import type {
   UpdateClientContactInput,
 } from "../../validations/clients";
 
-function hasReachableChannel(value: {
-  phone?: string | null;
-  email?: string | null;
-}) {
+function hasReachableChannel(value: { phone?: string | null; email?: string | null }) {
   return [value.phone, value.email].some(
     (channel) => typeof channel === "string" && channel.trim().length > 0,
   );
@@ -36,7 +33,7 @@ async function contactOrThrow(ctx: Context, contactId: string) {
 
 export async function listClientContacts(ctx: Context, input: ListClientContactsInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   return ctx.db
     .select()
     .from(clientContacts)
@@ -51,7 +48,7 @@ export async function listClientContacts(ctx: Context, input: ListClientContacts
 
 export async function createClientContact(ctx: Context, input: CreateClientContactInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_contacts.create", client.branchId);
   if (!hasReachableChannel(input)) {
     badRequest("An active Client Contact requires a phone or email");
   }
@@ -98,7 +95,7 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
 export async function updateClientContact(ctx: Context, input: UpdateClientContactInput) {
   const current = await contactOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_contacts.update", client.branchId);
   const phone = input.phone === undefined ? current.phone : input.phone;
   const email = input.email === undefined ? current.email : input.email;
   if (!hasReachableChannel({ phone, email })) {
@@ -143,7 +140,7 @@ export async function updateClientContact(ctx: Context, input: UpdateClientConta
 export async function archiveClientContact(ctx: Context, input: ClientResourceIdInput) {
   const current = await contactOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_contacts.archive", client.branchId);
   if (current.status === "inactive") return current;
   const actorUserId = requireSessionUser(ctx);
   return withTransaction(ctx, async (ctx) => {

@@ -118,8 +118,6 @@ export function RecordPanel({
         ) : null}
 
         {!isFuture ? (
-          // Recording one row must not grey the rest out — the dim is only for
-          // page and date changes, where the visible rows are stale.
           <ul
             className={`divide-y divide-border ${refreshing && !busyEmployeeId ? "opacity-50" : ""} transition-opacity`}
             aria-busy={refreshing && !busyEmployeeId}
@@ -263,7 +261,6 @@ function RecordEntryForm({
         className={`${attendanceSelectClass} h-9`}
       >
         <option value="check_in">Check in</option>
-        {/* A check-out with no check-in would invert the day; the server refuses it too. */}
         <option value="check_out" disabled={!row.day.firstIn}>
           Check out
         </option>

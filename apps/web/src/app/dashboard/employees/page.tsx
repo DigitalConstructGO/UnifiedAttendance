@@ -16,7 +16,7 @@ export default async function EmployeesPage({
 }: {
   searchParams: Promise<{ section?: string; view?: string; contractId?: string }>;
 }) {
-  await requireAccess("workforce:read");
+  await requireAccess("employees.read");
   const params = await searchParams;
   const requestedSection = params.section;
   const section =

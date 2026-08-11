@@ -45,7 +45,7 @@ export function ClientProfile({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const profile = useClientProfile(clientId, tab, opportunityId);
-  const manageable = can("clients:manage");
+  const manageable = can("clients.update");
   const projectStatuses = (profile.client?.currentProjects ?? []).map(
     (row) => row.project.status,
   ) as ProjectStatus[];

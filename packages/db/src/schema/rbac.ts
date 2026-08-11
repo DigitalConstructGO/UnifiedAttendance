@@ -1,13 +1,38 @@
-import { relations } from "drizzle-orm";
-import { index, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 
-export const roles = pgTable("roles", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const roles = pgTable(
+  "roles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    code: text("code"),
+    description: text("description"),
+    isSystem: boolean("is_system").notNull().default(false),
+    archivedAt: timestamp("archived_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+
+  (table) => [
+    uniqueIndex("roles_name_active_idx")
+      .on(table.name)
+      .where(sql`${table.archivedAt} is null`),
+    uniqueIndex("roles_code_active_idx")
+      .on(table.code)
+      .where(sql`${table.archivedAt} is null`),
+  ],
+);
 
 export const permissions = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),

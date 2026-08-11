@@ -9,8 +9,6 @@ import { BrandMark } from "@/components/brand-mark";
 import { getBrand } from "@/lib/brand";
 
 export default async function LoginPage() {
-  // Verified, not inferred from a cookie — so an expired session lands here and can sign
-  // in again, instead of being volleyed back to a dashboard that will only reject it.
   const session = await auth.api.getSession({ headers: await headers() });
   if (session?.user) redirect("/dashboard");
   const brand = await getBrand();

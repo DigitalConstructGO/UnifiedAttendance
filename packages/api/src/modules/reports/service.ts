@@ -89,9 +89,8 @@ const EMPTY_AGGREGATE: Omit<SummaryAggregateRow, "employee_id"> = {
   corrected_days: 0,
 };
 
-
 export async function getAttendanceSummary(ctx: Context, input: AttendanceSummaryInput) {
-  await requirePermission(ctx, "reports:read", input.branchId);
+  await requirePermission(ctx, "reports.read", input.branchId);
 
   const period = {
     from: input.from,
@@ -186,7 +185,6 @@ export async function getAttendanceSummary(ctx: Context, input: AttendanceSummar
         ),
       ),
   ]);
-
 
   const labels = new Map<string, (typeof labelRows)[number]>();
   for (const row of labelRows) {

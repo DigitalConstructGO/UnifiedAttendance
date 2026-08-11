@@ -102,9 +102,7 @@ describe("corrections", () => {
 
     await deleteCorrection(officer, { id: created!.id } as never);
 
-    const [reverted] = await day();
-    expect(reverted?.outcome).toBe("absent");
-    expect(reverted?.hasCorrection).toBe(false);
+    await expect(day()).resolves.toHaveLength(0);
     await expect(listCorrections(officer, { employeeId } as never)).resolves.toHaveLength(0);
   });
 });

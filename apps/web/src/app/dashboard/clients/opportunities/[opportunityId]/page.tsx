@@ -9,7 +9,7 @@ export default async function OpportunityProfilePage({
   params: Promise<{ opportunityId: string }>;
   searchParams: Promise<{ tab?: string }>;
 }) {
-  await requireAccess("clients:read");
+  await requireAccess("clients.read");
   const { opportunityId } = await params;
   const { tab } = await searchParams;
   return (

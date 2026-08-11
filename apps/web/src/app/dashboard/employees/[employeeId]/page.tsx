@@ -6,7 +6,7 @@ export default async function EmployeeProfilePage({
 }: {
   params: Promise<{ employeeId: string }>;
 }) {
-  await requireAccess("workforce:read");
+  await requireAccess("employees.read");
   const { employeeId } = await params;
   return <EmployeeProfile employeeId={employeeId} />;
 }

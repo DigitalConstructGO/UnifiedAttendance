@@ -70,7 +70,7 @@ export function ClientContracts() {
             Commercial agreements across every client, with their term and renewal.
           </p>
         </div>
-        {can("clients:manage") ? (
+        {can("commercial_contracts.create") ? (
           <Button
             className="h-10 rounded-[11px] px-4 font-bold"
             onClick={() => {

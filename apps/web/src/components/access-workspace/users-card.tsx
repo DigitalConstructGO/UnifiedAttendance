@@ -2,7 +2,7 @@
 
 import { UsersRound } from "lucide-react";
 
-import type { RoleRecord, UserAccount } from "@/lib/api";
+import type { RoleSummary, UserAccount } from "@/lib/api";
 
 import { compactSelectClass } from "./styles";
 
@@ -17,7 +17,7 @@ export function UsersCard({
   onRoleChange,
 }: {
   users: UserAccount[];
-  roles: RoleRecord[];
+  roles: RoleSummary[];
   currentUserId: string;
   busy: boolean;
   onRoleChange: (userId: string, roleId: string) => void;

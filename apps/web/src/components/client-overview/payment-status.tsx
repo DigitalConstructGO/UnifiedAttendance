@@ -79,7 +79,9 @@ export function PaymentStatus({
                 {rows.map((slice) => (
                   <Cell key={slice.key} fill={slice.fill} />
                 ))}
-                <Label content={({ viewBox }) => <DonutTotal viewBox={viewBox} billed={billed} />} />
+                <Label
+                  content={({ viewBox }) => <DonutTotal viewBox={viewBox} billed={billed} />}
+                />
               </Pie>
             </PieChart>
           </ChartContainer>
@@ -104,14 +106,17 @@ export function PaymentStatus({
   );
 }
 
-/** The billed total sits in the donut hole, where the ring would otherwise read as a bare shape. */
 function DonutTotal({ viewBox, billed }: { viewBox?: unknown; billed: number }) {
   if (!viewBox || typeof viewBox !== "object" || !("cx" in viewBox)) return null;
   const { cx, cy } = viewBox as { cx: number; cy: number };
 
   return (
     <text x={cx} y={cy} textAnchor="middle">
-      <tspan x={cx} dy="-0.1em" className="fill-[var(--text-strong)] font-heading text-lg font-bold">
+      <tspan
+        x={cx}
+        dy="-0.1em"
+        className="fill-[var(--text-strong)] font-heading text-lg font-bold"
+      >
         {compactAmount(billed)}
       </tspan>
       <tspan x={cx} dy="1.4em" className="fill-muted-foreground text-[0.6875rem]">

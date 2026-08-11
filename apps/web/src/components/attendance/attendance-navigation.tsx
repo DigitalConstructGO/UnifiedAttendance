@@ -11,7 +11,6 @@ export function AttendanceNavigation({ section }: { section: AttendanceSection }
   const { can } = useAccess();
   const visible = ATTENDANCE_SECTIONS.filter((item) => can(item.permission));
 
-  // One tab is not a choice, so it is not worth a tab bar.
   if (visible.length < 2) return null;
 
   return (

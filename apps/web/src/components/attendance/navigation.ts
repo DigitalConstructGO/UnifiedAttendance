@@ -12,7 +12,7 @@ export const ATTENDANCE_SECTIONS = [
     description: "Who arrived, who was late, and who is missing — one branch, one day.",
     href: "/dashboard/attendance",
     icon: CalendarCheck,
-    permission: "attendance:read",
+    permission: "attendance.read",
   },
   {
     id: "record",
@@ -22,7 +22,7 @@ export const ATTENDANCE_SECTIONS = [
       "Check people in and out by hand — for branches that work without a reader, or while one is down.",
     href: "/dashboard/attendance?section=record",
     icon: UserCheck,
-    permission: "attendance:manage",
+    permission: "attendance.record",
   },
   {
     id: "corrections",
@@ -32,7 +32,7 @@ export const ATTENDANCE_SECTIONS = [
       "Ask for a day to be changed when the device got it wrong, and review what others have raised.",
     href: "/dashboard/attendance?section=corrections",
     icon: ScrollText,
-    permission: "corrections:read",
+    permission: "corrections.read",
   },
 ] as const satisfies ReadonlyArray<{
   id: AttendanceSection;

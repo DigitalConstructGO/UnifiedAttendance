@@ -94,8 +94,7 @@ export function ModuleDirectory({ access, name }: { access: Access; name: string
             <Link
               key={module.href}
               href={module.href}
-              // Every card in view would otherwise prefetch its whole module
-              // page — a per-request render each — the moment Overview loads.
+
               prefetch={false}
               className="group flex min-h-36 flex-col rounded-[18px] bg-card p-5 text-foreground shadow-[var(--shadow-card)] ring-1 ring-border/80 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:text-foreground hover:shadow-[var(--shadow-menu)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >

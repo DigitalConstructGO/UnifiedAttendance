@@ -15,7 +15,6 @@ export function AccessProvider({
   access: Access;
   children: React.ReactNode;
 }) {
-  // The server resolved this before first paint, so gated UI never flickers.
   return <AccessContext.Provider value={access}>{children}</AccessContext.Provider>;
 }
 

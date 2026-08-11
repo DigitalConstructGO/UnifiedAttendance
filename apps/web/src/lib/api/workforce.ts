@@ -55,11 +55,6 @@ async function uploadWorkforceDocument(
   }
 }
 
-/**
- * `contracts` and `employeesAll` are prefixes rather than queries: a write that
- * can move a row between branches has to invalidate every branch's list, not
- * just the one the caller happened to be looking at.
- */
 export const workforceKeys = {
   departments: ["departments"] as const,
   positions: ["positions"] as const,

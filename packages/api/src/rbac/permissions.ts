@@ -1,20 +1,45 @@
-export const PERMISSIONS = {
-  organizationRead: "organization:read",
-  organizationManage: "organization:manage",
-  workforceRead: "workforce:read",
-  workforceManage: "workforce:manage",
-  devicesRead: "devices:read",
-  devicesManage: "devices:manage",
-  attendanceRead: "attendance:read",
-  attendanceManage: "attendance:manage",
-  correctionsRead: "corrections:read",
-  correctionsManage: "corrections:manage",
-  clientsRead: "clients:read",
-  clientsManage: "clients:manage",
-  reportsRead: "reports:read",
+
+export const PERMISSION_GROUPS = {
+  organization: ["read", "update"],
+  branches: ["read", "create", "update", "manage_schedule"],
+  holidays: ["read", "create", "update", "delete"],
+  departments: ["read", "create", "update", "delete"],
+  positions: ["read", "create", "update", "delete"],
+  employees: ["read", "create", "update", "archive", "restore", "delete"],
+  employment: ["read", "transition"],
+  employment_contracts: ["read", "create", "update", "delete"],
+  cosigners: ["read", "create", "update", "delete"],
+  workforce_documents: ["read", "manage"],
+  devices: ["read", "create", "update", "manage_identities"],
+  attendance: ["read", "record", "recompute"],
+  corrections: ["read", "create", "update", "delete"],
+  clients: ["read", "create", "update", "archive"],
+  client_contacts: ["create", "update", "archive"],
+  opportunities: ["create", "update", "move_stage", "convert"],
+  projects: ["create", "update"],
+  commercial_contracts: ["create", "update"],
+  invoices: ["create", "update", "issue", "void"],
+  payments: ["record"],
+  client_documents: ["upload", "delete"],
+  client_engagement: ["manage"],
+  client_catalogs: ["manage"],
+  reports: ["read"],
+  dashboard: ["read"],
 } as const;
 
-export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+type Groups = typeof PERMISSION_GROUPS;
+export type PermissionModule = keyof Groups;
+export type Permission = {
+  [M in PermissionModule]: `${M & string}.${Groups[M][number]}`;
+}[PermissionModule];
+
+function codesOf<M extends PermissionModule>(module: M): Permission[] {
+  return PERMISSION_GROUPS[module].map((action) => `${module}.${action}` as Permission);
+}
+
+export const PERMISSIONS: readonly Permission[] = (
+  Object.keys(PERMISSION_GROUPS) as PermissionModule[]
+).flatMap(codesOf);
 
 export function hasPermission(
   grantedPermissions: readonly string[],
@@ -36,24 +61,47 @@ export function isRole(roleName: string): roleName is Role {
   return Object.values(ROLES).includes(roleName as Role);
 }
 
-export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  [ROLES.superAdministrator]: Object.values(PERMISSIONS),
-  [ROLES.admin]: Object.values(PERMISSIONS),
-  [ROLES.hr]: [
-    "organization:read",
-    "workforce:read",
-    "workforce:manage",
-    "attendance:read",
-    "corrections:read",
-    "corrections:manage",
-    "reports:read",
-  ],
+const WORKFORCE_MODULES: PermissionModule[] = [
+  "departments",
+  "positions",
+  "employees",
+  "employment",
+  "employment_contracts",
+  "cosigners",
+  "workforce_documents",
+];
 
+const CLIENT_MODULES: PermissionModule[] = [
+  "clients",
+  "client_contacts",
+  "opportunities",
+  "projects",
+  "commercial_contracts",
+  "invoices",
+  "payments",
+  "client_documents",
+  "client_engagement",
+  "client_catalogs",
+];
+
+export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+  [ROLES.superAdministrator]: PERMISSIONS,
+  [ROLES.admin]: PERMISSIONS,
+  [ROLES.hr]: [
+    "organization.read",
+    "branches.read",
+    "holidays.read",
+    ...WORKFORCE_MODULES.flatMap(codesOf),
+    "attendance.read",
+    ...codesOf("corrections"),
+    "reports.read",
+    "dashboard.read",
+  ],
   [ROLES.manager]: [
-    "organization:read",
-    "workforce:read",
-    "workforce:manage",
-    "clients:read",
-    "clients:manage",
+    "organization.read",
+    "branches.read",
+    "holidays.read",
+    ...WORKFORCE_MODULES.flatMap(codesOf),
+    ...CLIENT_MODULES.flatMap(codesOf),
   ],
 };

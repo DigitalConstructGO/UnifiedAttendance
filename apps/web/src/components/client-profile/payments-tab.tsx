@@ -54,7 +54,7 @@ export function PaymentsTab({
 
   return (
     <div className="space-y-4">
-      {can("clients:manage") && payableInvoices.length > 0 ? (
+      {can("payments.record") && payableInvoices.length > 0 ? (
         <div className="flex justify-end">
           <Button
             type="button"

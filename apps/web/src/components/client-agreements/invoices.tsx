@@ -67,7 +67,7 @@ export function ClientInvoices() {
             Payment requests issued to clients, with what is still outstanding.
           </p>
         </div>
-        {can("clients:manage") ? (
+        {can("invoices.create") ? (
           <Button
             className="h-10 rounded-[11px] px-4 font-bold"
             onClick={() => {

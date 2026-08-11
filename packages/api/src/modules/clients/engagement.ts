@@ -42,7 +42,7 @@ async function noteOrThrow(ctx: Context, noteId: string) {
 
 export async function listClientNotes(ctx: Context, input: ListClientNotesInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const filters = [eq(clientNotes.clientId, input.clientId)];
   if (!input.includeArchived) filters.push(isNull(clientNotes.archivedAt));
   const rows = await ctx.db
@@ -60,7 +60,7 @@ export async function listClientNotes(ctx: Context, input: ListClientNotesInput)
 
 export async function createClientNote(ctx: Context, input: CreateClientNoteInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_engagement.manage", client.branchId);
   if (!(await employeeExists(ctx, input.authorEmployeeId)))
     badRequest("Note author is not an Employee");
   const actorUserId = requireSessionUser(ctx);
@@ -92,7 +92,7 @@ export async function createClientNote(ctx: Context, input: CreateClientNoteInpu
 export async function updateClientNote(ctx: Context, input: UpdateClientNoteInput) {
   const current = await noteOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_engagement.manage", client.branchId);
   if (current.archivedAt) badRequest("Archived Client Notes cannot be edited");
   const actorUserId = requireSessionUser(ctx);
   const { id: noteId, ...values } = input;
@@ -121,7 +121,7 @@ export async function updateClientNote(ctx: Context, input: UpdateClientNoteInpu
 export async function archiveClientNote(ctx: Context, input: ClientResourceIdInput) {
   const current = await noteOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_engagement.manage", client.branchId);
   if (current.archivedAt) return current;
   const actorUserId = requireSessionUser(ctx);
   const [note] = await withTransaction(ctx, async (ctx) => {
@@ -162,7 +162,7 @@ async function resolveActivityTargets(ctx: Context, input: CreateCrmActivityInpu
 
 export async function createCrmActivity(ctx: Context, input: CreateCrmActivityInput) {
   const { client } = await resolveActivityTargets(ctx, input);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_engagement.manage", client.branchId);
   if (!(await employeeExists(ctx, input.actorEmployeeId)))
     badRequest("Activity actor is not an Employee");
   const organizationId = client.organizationId;
@@ -205,7 +205,7 @@ async function activityOrThrow(ctx: Context, activityId: string) {
 export async function updateCrmActivity(ctx: Context, input: UpdateCrmActivityInput) {
   const current = await activityOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_engagement.manage", client.branchId);
   const actorUserId = requireSessionUser(ctx);
   const { id: activityId, ...values } = input;
   await withTransaction(ctx, async (ctx) => {
@@ -246,7 +246,7 @@ function shapeActivity(row: Awaited<ReturnType<typeof activityQuery>>[number]) {
 
 export async function listCrmActivities(ctx: Context, input: ListCrmActivitiesInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const rows = await activityQuery(ctx)
     .where(eq(crmActivities.clientId, input.clientId))
     .orderBy(desc(crmActivities.contactDate));

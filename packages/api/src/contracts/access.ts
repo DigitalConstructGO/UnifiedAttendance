@@ -14,6 +14,17 @@ export type RoleAssignment = RoleGrant & { roleName: string };
 
 export type RolePermissionGrant = { roleId: string; permissionCode: string };
 
+export type RoleSummary = {
+  id: string;
+  name: string;
+  code: string | null;
+  description: string | null;
+  isSystem: boolean;
+  createdAt: Date;
+  permissionCount: number;
+  userCount: number;
+};
+
 export type UserAccount = {
   id: string;
   name: string;

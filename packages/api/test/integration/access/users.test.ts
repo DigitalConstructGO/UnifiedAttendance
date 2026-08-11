@@ -92,7 +92,7 @@ describe("user management", () => {
     const grants = await listRoleGrants(context);
     const hr = await roleId("HR");
     const hrGrants = grants.filter((grant) => grant.roleId === hr).map((g) => g.permissionCode);
-    expect(hrGrants).toContain("workforce:manage");
-    expect(hrGrants).not.toContain("organization:manage");
+    expect(hrGrants).toContain("employees.create");
+    expect(hrGrants).not.toContain("organization.update");
   });
 });

@@ -95,7 +95,17 @@ export async function deriveAttendanceDay(
 
   // Silence is not a record: storing it would turn every "unrecorded"
   // employee into a materialized absence the moment a register page loads.
+  // A day that has just fallen silent — its last correction or entry undone —
+  // must also lose the row it stored while it still had something to say.
   if (events.length === 0 && manualEntries.length === 0 && corrections.length === 0) {
+    await ctx.db
+      .delete(attendanceDays)
+      .where(
+        and(
+          eq(attendanceDays.employeeId, employeeId),
+          eq(attendanceDays.attendanceDate, attendanceDate),
+        ),
+      );
     return { id: null, calculatedAt: null, ...values };
   }
 

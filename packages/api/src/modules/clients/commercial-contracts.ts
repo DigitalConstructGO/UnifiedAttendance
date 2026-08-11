@@ -83,7 +83,7 @@ function validateCommercialContract(input: {
 export async function getCommercialContract(ctx: Context, input: ClientResourceIdInput) {
   const contract = await commercialContractOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, contract.clientId);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const [row] = await commercialContractQuery(ctx)
     .where(eq(commercialContracts.id, input.id))
     .limit(1);
@@ -92,7 +92,7 @@ export async function getCommercialContract(ctx: Context, input: ClientResourceI
 }
 
 export async function listCommercialContracts(ctx: Context, input: ListCommercialContractsInput) {
-  await requirePermission(ctx, "clients:read");
+  await requirePermission(ctx, "clients.read");
   const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(commercialContracts.organizationId, organization.id)];
   if (input.clientId) filters.push(eq(commercialContracts.clientId, input.clientId));
@@ -105,7 +105,7 @@ export async function listCommercialContracts(ctx: Context, input: ListCommercia
 
 export async function createCommercialContract(ctx: Context, input: CreateCommercialContractInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "commercial_contracts.create", client.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   if (client.organizationId !== organization.id)
     badRequest("Client belongs to another Organization");
@@ -173,7 +173,7 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
 export async function updateCommercialContract(ctx: Context, input: UpdateCommercialContractInput) {
   const current = await commercialContractOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "commercial_contracts.update", client.branchId);
   const startsOn = input.startsOn ?? current.startsOn;
   const endsOn = input.endsOn ?? current.endsOn;
   const status = input.status ?? current.status;

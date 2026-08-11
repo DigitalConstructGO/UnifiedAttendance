@@ -134,7 +134,7 @@ async function paymentSummary(ctx: Context, invoice: typeof invoices.$inferSelec
 async function invoiceDetails(ctx: Context, invoiceId: string, asOf?: string) {
   const invoice = await invoiceOrThrow(ctx, invoiceId);
   const client = await clientOrThrow(ctx, invoice.clientId);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const [row] = await invoiceQuery(ctx).where(eq(invoices.id, invoiceId)).limit(1);
   if (!row) throw new Error("Invoice details could not be loaded");
   const organization = await currentOrganizationOrThrow(ctx);
@@ -153,7 +153,7 @@ export async function getInvoice(ctx: Context, input: ClientResourceIdInput) {
 }
 
 export async function listInvoices(ctx: Context, input: ListInvoicesInput) {
-  await requirePermission(ctx, "clients:read", input.branchId);
+  await requirePermission(ctx, "clients.read", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(invoices.organizationId, organization.id)];
   if (input.clientId) filters.push(eq(invoices.clientId, input.clientId));
@@ -168,7 +168,7 @@ export async function listInvoices(ctx: Context, input: ListInvoicesInput) {
 }
 
 export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
-  await requirePermission(ctx, "clients:manage", input.branchId);
+  await requirePermission(ctx, "invoices.create", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const client = await validateInvoiceReferences(ctx, {
     organizationId: organization.id,
@@ -222,10 +222,10 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
 export async function updateInvoice(ctx: Context, input: UpdateInvoiceInput) {
   const current = await invoiceOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "invoices.update", client.branchId);
   if (current.lifecycleStatus !== "draft") conflict("Only a draft Invoice can be edited");
   if (input.branchId && input.branchId !== current.branchId) {
-    await requirePermission(ctx, "clients:manage", input.branchId);
+    await requirePermission(ctx, "invoices.update", input.branchId);
   }
   await validateInvoiceReferences(ctx, {
     organizationId: current.organizationId,
@@ -257,7 +257,7 @@ export async function updateInvoice(ctx: Context, input: UpdateInvoiceInput) {
 export async function issueInvoice(ctx: Context, input: IssueInvoiceInput) {
   const current = await invoiceOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "invoices.issue", client.branchId);
   if (current.lifecycleStatus !== "draft") conflict("Only a draft Invoice can be issued");
   if (input.dueOn < input.issuedOn) badRequest("Invoice due date cannot be before issue date");
   const actorUserId = requireSessionUser(ctx);
@@ -282,7 +282,7 @@ export async function issueInvoice(ctx: Context, input: IssueInvoiceInput) {
 export async function voidInvoice(ctx: Context, input: ClientResourceIdInput) {
   const current = await invoiceOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, current.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "invoices.void", client.branchId);
   if (current.lifecycleStatus === "draft") {
     conflict("A draft Invoice must be issued before it can be voided");
   }
@@ -314,7 +314,7 @@ export async function voidInvoice(ctx: Context, input: ClientResourceIdInput) {
 export async function recordInvoicePayment(ctx: Context, input: RecordInvoicePaymentInput) {
   const invoice = await invoiceOrThrow(ctx, input.invoiceId);
   const client = await clientOrThrow(ctx, invoice.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "payments.record", client.branchId);
   if (invoice.lifecycleStatus !== "issued") conflict("Payments require an issued Invoice");
   if (input.currency !== invoice.currency) badRequest("Payment currency must match the Invoice");
   const [recorder] = await ctx.db

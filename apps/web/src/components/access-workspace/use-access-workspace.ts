@@ -19,16 +19,12 @@ export function useAccessWorkspace() {
 
   const usersQuery = useQuery(accessQueries.users());
   const rolesQuery = useQuery(accessQueries.roles());
-  const permissionsQuery = useQuery(accessQueries.permissions());
   const roleGrantsQuery = useQuery(accessQueries.roleGrants());
 
   const users = usersQuery.data ?? [];
   const roles = rolesQuery.data ?? [];
-  const permissionCatalog = permissionsQuery.data ?? [];
   const roleGrants = roleGrantsQuery.data ?? [];
 
-  // The Super Administrator role is the one that edits the others; letting it
-  // trim its own grants is how an organization locks itself out.
   const editableRoles = roles.filter((role) => role.name !== "Super Administrator");
   const selectedRole = chosenRole || editableRoles[0]?.id || "";
   const grantedCodes =
@@ -36,11 +32,21 @@ export function useAccessWorkspace() {
       ? permissionsDraft.codes
       : roleGrants.filter((grant) => grant.roleId === selectedRole).map((g) => g.permissionCode);
 
+  async function refreshRoles() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: accessKeys.roles }),
+      queryClient.invalidateQueries({ queryKey: accessKeys.roleGrants }),
+    ]);
+  }
+
   const createUser = useMutation({
     mutationFn: accessApi.createUser,
     onSuccess: async (created) => {
       setNotice(`${created.name} can now sign in as ${created.roleName}.`);
-      await queryClient.invalidateQueries({ queryKey: accessKeys.users });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: accessKeys.users }),
+        queryClient.invalidateQueries({ queryKey: accessKeys.roles }),
+      ]);
     },
   });
 
@@ -50,6 +56,7 @@ export function useAccessWorkspace() {
       setNotice("Role updated. Signed-in users pick it up within a minute.");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: accessKeys.users }),
+        queryClient.invalidateQueries({ queryKey: accessKeys.roles }),
         queryClient.invalidateQueries({ queryKey: accessKeys.assignments }),
       ]);
     },
@@ -60,7 +67,27 @@ export function useAccessWorkspace() {
     onSuccess: async (role) => {
       setPermissionsDraft(null);
       setNotice(`Permissions saved for ${role.name}. They apply within a minute.`);
-      await queryClient.invalidateQueries({ queryKey: accessKeys.roleGrants });
+      await refreshRoles();
+    },
+  });
+
+  const createRole = useMutation({
+    mutationFn: accessApi.createRole,
+    onSuccess: async (role) => {
+      setNotice(`Role ${role.name} created — assign it from the users table.`);
+      await refreshRoles();
+    },
+  });
+
+  const archiveRole = useMutation({
+    mutationFn: accessApi.archiveRole,
+    onSuccess: async (_role, archivedRoleId) => {
+      setNotice("Role archived.");
+      if (archivedRoleId === selectedRole) {
+        setChosenRole("");
+        setPermissionsDraft(null);
+      }
+      await refreshRoles();
     },
   });
 
@@ -68,20 +95,20 @@ export function useAccessWorkspace() {
     [createUser, "Could not create the user."],
     [assignRole, "Could not change the role."],
     [savePermissions, "Could not save the permissions."],
+    [createRole, "Could not create the role."],
+    [archiveRole, "Could not archive the role."],
   ] as const;
 
   const failedWrite = writes.find(([mutation]) => mutation.error !== null);
   const loadFailure = firstQueryFailure([
     [usersQuery, "Could not load users."],
     [rolesQuery, "Could not load roles."],
-    [permissionsQuery, "Could not load the permission catalog."],
     [roleGrantsQuery, "Could not load role permissions."],
   ]);
   const error = failedWrite
     ? presentRequestError(failedWrite[0].error, failedWrite[1])
     : (loadFailure?.error ?? null);
 
-  /** One action, one banner: drop the previous result before starting the next write. */
   function clearFeedback() {
     setNotice(null);
     for (const [mutation] of writes) mutation.reset();
@@ -91,7 +118,6 @@ export function useAccessWorkspace() {
     users,
     roles,
     editableRoles,
-    permissionCatalog,
     selectedRole,
     grantedCodes,
     notice,
@@ -99,6 +125,7 @@ export function useAccessWorkspace() {
     loaded: usersQuery.isSuccess && rolesQuery.isSuccess,
     busy: writes.some(([mutation]) => mutation.isPending),
     creatingUser: createUser.isPending,
+    creatingRole: createRole.isPending,
     retry: loadFailure?.retry,
     selectRole: (roleId: string) => {
       setChosenRole(roleId);
@@ -109,6 +136,12 @@ export function useAccessWorkspace() {
       const codes = grantedCodes.includes(code)
         ? grantedCodes.filter((granted) => granted !== code)
         : [...grantedCodes, code];
+      setPermissionsDraft({ roleId: selectedRole, codes });
+    },
+    setModulePermissions: (moduleCodes: string[], granted: boolean) => {
+      const codes = granted
+        ? [...grantedCodes, ...moduleCodes.filter((code) => !grantedCodes.includes(code))]
+        : grantedCodes.filter((code) => !moduleCodes.includes(code));
       setPermissionsDraft({ roleId: selectedRole, codes });
     },
     createUser: (event: React.FormEvent<HTMLFormElement>) => {
@@ -134,6 +167,19 @@ export function useAccessWorkspace() {
       if (!selectedRole) return;
       clearFeedback();
       savePermissions.mutate({ roleId: selectedRole, permissionCodes: grantedCodes });
+    },
+    createRole: (input: {
+      name: string;
+      code: string;
+      description: string | null;
+      permissionCodes: string[];
+    }) => {
+      clearFeedback();
+      createRole.mutate(input);
+    },
+    archiveRole: (roleId: string) => {
+      clearFeedback();
+      archiveRole.mutate(roleId);
     },
   };
 }

@@ -78,7 +78,6 @@ export function ClientDirectory() {
   const total = clientsQuery.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  /** Owner options come from the loaded rows, so the list only ever offers real owners. */
   const owners = new Map(
     rows.map((row) => [row.owner.employee.id, personName(row.owner.person)] as const),
   );
@@ -171,7 +170,7 @@ export function ClientDirectory() {
             <SlidersHorizontal aria-hidden="true" />
             Columns
           </Button>
-          {can("clients:manage") ? (
+          {can("clients.create") ? (
             <Button className="h-10 rounded-[11px] px-4 font-bold" onClick={() => setAddOpen(true)}>
               <Plus aria-hidden="true" />
               Add client

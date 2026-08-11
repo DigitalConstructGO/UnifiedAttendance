@@ -1,10 +1,6 @@
 import { and, asc, eq, ne, sql } from "drizzle-orm";
 
-import {
-  clientTypes,
-  industries,
-  pipelineStages,
-} from "@UnifiedAttendance/db/schema/index";
+import { clientTypes, industries, pipelineStages } from "@UnifiedAttendance/db/schema/index";
 
 import { conflict, notFound } from "../../errors";
 import { requirePermission } from "../shared/guards";
@@ -20,7 +16,7 @@ import type {
 } from "../../validations/clients";
 
 export async function listIndustries(ctx: Context) {
-  await requirePermission(ctx, "clients:read");
+  await requirePermission(ctx, "clients.read");
   const organization = await currentOrganizationOrThrow(ctx);
   return ctx.db
     .select()
@@ -30,7 +26,7 @@ export async function listIndustries(ctx: Context) {
 }
 
 export async function createIndustry(ctx: Context, input: CreateIndustryInput) {
-  await requirePermission(ctx, "clients:manage");
+  await requirePermission(ctx, "client_catalogs.manage");
   const organization = await currentOrganizationOrThrow(ctx);
   const [existing] = await ctx.db
     .select({ id: industries.id })
@@ -47,7 +43,7 @@ export async function createIndustry(ctx: Context, input: CreateIndustryInput) {
 }
 
 export async function updateIndustry(ctx: Context, input: UpdateCatalogInput) {
-  await requirePermission(ctx, "clients:manage");
+  await requirePermission(ctx, "client_catalogs.manage");
   const organization = await currentOrganizationOrThrow(ctx);
   const [current] = await ctx.db
     .select()
@@ -79,7 +75,7 @@ export async function updateIndustry(ctx: Context, input: UpdateCatalogInput) {
 }
 
 export async function listClientTypes(ctx: Context) {
-  await requirePermission(ctx, "clients:read");
+  await requirePermission(ctx, "clients.read");
   const organization = await currentOrganizationOrThrow(ctx);
   return ctx.db
     .select()
@@ -89,7 +85,7 @@ export async function listClientTypes(ctx: Context) {
 }
 
 export async function createClientType(ctx: Context, input: CreateClientTypeInput) {
-  await requirePermission(ctx, "clients:manage");
+  await requirePermission(ctx, "client_catalogs.manage");
   const organization = await currentOrganizationOrThrow(ctx);
   const [existing] = await ctx.db
     .select({ id: clientTypes.id })
@@ -106,7 +102,7 @@ export async function createClientType(ctx: Context, input: CreateClientTypeInpu
 }
 
 export async function updateClientType(ctx: Context, input: UpdateCatalogInput) {
-  await requirePermission(ctx, "clients:manage");
+  await requirePermission(ctx, "client_catalogs.manage");
   const organization = await currentOrganizationOrThrow(ctx);
   const [current] = await ctx.db
     .select()
@@ -137,10 +133,8 @@ export async function updateClientType(ctx: Context, input: UpdateCatalogInput) 
   return clientType!;
 }
 
-
-
 export async function listPipelineStages(ctx: Context) {
-  await requirePermission(ctx, "clients:read");
+  await requirePermission(ctx, "clients.read");
   const organization = await currentOrganizationOrThrow(ctx);
   return ctx.db
     .select()
@@ -150,7 +144,7 @@ export async function listPipelineStages(ctx: Context) {
 }
 
 export async function createPipelineStage(ctx: Context, input: CreatePipelineStageInput) {
-  await requirePermission(ctx, "clients:manage");
+  await requirePermission(ctx, "client_catalogs.manage");
   const organization = await currentOrganizationOrThrow(ctx);
   const [existing] = await ctx.db
     .select({ id: pipelineStages.id })
@@ -172,7 +166,7 @@ export async function createPipelineStage(ctx: Context, input: CreatePipelineSta
 }
 
 export async function updatePipelineStage(ctx: Context, input: UpdatePipelineStageInput) {
-  await requirePermission(ctx, "clients:manage");
+  await requirePermission(ctx, "client_catalogs.manage");
   const organization = await currentOrganizationOrThrow(ctx);
   const [current] = await ctx.db
     .select()

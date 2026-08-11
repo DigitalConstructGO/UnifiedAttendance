@@ -3,34 +3,28 @@
 import { Save, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { PermissionRecord, RoleRecord } from "@/lib/api";
+import type { RoleSummary } from "@/lib/api";
 
+import { PermissionChecklist } from "./permission-checklist";
 import { selectClass } from "./styles";
-
-/** "workforce:manage" → "Workforce · manage" without maintaining a label list. */
-function describePermission(code: string) {
-  const [domain, action] = code.split(":");
-  if (!domain || !action) return code;
-  return `${domain[0]?.toUpperCase()}${domain.slice(1)} · ${action}`;
-}
 
 export function RolePermissionsCard({
   roles,
-  permissionCatalog,
   selectedRole,
   grantedCodes,
   busy,
   onSelectRole,
   onTogglePermission,
+  onSetModule,
   onSave,
 }: {
-  roles: RoleRecord[];
-  permissionCatalog: PermissionRecord[];
+  roles: RoleSummary[];
   selectedRole: string;
   grantedCodes: string[];
   busy: boolean;
   onSelectRole: (roleId: string) => void;
   onTogglePermission: (code: string) => void;
+  onSetModule: (codes: string[], granted: boolean) => void;
   onSave: () => void;
 }) {
   return (
@@ -64,22 +58,11 @@ export function RolePermissionsCard({
           </select>
         </label>
 
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {permissionCatalog.map((permission) => (
-            <label
-              key={permission.id}
-              className="flex items-center gap-2.5 rounded-[11px] border border-border px-3 py-2.5 text-xs font-semibold has-checked:border-primary/40 has-checked:bg-primary/5"
-            >
-              <input
-                type="checkbox"
-                checked={grantedCodes.includes(permission.code)}
-                onChange={() => onTogglePermission(permission.code)}
-                className="size-4 accent-primary"
-              />
-              {describePermission(permission.code)}
-            </label>
-          ))}
-        </div>
+        <PermissionChecklist
+          selected={grantedCodes}
+          onToggle={onTogglePermission}
+          onSetModule={onSetModule}
+        />
 
         <div>
           <Button

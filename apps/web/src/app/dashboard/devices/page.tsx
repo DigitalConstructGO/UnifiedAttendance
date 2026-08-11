@@ -8,7 +8,7 @@ export default async function DevicesPage({
 }: {
   searchParams: Promise<{ section?: string }>;
 }) {
-  await requireAccess("devices:read");
+  await requireAccess("devices.read");
   const { section } = await searchParams;
 
   return (

@@ -12,18 +12,18 @@ import type {
 import type { Context } from "../../context";
 
 export async function listPositions(ctx: Context) {
-  await requirePermission(ctx, "workforce:read");
+  await requirePermission(ctx, "positions.read");
   return ctx.db.select().from(positions).orderBy(positions.title);
 }
 
 export async function createPosition(ctx: Context, input: CreatePositionInput) {
-  await requirePermission(ctx, "workforce:manage");
+  await requirePermission(ctx, "positions.create");
   const [position] = await ctx.db.insert(positions).values(input).returning();
   return position;
 }
 
 export async function updatePosition(ctx: Context, input: UpdatePositionInput) {
-  await requirePermission(ctx, "workforce:manage");
+  await requirePermission(ctx, "positions.update");
   const { id: positionId, ...values } = input;
   const [position] = await ctx.db
     .update(positions)
@@ -34,7 +34,7 @@ export async function updatePosition(ctx: Context, input: UpdatePositionInput) {
 }
 
 export async function deletePosition(ctx: Context, input: ResourceIdInput) {
-  await requirePermission(ctx, "workforce:manage");
+  await requirePermission(ctx, "positions.delete");
   const [deleted] = await ctx.db.delete(positions).where(eq(positions.id, input.id)).returning();
   return deleted ?? null;
 }
