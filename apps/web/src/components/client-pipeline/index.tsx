@@ -32,11 +32,6 @@ import { firstQueryFailure } from "@/lib/query-errors";
 
 import { AddLeadDialog } from "./add-lead-dialog";
 
-/**
- * Stages are a user-editable catalog, so the column marker is taken by position
- * rather than name — renaming a stage keeps its colour, and a new stage gets one
- * without an edit here.
- */
 const STAGE_DOT_TONES = [
   "bg-muted-foreground",
   "bg-success",
@@ -45,7 +40,6 @@ const STAGE_DOT_TONES = [
   "bg-destructive",
 ] as const;
 
-/** The board scrolls, but the bar itself is noise across five short columns. */
 const HIDDEN_SCROLLBAR = "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 const DRAG_MIME = "application/x-opportunity-id";
@@ -155,7 +149,8 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   const { can } = useAccess();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(createOpen);
+
+  const [dialogOpen, setDialogOpen] = useState(createOpen && can("clients:manage"));
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overStageId, setOverStageId] = useState<string | null>(null);
 
@@ -180,12 +175,6 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
     },
   });
 
-  /**
-   * The card lands in its new column before the server answers — a drag that
-   * visibly snapped back would read as a failure. The snapshot is restored if
-   * the write is rejected, and the list is refetched either way so the recorded
-   * stage transition and `lastActivityAt` come from the server.
-   */
   const moveStage = useMutation({
     mutationFn: clientsApi.transitionStage,
     onMutate: async ({ id, toPipelineStageId }) => {
@@ -209,6 +198,7 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   });
 
   function moveTo(opportunityId: string, toPipelineStageId: string) {
+    if (!manageable) return;
     const current = opportunities.find((row) => row.opportunity.id === opportunityId);
     if (!current || current.opportunity.pipelineStageId === toPipelineStageId) return;
     moveStage.mutate({ id: opportunityId, toPipelineStageId });
