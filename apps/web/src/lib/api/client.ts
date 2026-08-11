@@ -1,5 +1,4 @@
-/** Everything the browser sends goes through here, so one place owns URLs, cookies and errors. */
-const BASE_PATH = "/api/v1";
+import axios, { AxiosError, type AxiosResponse } from "axios";
 
 const RETRYABLE_HTTP_STATUS_MIN = 500;
 const REQUEST_TIMEOUT_STATUS = 408;
@@ -76,16 +75,30 @@ function retryableStatus(status: number) {
   );
 }
 
-function isAbortError(cause: unknown) {
-  return cause instanceof DOMException && cause.name === "AbortError";
+const BASE_PATH = "/api/v1";
+
+const http = axios.create({
+  baseURL:
+    typeof window === "undefined"
+      ? BASE_PATH
+      : new URL(BASE_PATH, window.location.origin).toString(),
+  adapter: "fetch",
+  withCredentials: true,
+  validateStatus: () => true,
+  transformResponse: [(data: unknown) => data],
+});
+
+function requestIdOf(response: AxiosResponse) {
+  const header: unknown = response.headers["x-request-id"];
+  return typeof header === "string" ? header : undefined;
 }
 
-async function readPayload(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (text.length === 0) return null;
-
+function parsePayload(response: AxiosResponse): unknown {
+  const raw: unknown = response.data;
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (typeof raw !== "string") return raw;
   try {
-    return JSON.parse(text) as unknown;
+    return JSON.parse(raw) as unknown;
   } catch (cause) {
     throw new ApiRequestError({
       status: response.status,
@@ -93,20 +106,19 @@ async function readPayload(response: Response): Promise<unknown> {
       message: "The server returned an unreadable response.",
       kind: "invalid_response",
       retryable: retryableStatus(response.status),
-      requestId: response.headers.get("x-request-id") ?? undefined,
+      requestId: requestIdOf(response),
       cause,
     });
   }
 }
 
-function withQuery(path: string, query?: QueryParams) {
-  if (!query) return `${BASE_PATH}${path}`;
-  const search = new URLSearchParams();
+function cleanQuery(query?: QueryParams) {
+  if (!query) return undefined;
+  const params: Record<string, string> = {};
   for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined && value !== null) search.set(key, String(value));
+    if (value !== undefined && value !== null) params[key] = String(value);
   }
-  const queryString = search.toString();
-  return queryString ? `${BASE_PATH}${path}?${queryString}` : `${BASE_PATH}${path}`;
+  return params;
 }
 
 export async function apiFetch<TResult>(
@@ -115,17 +127,17 @@ export async function apiFetch<TResult>(
 ): Promise<TResult> {
   const { method = "GET", body, query, signal } = options;
 
-  let response: Response;
+  let response: AxiosResponse;
   try {
-    response = await fetch(withQuery(path, query), {
+    response = await http.request({
+      url: path,
       method,
       signal,
-      credentials: "include",
-      headers: body === undefined ? undefined : { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      params: cleanQuery(query),
+      data: body === undefined ? undefined : body,
     });
   } catch (cause) {
-    const aborted = isAbortError(cause);
+    const aborted = cause instanceof AxiosError && cause.code === AxiosError.ERR_CANCELED;
     throw new ApiRequestError({
       status: 0,
       code: aborted ? "REQUEST_ABORTED" : "NETWORK_ERROR",
@@ -138,9 +150,9 @@ export async function apiFetch<TResult>(
     });
   }
 
-  const payload = await readPayload(response);
+  const payload = parsePayload(response);
 
-  if (!response.ok) {
+  if (response.status < 200 || response.status >= 300) {
     const { error } = (payload ?? {}) as ErrorBody;
     throw new ApiRequestError({
       status: response.status,
@@ -149,7 +161,7 @@ export async function apiFetch<TResult>(
       kind: "http",
       retryable: retryableStatus(response.status),
       details: error?.details,
-      requestId: error?.requestId ?? response.headers.get("x-request-id") ?? undefined,
+      requestId: error?.requestId ?? requestIdOf(response),
     });
   }
 

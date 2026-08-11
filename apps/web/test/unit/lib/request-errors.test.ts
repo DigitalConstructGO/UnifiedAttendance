@@ -4,20 +4,17 @@ import { ApiRequestError, apiFetch } from "@/lib/api/client";
 import { presentRequestError } from "@/lib/errors";
 
 type ResponseOptions = {
-  ok: boolean;
+  ok?: boolean;
   status: number;
   requestId?: string;
 };
 
+/** A real Response, because the axios fetch adapter reads its full surface. */
 function response(body: string, options: ResponseOptions) {
-  return {
-    ...options,
-    headers: {
-      get: (name: string) => (name === "x-request-id" ? (options.requestId ?? null) : null),
-    },
-    statusText: "",
-    text: async () => body,
-  } as Response;
+  return new Response(body, {
+    status: options.status,
+    headers: options.requestId ? { "x-request-id": options.requestId } : undefined,
+  });
 }
 
 afterEach(() => {
