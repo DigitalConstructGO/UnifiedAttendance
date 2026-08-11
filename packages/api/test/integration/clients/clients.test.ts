@@ -141,6 +141,31 @@ describe("clients", () => {
     expect(directory.items[0]?.client.id).toBe(created.client.id);
   });
 
+  it("creates a client from typed industry and client type names, reusing matches", async () => {
+    const created = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Habesha Breweries",
+      industry: "Beverages",
+      clientType: "Retainer",
+    });
+    const retrieved = await getClient(context, { id: created.client.id });
+    expect(retrieved.industry.name).toBe("Beverages");
+    expect(retrieved.clientType.name).toBe("Retainer");
+
+    // Typing the same names again, in any casing, lands on the same entries.
+    const second = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Second Brewery",
+      industry: "beverages",
+      clientType: "RETAINER",
+    });
+    const again = await getClient(context, { id: second.client.id });
+    expect(again.industry.id).toBe(retrieved.industry.id);
+    expect(again.clientType.id).toBe(retrieved.clientType.id);
+  });
+
   it("serves editable CRM classifications instead of hard-coded options", async () => {
     const industry = await createIndustry(context, { name: "Banking" });
     await updateIndustry(context, { id: industry.id, name: "Financial services" });

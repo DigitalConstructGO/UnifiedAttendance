@@ -19,8 +19,8 @@ type EditableClient = {
   registrationNumber: string | null;
   businessLicenseNumber: string | null;
   priority: ClientPriority | null;
-  industryId: string;
-  clientTypeId: string;
+  industry: string;
+  clientType: string;
 };
 
 function optionalValue(data: FormData, name: string) {
@@ -74,8 +74,8 @@ export function EditClientDialog({
           vatNumber: optionalValue(data, "vatNumber"),
           registrationNumber: optionalValue(data, "registrationNumber"),
           businessLicenseNumber: optionalValue(data, "businessLicenseNumber"),
-          industryId: String(data.get("industryId") ?? ""),
-          clientTypeId: String(data.get("clientTypeId") ?? ""),
+          industry: String(data.get("industry") ?? "").trim(),
+          clientType: String(data.get("clientType") ?? "").trim(),
           priority: priority ? (priority as ClientPriority) : null,
         });
       }}
@@ -101,32 +101,32 @@ export function EditClientDialog({
           <Input name="businessLicenseNumber" defaultValue={client.businessLicenseNumber ?? ""} />
         </DialogField>
         <DialogField label="Industry">
-          <select
+          <Input
             required
-            name="industryId"
-            className={dialogFieldClass}
-            defaultValue={client.industryId}
-          >
+            name="industry"
+            list="edit-client-industries"
+            defaultValue={client.industry}
+            autoComplete="off"
+          />
+          <datalist id="edit-client-industries">
             {industries.map((industry) => (
-              <option key={industry.id} value={industry.id}>
-                {industry.name}
-              </option>
+              <option key={industry.id} value={industry.name} />
             ))}
-          </select>
+          </datalist>
         </DialogField>
         <DialogField label="Client type">
-          <select
+          <Input
             required
-            name="clientTypeId"
-            className={dialogFieldClass}
-            defaultValue={client.clientTypeId}
-          >
+            name="clientType"
+            list="edit-client-types"
+            defaultValue={client.clientType}
+            autoComplete="off"
+          />
+          <datalist id="edit-client-types">
             {clientTypes.map((clientType) => (
-              <option key={clientType.id} value={clientType.id}>
-                {clientType.name}
-              </option>
+              <option key={clientType.id} value={clientType.name} />
             ))}
-          </select>
+          </datalist>
         </DialogField>
       </div>
 

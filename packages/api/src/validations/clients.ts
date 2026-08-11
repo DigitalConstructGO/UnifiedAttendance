@@ -37,21 +37,34 @@ export const updatePipelineStageInput = createPipelineStageInput.partial().exten
   status: z.enum(ACTIVE_STATUSES).optional(),
 });
 
-export const createClientInput = z.object({
-  branchId: id,
-  ownerEmployeeId: id,
-  legalName: text,
-  tradingName: nullableText,
-  industryId: id,
-  clientTypeId: id,
-  phone: nullableText,
-  email: z.email().nullable().optional(),
-  tin: nullableText,
-  vatNumber: nullableText,
-  registrationNumber: nullableText,
-  businessLicenseNumber: nullableText,
-  relationshipStartedOn: date.optional(),
-});
+const catalogName = z.string().trim().min(1).max(80);
+
+export const createClientInput = z
+  .object({
+    branchId: id,
+    ownerEmployeeId: id,
+    legalName: text,
+    tradingName: nullableText,
+    industryId: id.optional(),
+    industry: catalogName.optional(),
+    clientTypeId: id.optional(),
+    clientType: catalogName.optional(),
+    phone: nullableText,
+    email: z.email().nullable().optional(),
+    tin: nullableText,
+    vatNumber: nullableText,
+    registrationNumber: nullableText,
+    businessLicenseNumber: nullableText,
+    relationshipStartedOn: date.optional(),
+  })
+  .refine((input) => input.industryId || input.industry, {
+    path: ["industry"],
+    message: "Industry is required",
+  })
+  .refine((input) => input.clientTypeId || input.clientType, {
+    path: ["clientType"],
+    message: "Client type is required",
+  });
 
 export const updateClientInput = z.object({
   id,
@@ -60,7 +73,9 @@ export const updateClientInput = z.object({
   legalName: text.optional(),
   tradingName: nullableText,
   industryId: id.optional(),
+  industry: catalogName.optional(),
   clientTypeId: id.optional(),
+  clientType: catalogName.optional(),
   phone: nullableText,
   email: z.email().nullable().optional(),
   tin: nullableText,

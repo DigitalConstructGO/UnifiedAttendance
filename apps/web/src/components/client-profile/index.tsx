@@ -158,7 +158,11 @@ export function ClientProfile({
           ) : null}
           {editDialogOpen ? (
             <EditClientDialog
-              client={profile.client.client}
+              client={{
+                ...profile.client.client,
+                industry: profile.client.industry.name,
+                clientType: profile.client.clientType.name,
+              }}
               onClose={() => setEditDialogOpen(false)}
             />
           ) : null}
