@@ -124,7 +124,6 @@ function OpportunityCard({
         {relativeTime(row.opportunity.lastActivityAt ?? row.opportunity.createdAt)}
       </div>
 
-      {/* Dragging is a mouse gesture; this select is the same move for keyboard and screen readers. */}
       {movable ? (
         <label className="mt-2.5 block">
           <span className="sr-only">Move {name} to stage</span>

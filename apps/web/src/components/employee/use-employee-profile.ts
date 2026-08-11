@@ -10,10 +10,7 @@ import { firstQueryFailure } from "@/lib/query-errors";
 
 import { transitionPayload, updateEmployeePayload } from "./employee-form-payloads";
 
-/**
- * The profile page's counterpart to useEmployeeWorkspace: one employee, read
- * by id so the page survives a refresh, plus the writes that page offers.
- */
+
 export function useEmployeeProfile(employeeId: string) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -25,7 +22,6 @@ export function useEmployeeProfile(employeeId: string) {
   const departmentsQuery = useQuery(workforceQueries.departments());
   const positionsQuery = useQuery(workforceQueries.positions());
 
-  /** The employee and periods keys both live under the employees prefix. */
   async function invalidate() {
     await queryClient.invalidateQueries({ queryKey: workforceKeys.employeesAll });
   }
@@ -46,15 +42,15 @@ export function useEmployeeProfile(employeeId: string) {
     },
   });
 
-  const deleteEmployee = useMutation({
-    mutationFn: workforceApi.deleteEmployee,
+  const archiveEmployee = useMutation({
+    mutationFn: workforceApi.archiveEmployee,
     onSuccess: async () => {
       await invalidate();
       router.push("/dashboard/employees?section=employees");
     },
   });
 
-  const writeError = updateEmployee.error ?? transitionEmployee.error ?? deleteEmployee.error;
+  const writeError = updateEmployee.error ?? transitionEmployee.error ?? archiveEmployee.error;
   const loadFailure = firstQueryFailure([
     [employeeQuery, "Could not load this employee."],
     [periodsQuery, "Could not load employment history."],
@@ -70,7 +66,7 @@ export function useEmployeeProfile(employeeId: string) {
     setNotice(null);
     updateEmployee.reset();
     transitionEmployee.reset();
-    deleteEmployee.reset();
+    archiveEmployee.reset();
   }
 
   const employee = employeeQuery.data ?? null;
@@ -86,7 +82,7 @@ export function useEmployeeProfile(employeeId: string) {
     loading: employeeQuery.isPending,
     notice,
     error,
-    busy: updateEmployee.isPending || transitionEmployee.isPending || deleteEmployee.isPending,
+    busy: updateEmployee.isPending || transitionEmployee.isPending || archiveEmployee.isPending,
     updateEmployee: (form: HTMLFormElement) => {
       clearFeedback();
       updateEmployee.mutate(updateEmployeePayload(new FormData(form), employeeId));
@@ -95,14 +91,17 @@ export function useEmployeeProfile(employeeId: string) {
       clearFeedback();
       transitionEmployee.mutate(transitionPayload(new FormData(form), employeeId));
     },
-    deleteEmployee: () => {
+    archiveEmployee: () => {
       if (
         !employee ||
-        !window.confirm(`Delete ${employee.person.firstName} ${employee.person.lastName}?`)
+        !window.confirm(
+          `Move ${employee.person.firstName} ${employee.person.lastName} to the archive? ` +
+            "You can restore them, or delete them for good, from Employees → Archive.",
+        )
       )
         return;
       clearFeedback();
-      deleteEmployee.mutate(employeeId);
+      archiveEmployee.mutate(employeeId);
     },
     retry: loadFailure?.retry,
   };

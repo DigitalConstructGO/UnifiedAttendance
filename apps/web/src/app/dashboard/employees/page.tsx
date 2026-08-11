@@ -7,6 +7,7 @@ const employeeSections = new Set<EmployeeSection>([
   "create",
   "departments",
   "contracts",
+  "archive",
 ]);
 const contractViews = new Set<EmploymentContractView>(["list", "create", "cosigners"]);
 

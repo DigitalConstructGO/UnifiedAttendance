@@ -62,6 +62,7 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
       join employees emp
         on emp.id = ep.employee_id
        and emp.has_fixed_schedule
+       and emp.archived_at is null
       join days d
         on d.day >= ep.effective_from
        and (ep.effective_to is null or d.day <= ep.effective_to)
@@ -95,6 +96,7 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
       join employees emp
         on emp.id = ep.employee_id
        and not emp.has_fixed_schedule
+       and emp.archived_at is null
       join attendance_days ad
         on ad.employee_id = ep.employee_id
        and ad.attendance_date >= ${params.from}::date

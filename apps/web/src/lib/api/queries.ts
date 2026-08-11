@@ -113,6 +113,12 @@ export const workforceQueries = {
       queryFn: ({ signal }) => workforceApi.employees(branchId, signal),
       enabled: branchId.length > 0,
     }),
+  archivedEmployees: (branchId: string) =>
+    queryOptions({
+      queryKey: workforceKeys.archivedEmployees(branchId),
+      queryFn: ({ signal }) => workforceApi.archivedEmployees(branchId, signal),
+      enabled: branchId.length > 0,
+    }),
   employee: (id: string) =>
     queryOptions({
       queryKey: workforceKeys.employee(id),

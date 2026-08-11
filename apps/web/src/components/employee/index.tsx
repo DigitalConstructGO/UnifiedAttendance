@@ -8,6 +8,7 @@ import {
   EmploymentContractsWorkspace,
 } from "@/components/employment-contracts";
 
+import { ArchivedPanel } from "./archived-panel";
 import { CreateEmployeePanel } from "./create-employee-panel";
 import { DepartmentManager } from "./department-manager";
 import { EmployeeDirectory } from "./employee-directory";
@@ -36,7 +37,8 @@ export function EmployeeWorkspace({
   const manageable = can("workforce:manage");
   const activeSection = !manageable && section !== "employees" ? "employees" : section;
   const meta = sectionMeta(activeSection);
-  const showsBranchPicker = activeSection === "employees" || activeSection === "contracts";
+  const showsBranchPicker =
+    activeSection === "employees" || activeSection === "contracts" || activeSection === "archive";
 
   return (
     <div className="mx-auto w-full max-w-[1240px] space-y-6">
@@ -94,6 +96,8 @@ export function EmployeeWorkspace({
           <PositionManager />
         </div>
       ) : null}
+
+      {activeSection === "archive" ? <ArchivedPanel branchId={workspace.branchId} /> : null}
 
       {activeSection === "contracts" ? (
         <EmploymentContractsWorkspace

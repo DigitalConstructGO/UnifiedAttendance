@@ -69,6 +69,7 @@ export const workforceKeys = {
     ["employment-contracts", employeeId ?? "all"] as const,
   employeesAll: ["employees"] as const,
   employees: (branchId: string) => ["employees", { branchId }] as const,
+  archivedEmployees: (branchId: string) => ["employees", { branchId, archived: true }] as const,
   employee: (id: string) => ["employees", id] as const,
   employmentPeriods: (id: string) => ["employees", id, "employment-periods"] as const,
 };
@@ -120,6 +121,12 @@ export const workforceApi = {
 
   employees: (branchId: string, signal?: AbortSignal) =>
     apiFetch<EmployeeRow[]>("/employees", { query: { branchId }, signal }),
+  archivedEmployees: (branchId: string, signal?: AbortSignal) =>
+    apiFetch<EmployeeRow[]>("/employees", { query: { branchId, archived: "true" }, signal }),
+  archiveEmployee: (id: string) =>
+    apiFetch<EmployeeRow["employee"]>(`/employees/${id}/archive`, { method: "POST" }),
+  restoreEmployee: (id: string) =>
+    apiFetch<EmployeeRow["employee"]>(`/employees/${id}/restore`, { method: "POST" }),
   employee: (id: string, signal?: AbortSignal) =>
     apiFetch<EmployeeRow>(`/employees/${id}`, { signal }),
   createEmployee: (input: z.input<typeof validations.createEmployeeInput>) =>

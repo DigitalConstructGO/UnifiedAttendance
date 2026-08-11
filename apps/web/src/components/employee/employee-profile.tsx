@@ -86,7 +86,7 @@ export function EmployeeProfile({ employeeId }: { employeeId: string }) {
           busy={profile.busy}
           onUpdate={profile.updateEmployee}
           onTransition={profile.transitionEmployee}
-          onDelete={profile.deleteEmployee}
+          onDelete={profile.archiveEmployee}
         />
       ) : null}
     </div>

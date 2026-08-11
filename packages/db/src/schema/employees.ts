@@ -43,6 +43,8 @@ export const employees = pgTable(
     employmentType: employmentType("employment_type").notNull().default(EMPLOYMENT_TYPES[0]),
     hireDate: date("hire_date").notNull(),
     status: employeeStatus("status").notNull().default(EMPLOYEE_STATUSES[0]),
+    /** Set = in the archive; delete-for-good is only offered from there. */
+    archivedAt: timestamp("archived_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -51,10 +53,7 @@ export const employees = pgTable(
   ],
 );
 
-/**
- * An effective-dated assignment. Employee keeps the stable staff identity;
- * periods preserve where and how that person worked at any given date.
- */
+
 export const employmentPeriods = pgTable(
   "employment_periods",
   {
