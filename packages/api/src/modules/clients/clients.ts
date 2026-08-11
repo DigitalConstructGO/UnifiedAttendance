@@ -11,7 +11,7 @@ import {
   people,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { conflict } from "../../errors";
+import { badRequest, conflict } from "../../errors";
 import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { getClientDirectoryMetrics } from "./directory";
@@ -55,17 +55,79 @@ function shapeClient(row: Awaited<ReturnType<typeof clientQuery>>[number]) {
   return { ...rest, owner: { employee: ownerEmployee, person: ownerPerson } };
 }
 
+/**
+ * Industry and client type are typed as text: the typed name resolves to its
+ * catalog row, reviving an archived one or creating a fresh one when the name
+ * is new. Picking by id still works for callers that have one.
+ */
+async function catalogEntryId(
+  ctx: Context,
+  table: typeof industries | typeof clientTypes,
+  organizationId: string,
+  chosenId: string | undefined,
+  typedName: string | undefined,
+  label: string,
+): Promise<string> {
+  if (chosenId) return chosenId;
+  if (!typedName) badRequest(`${label} is required`);
+  const sameName = and(
+    eq(table.organizationId, organizationId),
+    sql`lower(${table.name}) = lower(${typedName})`,
+  );
+  const [existing] = await ctx.db
+    .select({ id: table.id, status: table.status })
+    .from(table)
+    .where(sameName)
+    .limit(1);
+  if (existing) {
+    if (existing.status !== "active") {
+      await ctx.db.update(table).set({ status: "active" }).where(eq(table.id, existing.id));
+    }
+    return existing.id;
+  }
+  const [created] = await ctx.db
+    .insert(table)
+    .values({ organizationId, name: typedName })
+    .onConflictDoNothing()
+    .returning({ id: table.id });
+  if (created) return created.id;
+  // Lost a race with a concurrent creator; the row exists now.
+  const [raced] = await ctx.db.select({ id: table.id }).from(table).where(sameName).limit(1);
+  if (!raced) throw new Error(`Could not resolve the catalog entry "${typedName}"`);
+  return raced.id;
+}
+
 export async function createClient(ctx: Context, input: CreateClientInput) {
   await requirePermission(ctx, "clients.create", input.branchId);
   const actorUserId = requireSessionUser(ctx);
   const organization = await currentOrganizationOrThrow(ctx);
-  await validateClientReferences(ctx, { organizationId: organization.id, ...input });
+  const industryId = await catalogEntryId(
+    ctx,
+    industries,
+    organization.id,
+    input.industryId,
+    input.industry,
+    "Industry",
+  );
+  const clientTypeId = await catalogEntryId(
+    ctx,
+    clientTypes,
+    organization.id,
+    input.clientTypeId,
+    input.clientType,
+    "Client type",
+  );
+  await validateClientReferences(ctx, {
+    organizationId: organization.id,
+    ...input,
+    industryId,
+    clientTypeId,
+  });
   const relationshipStartedOn =
     input.relationshipStartedOn ?? localBusinessDate(organization.timezone);
 
   return withTransaction(ctx, async (ctx) => {
     await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
-
 
     if (input.tin) {
       const [duplicate] = await ctx.db
@@ -96,8 +158,8 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
         clientCode,
         legalName: input.legalName,
         tradingName: input.tradingName ?? null,
-        industryId: input.industryId,
-        clientTypeId: input.clientTypeId,
+        industryId,
+        clientTypeId,
         phone: input.phone ?? null,
         email: input.email ?? null,
         tin: input.tin ?? null,
@@ -211,12 +273,34 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
     await requirePermission(ctx, "clients.update", input.branchId);
   }
   const organization = await currentOrganizationOrThrow(ctx);
+  const industryId =
+    input.industryId || input.industry
+      ? await catalogEntryId(
+          ctx,
+          industries,
+          organization.id,
+          input.industryId,
+          input.industry,
+          "Industry",
+        )
+      : current.industryId;
+  const clientTypeId =
+    input.clientTypeId || input.clientType
+      ? await catalogEntryId(
+          ctx,
+          clientTypes,
+          organization.id,
+          input.clientTypeId,
+          input.clientType,
+          "Client type",
+        )
+      : current.clientTypeId;
   await validateClientReferences(ctx, {
     organizationId: organization.id,
     branchId: input.branchId ?? current.branchId,
     ownerEmployeeId: input.ownerEmployeeId ?? current.ownerEmployeeId,
-    industryId: input.industryId ?? current.industryId,
-    clientTypeId: input.clientTypeId ?? current.clientTypeId,
+    industryId,
+    clientTypeId,
   });
   if (input.tin && input.tin !== current.tin) {
     const [duplicate] = await ctx.db
@@ -234,16 +318,28 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
   }
 
   const actorUserId = requireSessionUser(ctx);
-  const { id: clientId, ownerEmployeeId, ...values } = input;
+  const {
+    id: clientId,
+    ownerEmployeeId,
+    industry: _industry,
+    industryId: _industryId,
+    clientType: _clientType,
+    clientTypeId: _clientTypeId,
+    ...values
+  } = input;
   const reassigned = ownerEmployeeId !== undefined && ownerEmployeeId !== current.ownerEmployeeId;
   const changedFields = Object.keys(values).filter(
     (key) => values[key as keyof typeof values] !== undefined,
   );
+  if (industryId !== current.industryId) changedFields.push("industryId");
+  if (clientTypeId !== current.clientTypeId) changedFields.push("clientTypeId");
   await withTransaction(ctx, async (ctx) => {
     await ctx.db
       .update(clients)
       .set({
         ...values,
+        ...(industryId === current.industryId ? {} : { industryId }),
+        ...(clientTypeId === current.clientTypeId ? {} : { clientTypeId }),
         ...(ownerEmployeeId === undefined ? {} : { ownerEmployeeId }),
       })
       .where(eq(clients.id, clientId));

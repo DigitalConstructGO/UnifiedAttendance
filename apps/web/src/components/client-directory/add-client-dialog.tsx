@@ -18,15 +18,6 @@ import { presentRequestError, type RequestErrorPresentation } from "@/lib/errors
 
 import { DialogField, dialogFieldClass, RecordDialog } from "../client-agreements/record-dialog";
 
-
-const CATALOG_EMPTY_ERROR: RequestErrorPresentation = {
-  code: "CATALOG_EMPTY",
-  message:
-    "An industry and a client type must exist before a client can be created. Both are seeded with the organization.",
-  retryable: false,
-  fieldErrors: [],
-};
-
 function optionalValue(data: FormData, name: string) {
   const value = String(data.get(name) ?? "").trim();
   return value || null;
@@ -49,7 +40,6 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
   const clientTypes = (clientTypesQuery.data ?? []).filter((row) => row.status === "active");
   const employees = employeesQuery.data ?? [];
 
- 
   useEffect(() => {
     if (!branchId && branches.length === 1) setBranchId(branches[0]!.id);
   }, [branchId, branches]);
@@ -81,19 +71,29 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
       onSubmit={(form) => {
         const data = new FormData(form);
 
-        if (industries.length === 0 || clientTypes.length === 0) {
-          setLocalError(CATALOG_EMPTY_ERROR);
+        // The owner is typed as a name; it must resolve to a real employee.
+        const ownerName = String(data.get("ownerName") ?? "").trim();
+        const owner = employees.find(
+          (row) => personName(row.person).toLowerCase() === ownerName.toLowerCase(),
+        );
+        if (!owner) {
+          setLocalError({
+            code: "OWNER_NOT_FOUND",
+            message: `No employee named “${ownerName}” in this branch — pick one of the suggestions.`,
+            retryable: false,
+            fieldErrors: [],
+          });
           return;
         }
 
         setLocalError(null);
         createClient.mutate({
           branchId: String(data.get("branchId") ?? ""),
-          ownerEmployeeId: String(data.get("ownerEmployeeId") ?? ""),
+          ownerEmployeeId: owner.employee.id,
           legalName: String(data.get("legalName") ?? "").trim(),
           tradingName: optionalValue(data, "tradingName"),
-          industryId: String(data.get("industryId") ?? ""),
-          clientTypeId: String(data.get("clientTypeId") ?? ""),
+          industry: String(data.get("industry") ?? "").trim(),
+          clientType: String(data.get("clientType") ?? "").trim(),
           phone: optionalValue(data, "phone"),
           email: optionalValue(data, "email"),
           tin: optionalValue(data, "tin"),
@@ -133,36 +133,49 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
         </DialogField>
 
         <DialogField label="Account owner">
-          <select required name="ownerEmployeeId" className={dialogFieldClass} disabled={!branchId}>
-            <option value="">{branchId ? "Select an employee" : "Choose a branch first"}</option>
+          <Input
+            required
+            name="ownerName"
+            list="add-client-owners"
+            disabled={!branchId}
+            placeholder={branchId ? "Type the employee's name" : "Choose a branch first"}
+            autoComplete="off"
+          />
+          <datalist id="add-client-owners">
             {employees.map((row) => (
-              <option key={row.employee.id} value={row.employee.id}>
-                {personName(row.person)}
-              </option>
+              <option key={row.employee.id} value={personName(row.person)} />
             ))}
-          </select>
+          </datalist>
         </DialogField>
 
         <DialogField label="Industry">
-          <select required name="industryId" className={dialogFieldClass}>
-            <option value="">Select an industry</option>
+          <Input
+            required
+            name="industry"
+            list="add-client-industries"
+            placeholder="Banking"
+            autoComplete="off"
+          />
+          <datalist id="add-client-industries">
             {industries.map((industry) => (
-              <option key={industry.id} value={industry.id}>
-                {industry.name}
-              </option>
+              <option key={industry.id} value={industry.name} />
             ))}
-          </select>
+          </datalist>
         </DialogField>
 
         <DialogField label="Client type">
-          <select required name="clientTypeId" className={dialogFieldClass}>
-            <option value="">Select a type</option>
+          <Input
+            required
+            name="clientType"
+            list="add-client-types"
+            placeholder="Corporate"
+            autoComplete="off"
+          />
+          <datalist id="add-client-types">
             {clientTypes.map((clientType) => (
-              <option key={clientType.id} value={clientType.id}>
-                {clientType.name}
-              </option>
+              <option key={clientType.id} value={clientType.name} />
             ))}
-          </select>
+          </datalist>
         </DialogField>
 
         <DialogField label="Phone">
