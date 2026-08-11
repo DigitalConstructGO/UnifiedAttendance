@@ -12,6 +12,7 @@ import {
 import { EMPLOYEE_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums";
 
 import { deriveAttendanceDay } from "../../attendance/derive-day";
+import { badRequest } from "../../errors";
 import { expectedDaysCte, loadBranchToday } from "../reports/expected-days";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
 
@@ -251,6 +252,24 @@ export async function createManualAttendanceEntry(
     .limit(1);
   const branchId = period?.branchId ?? (await employeeBranchOrThrow(ctx, input.employeeId));
   await requirePermission(ctx, "attendance:manage", branchId);
+
+  if (input.kind === "check_out" || input.kind === "check_in") {
+    const current = await deriveAttendanceDay(ctx, {
+      employeeId: input.employeeId,
+      attendanceDate: input.attendanceDate,
+    });
+    if (input.kind === "check_out") {
+      if (!current.firstIn) {
+        badRequest("Record the check-in first — there is no check-in for this day yet.");
+      }
+      if (input.occurredAt && input.occurredAt <= current.firstIn) {
+        badRequest("The check-out must be later than the check-in.");
+      }
+    } else if (input.occurredAt && current.lastOut && input.occurredAt >= current.lastOut) {
+      badRequest("The check-in must be earlier than the recorded check-out.");
+    }
+  }
+
   const [entry] = await ctx.db
     .insert(manualAttendanceEntries)
     .values({

@@ -7,7 +7,13 @@ import { TablePagination } from "@/components/table-pagination";
 
 import type { QuickKind, RegisterRow } from "./register-model";
 import { attendanceSelectClass } from "./register-controls";
-import { avatarTone, formatTime, registerStatus, today } from "./register-presentation";
+import {
+  avatarTone,
+  formatTime,
+  registerStatus,
+  timeInputValue,
+  today,
+} from "./register-presentation";
 
 function dayLabel(date: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -239,7 +245,7 @@ function RecordEntryForm({
 }) {
   const fullName = `${row.person.firstName} ${row.person.lastName}`;
   const suggestedKind: QuickKind = row.day.firstIn ? "check_out" : "check_in";
-  const now = formatTime(new Date().toISOString(), timeZone);
+  const now = timeInputValue(new Date().toISOString(), timeZone);
 
   return (
     <form
@@ -257,7 +263,10 @@ function RecordEntryForm({
         className={`${attendanceSelectClass} h-9`}
       >
         <option value="check_in">Check in</option>
-        <option value="check_out">Check out</option>
+        {/* A check-out with no check-in would invert the day; the server refuses it too. */}
+        <option value="check_out" disabled={!row.day.firstIn}>
+          Check out
+        </option>
       </select>
       <Input
         name="time"

@@ -96,6 +96,43 @@ describe("manual attendance entries", () => {
     expect(earlierOut.day.lastOut).toEqual(new Date("2026-02-09T16:00:00+03:00"));
   });
 
+  it("refuses a check-out when nothing checked the person in", async () => {
+    await expect(
+      createManualAttendanceEntry(
+        officer,
+        createManualAttendanceEntryInput.parse({
+          employeeId,
+          attendanceDate: MONDAY,
+          kind: "check_out",
+          occurredAt: "2026-02-09T17:00:00+03:00",
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("refuses a pair that would read leave-then-arrive", async () => {
+    const record = (kind: "check_in" | "check_out", occurredAt: string) =>
+      createManualAttendanceEntry(
+        officer,
+        createManualAttendanceEntryInput.parse({
+          employeeId,
+          attendanceDate: MONDAY,
+          kind,
+          occurredAt,
+        }),
+      );
+
+    await record("check_in", "2026-02-09T09:00:00+03:00");
+    await expect(record("check_out", "2026-02-09T08:30:00+03:00")).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+
+    await record("check_out", "2026-02-09T17:00:00+03:00");
+    await expect(record("check_in", "2026-02-09T18:00:00+03:00")).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
   it("still refuses a check-in without a time", () => {
     const parsed = createManualAttendanceEntryInput.safeParse({
       employeeId,
