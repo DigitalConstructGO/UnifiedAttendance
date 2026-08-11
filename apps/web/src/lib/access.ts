@@ -59,7 +59,12 @@ export const NAV_SECTIONS = [
 
 export function visibleNavItems(access: Access) {
   return DASHBOARD_NAV.filter((item) => {
-    if (item.label === "Organization" && access.role === "HR") return false;
+    if (
+      item.label === "Organization" &&
+      access.role !== "Admin" &&
+      access.role !== "Super Administrator"
+    )
+      return false;
     if (item.label === "Users & access" && access.role !== "Super Administrator") return false;
     return can(access, item.permission);
   });

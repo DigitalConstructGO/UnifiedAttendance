@@ -45,9 +45,15 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "workforce:manage",
     "attendance:read",
     "corrections:read",
-    // HR corrects attendance themselves; nobody signs off on their edits.
     "corrections:manage",
     "reports:read",
   ],
-  [ROLES.manager]: ["workforce:read", "clients:read"],
+
+  [ROLES.manager]: [
+    "organization:read",
+    "workforce:read",
+    "workforce:manage",
+    "clients:read",
+    "clients:manage",
+  ],
 };
