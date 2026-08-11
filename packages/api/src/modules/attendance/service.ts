@@ -184,7 +184,9 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
         eq(attendanceDays.attendanceDate, input.date),
       ),
     );
-  const byEmployee = new Map(stored.map((day) => [day.employeeId, day]));
+  const byEmployee = new Map<string, Awaited<ReturnType<typeof deriveAttendanceDay>>>(
+    stored.map((day) => [day.employeeId, day]),
+  );
 
   const missing = employeeIds.filter((id) => !byEmployee.has(id));
   const queue = [...missing];

@@ -9,7 +9,11 @@ import type { Employee, EmploymentPeriod, Person } from "./workforce";
 import type { RegisterStatus } from "../validations/attendance";
 
 export type AttendanceEvent = typeof attendanceEvents.$inferSelect;
-export type AttendanceDay = typeof attendanceDays.$inferSelect;
+/** A day computed from pure silence is never stored, so it carries no row identity. */
+export type AttendanceDay = Omit<typeof attendanceDays.$inferSelect, "id" | "calculatedAt"> & {
+  id: string | null;
+  calculatedAt: Date | null;
+};
 export type AttendancePushBatch = typeof attendancePushBatches.$inferSelect;
 export type ManualAttendanceEntry = typeof manualAttendanceEntries.$inferSelect;
 

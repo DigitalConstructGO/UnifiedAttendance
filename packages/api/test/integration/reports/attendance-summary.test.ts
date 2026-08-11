@@ -17,6 +17,7 @@ import {
   userRoles,
 } from "@UnifiedAttendance/db/schema/index";
 
+import { listDailyRegister } from "../../../src/modules/attendance/service";
 import { getAttendanceSummary } from "../../../src/modules/reports/service";
 import { attendanceSummaryInput } from "../../../src/validations/reports";
 import { resetDatabase, testContext } from "../../fixtures";
@@ -40,11 +41,16 @@ async function seedUser(id: string, roleName: string) {
   await db.insert(userRoles).values({ userId: id, roleId: role!.id });
 }
 
-/** A branch working the given Monday-first weekdays. */
-async function seedBranch(name: string, workingWeekdays: number[]) {
+/** A branch working the given Monday-first weekdays, tracked since before the fixture dates. */
+async function seedBranch(name: string, workingWeekdays: number[], createdAt = "2025-01-01") {
   const [branch] = await db
     .insert(branches)
-    .values({ name, code: name, timezone: "Africa/Addis_Ababa" })
+    .values({
+      name,
+      code: name,
+      timezone: "Africa/Addis_Ababa",
+      createdAt: new Date(`${createdAt}T00:00:00Z`),
+    })
     .returning();
   await db.insert(branchWorkingDays).values(
     [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
@@ -113,6 +119,22 @@ describe("attendance summary report", () => {
   beforeEach(async () => {
     await resetDatabase();
     await seedUser("officer", "Admin");
+  });
+
+  it("starts tracking on the day the branch entered the system, not on Monday", async () => {
+    // Installed on Wednesday: Monday and Tuesday were never tracked.
+    const branchId = await seedBranch("HQ", [0, 1, 2, 3, 4], WED);
+    const employeeId = await seedEmployee({ code: "EMP-1", branchId, from: "2025-06-01" });
+    await day(employeeId, WED, "present", { workedMinutes: 480 });
+    await day(employeeId, THU, "present", { workedMinutes: 480 });
+
+    const report = await summary({ from: MON, to: SUN });
+
+    expect(report.rows[0]).toMatchObject({
+      expectedDays: 3, // Wednesday through Friday only
+      presentDays: 2,
+      absentDays: 1, // Friday stayed silent; Monday and Tuesday must not count
+    });
   });
 
   it("counts a full Monday-to-Friday week, reading silence before today as absence", async () => {
@@ -200,6 +222,20 @@ describe("attendance summary report", () => {
       absentDays: 0,
     });
     expect(byCode.get("MARKED")).toMatchObject({ expectedDays: 1, absentDays: 1 });
+  });
+
+  it("keeps today's silence unrecorded even after the register has been opened", async () => {
+    const branchId = await seedBranch("ALLWEEK", [0, 1, 2, 3, 4, 5, 6]);
+    await seedEmployee({ code: "SILENT", branchId });
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Addis_Ababa" }).format(
+      new Date(),
+    );
+
+    // The register derives days for silent employees; that must not store one.
+    await listDailyRegister(officer, { branchId, date: today, limit: 10, offset: 0 });
+    const report = await summary({ from: today, to: today });
+
+    expect(report.rows[0]).toMatchObject({ expectedDays: 1, unrecordedDays: 1, absentDays: 0 });
   });
 
   it("keeps the weekday alignment: a Friday-only branch expects Friday, not Saturday", async () => {
