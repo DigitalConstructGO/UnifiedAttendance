@@ -5,6 +5,8 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@UnifiedAttendance/db";
 import {
   attendanceDays,
+  attendanceDevices,
+  attendanceEvents,
   branches,
   branchWorkingDays,
   roles,
@@ -25,17 +27,16 @@ const MONDAY = "2026-02-09";
 
 describe("corrections", () => {
   let employeeId: string;
+  let branchId: string;
 
   beforeEach(async () => {
     await resetDatabase();
-    await db
-      .insert(user)
-      .values({
-        id: "officer",
-        name: "Sara Tesfaye",
-        email: "sara@example.test",
-        emailVerified: true,
-      });
+    await db.insert(user).values({
+      id: "officer",
+      name: "Sara Tesfaye",
+      email: "sara@example.test",
+      emailVerified: true,
+    });
     const [admin] = await db.select().from(roles).where(eq(roles.name, "Admin")).limit(1);
     await db.insert(userRoles).values({ userId: "officer", roleId: admin!.id });
     const [branch] = await db
@@ -61,6 +62,7 @@ describe("corrections", () => {
       },
     } as never);
     employeeId = created.employee.id;
+    branchId = branch!.id;
   });
 
   function day() {
@@ -104,5 +106,42 @@ describe("corrections", () => {
 
     await expect(day()).resolves.toHaveLength(0);
     await expect(listCorrections(officer, { employeeId } as never)).resolves.toHaveLength(0);
+  });
+
+  it("refuses a check-in later than the recorded check-out, and keeps nothing", async () => {
+    const [device] = await db
+      .insert(attendanceDevices)
+      .values({ branchId, name: "Gate reader", serialNumber: "ZK-1" })
+      .returning();
+    await db.insert(attendanceEvents).values([
+      {
+        deviceId: device!.id,
+        employeeId,
+        deviceIdentityNumber: "1001",
+        occurredAt: new Date("2026-02-09T06:30:00.000Z"),
+        direction: "in",
+      },
+      {
+        deviceId: device!.id,
+        employeeId,
+        deviceIdentityNumber: "1001",
+        occurredAt: new Date("2026-02-09T07:52:00.000Z"),
+        direction: "out",
+      },
+    ]);
+
+
+    await expect(
+      createCorrection(officer, {
+        employeeId,
+        attendanceDate: MONDAY,
+        type: "add_check_in",
+        proposedTime: new Date("2026-02-09T09:00:00.000Z"),
+        reason: "Device was offline at the gate.",
+      } as never),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    await expect(listCorrections(officer, { employeeId } as never)).resolves.toHaveLength(0);
+    await expect(day()).resolves.toHaveLength(0);
   });
 });

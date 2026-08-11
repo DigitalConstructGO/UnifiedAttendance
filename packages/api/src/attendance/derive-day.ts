@@ -7,6 +7,7 @@ import {
   manualAttendanceEntries,
 } from "@UnifiedAttendance/db/schema/index";
 
+import { conflict } from "../errors";
 import { loadDayContext } from "./day-context";
 import { attendanceOutcome, minutesAfter } from "./day-window";
 import { applyCorrections, applyManualEntries, type PunchTimes } from "./overlays";
@@ -65,6 +66,13 @@ export async function deriveAttendanceDay(
     corrections,
   );
 
+  if (firstIn && lastOut && lastOut.getTime() < firstIn.getTime()) {
+    conflict(
+      "This would put the check-in after the day's check-out. " +
+        "Undo or dispute the conflicting record first.",
+    );
+  }
+
   const outcome = outcomeOverride ?? attendanceOutcome(firstIn, lastOut, events.length > 0);
 
   let lateMinutes: number | null = null;
@@ -93,10 +101,7 @@ export async function deriveAttendanceDay(
     hasCorrection: corrections.length > 0,
   } as const;
 
-  // Silence is not a record: storing it would turn every "unrecorded"
-  // employee into a materialized absence the moment a register page loads.
-  // A day that has just fallen silent — its last correction or entry undone —
-  // must also lose the row it stored while it still had something to say.
+
   if (events.length === 0 && manualEntries.length === 0 && corrections.length === 0) {
     await ctx.db
       .delete(attendanceDays)

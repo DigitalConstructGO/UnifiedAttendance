@@ -4,6 +4,7 @@ import { attendanceCorrections, attendanceEvents } from "@UnifiedAttendance/db/s
 import { user } from "@UnifiedAttendance/db/schema/auth";
 
 import { badRequest, notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
 
@@ -44,21 +45,23 @@ export async function createCorrection(ctx: Context, input: CreateCorrectionInpu
     if (!event || event.employeeId !== input.employeeId)
       badRequest("Disputed event must belong to the employee");
   }
-  const [correction] = await ctx.db
-    .insert(attendanceCorrections)
-    .values({
-      ...input,
-      disputedEventId: input.disputedEventId ?? null,
-      proposedTime: input.proposedTime ?? null,
-      appliedBy: requireSessionUser(ctx),
-    })
-    .returning();
-  if (!correction) throw new Error("Failed to store the correction");
-  await deriveAttendanceDay(ctx, {
-    employeeId: correction.employeeId,
-    attendanceDate: correction.attendanceDate,
+  return withTransaction(ctx, async (ctx) => {
+    const [correction] = await ctx.db
+      .insert(attendanceCorrections)
+      .values({
+        ...input,
+        disputedEventId: input.disputedEventId ?? null,
+        proposedTime: input.proposedTime ?? null,
+        appliedBy: requireSessionUser(ctx),
+      })
+      .returning();
+    if (!correction) throw new Error("Failed to store the correction");
+    await deriveAttendanceDay(ctx, {
+      employeeId: correction.employeeId,
+      attendanceDate: correction.attendanceDate,
+    });
+    return correction;
   });
-  return correction;
 }
 
 export async function updateCorrection(ctx: Context, input: UpdateCorrectionInput) {
@@ -73,27 +76,29 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
     "corrections.update",
     await employeeBranchOrThrow(ctx, current.employeeId),
   );
-  const [correction] = await ctx.db
-    .update(attendanceCorrections)
-    .set(input.values)
-    .where(eq(attendanceCorrections.id, input.id))
-    .returning();
-  if (!correction) throw new Error("Failed to update the correction");
+  return withTransaction(ctx, async (ctx) => {
+    const [correction] = await ctx.db
+      .update(attendanceCorrections)
+      .set(input.values)
+      .where(eq(attendanceCorrections.id, input.id))
+      .returning();
+    if (!correction) throw new Error("Failed to update the correction");
 
-  await deriveAttendanceDay(ctx, {
-    employeeId: current.employeeId,
-    attendanceDate: current.attendanceDate,
-  });
-  if (
-    correction.employeeId !== current.employeeId ||
-    correction.attendanceDate !== current.attendanceDate
-  ) {
     await deriveAttendanceDay(ctx, {
-      employeeId: correction.employeeId,
-      attendanceDate: correction.attendanceDate,
+      employeeId: current.employeeId,
+      attendanceDate: current.attendanceDate,
     });
-  }
-  return correction;
+    if (
+      correction.employeeId !== current.employeeId ||
+      correction.attendanceDate !== current.attendanceDate
+    ) {
+      await deriveAttendanceDay(ctx, {
+        employeeId: correction.employeeId,
+        attendanceDate: correction.attendanceDate,
+      });
+    }
+    return correction;
+  });
 }
 
 export async function deleteCorrection(ctx: Context, input: DeleteCorrectionInput) {
@@ -108,10 +113,12 @@ export async function deleteCorrection(ctx: Context, input: DeleteCorrectionInpu
     "corrections.delete",
     await employeeBranchOrThrow(ctx, current.employeeId),
   );
-  await ctx.db.delete(attendanceCorrections).where(eq(attendanceCorrections.id, input.id));
-  await deriveAttendanceDay(ctx, {
-    employeeId: current.employeeId,
-    attendanceDate: current.attendanceDate,
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(attendanceCorrections).where(eq(attendanceCorrections.id, input.id));
+    await deriveAttendanceDay(ctx, {
+      employeeId: current.employeeId,
+      attendanceDate: current.attendanceDate,
+    });
   });
   return current;
 }
