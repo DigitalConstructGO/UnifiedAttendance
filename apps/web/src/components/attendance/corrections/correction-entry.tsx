@@ -14,10 +14,10 @@ function stamp(value: string | null, timeZone: string, withSeconds = false) {
     timeZone,
     day: "numeric",
     month: "short",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
     ...(withSeconds ? { second: "2-digit" } : {}),
-    hour12: false,
+    hour12: true,
   }).format(new Date(value));
 }
 

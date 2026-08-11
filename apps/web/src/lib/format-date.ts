@@ -24,7 +24,6 @@ const RELATIVE_UNITS = [
   { limit: 604800, divisor: 86400, unit: "day" },
 ] as const;
 
-/** "3 hours ago" while that is still meaningful, then an absolute date. */
 export function relativeTime(
   value: Date | string | null | undefined,
   timeZone = DEFAULT_TIME_ZONE,
@@ -45,10 +44,10 @@ export function clockTime(value: Date | string | null | undefined, timeZone = DE
   if (!value) return "";
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("en-US", {
     timeZone,
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
   }).format(date);
 }
