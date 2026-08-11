@@ -104,7 +104,10 @@ export const createEmploymentContractInput = employmentContractValues
   });
 export const updateEmploymentContractInput = employmentContractValues.partial().extend({ id });
 
-export const listEmployeesInput = z.object({ branchId: id });
+export const listEmployeesInput = z.object({
+  branchId: id,
+  archived: z.stringbool().optional(),
+});
 
 const employmentValues = z.object({
   branchId: id,

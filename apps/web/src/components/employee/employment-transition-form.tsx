@@ -69,8 +69,6 @@ export function EmploymentTransitionForm({
           >
             <DepartmentOptions departments={catalogs.departments} />
           </select>
-          {/* Remounts when the department changes, dropping a position that
-              no longer belongs to the offered list. */}
           <select
             key={departmentId}
             name="positionId"
@@ -109,7 +107,7 @@ export function EmploymentTransitionForm({
           className="h-9 w-full rounded-[9px] font-bold"
           onClick={onDelete}
         >
-          Delete employee
+          Move to archive
         </Button>
       </CardContent>
     </Card>

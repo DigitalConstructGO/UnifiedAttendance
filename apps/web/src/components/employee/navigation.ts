@@ -1,4 +1,4 @@
-import { Building2, FileSignature, UserPlus, UsersRound } from "lucide-react";
+import { Archive, Building2, FileSignature, UserPlus, UsersRound } from "lucide-react";
 
 import type { EmployeeSection } from "./workspace-model";
 
@@ -38,6 +38,15 @@ export const EMPLOYEE_SECTIONS = [
     href: "/dashboard/employees?section=contracts",
     icon: FileSignature,
     requiresManage: false,
+  },
+  {
+    id: "archive",
+    label: "Archive",
+    heading: "Archived employees",
+    description: "People removed from the directory. Restore them, or delete them for good.",
+    href: "/dashboard/employees?section=archive",
+    icon: Archive,
+    requiresManage: true,
   },
 ] as const;
 

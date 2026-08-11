@@ -1,12 +1,14 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import {
   attendanceCorrections,
   attendanceEvents,
+  clients,
   departments,
   employmentContracts,
   employmentPeriods,
   employees,
+  manualAttendanceEntries,
   people,
   positions,
 } from "@UnifiedAttendance/db/schema/index";
@@ -53,7 +55,12 @@ function employeeQuery(ctx: Context) {
 
 export async function listEmployees(ctx: Context, input: ListEmployeesInput) {
   await requirePermission(ctx, "workforce:read", input.branchId);
-  return employeeQuery(ctx).where(eq(employees.branchId, input.branchId));
+  return employeeQuery(ctx).where(
+    and(
+      eq(employees.branchId, input.branchId),
+      input.archived ? isNotNull(employees.archivedAt) : isNull(employees.archivedAt),
+    ),
+  );
 }
 
 export async function getEmployee(ctx: Context, input: ResourceIdInput) {
@@ -167,10 +174,34 @@ export async function updateEmployee(ctx: Context, input: UpdateEmployeeInput) {
   });
 }
 
-/** Removes an employee identity only when it has no immutable attendance history. */
+export async function archiveEmployee(ctx: Context, input: ResourceIdInput) {
+  const employee = await employeeOrThrow(ctx, input.id);
+  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  const [archived] = await ctx.db
+    .update(employees)
+    .set({ archivedAt: new Date() })
+    .where(and(eq(employees.id, input.id), isNull(employees.archivedAt)))
+    .returning();
+  return archived ?? employee;
+}
+
+export async function restoreEmployee(ctx: Context, input: ResourceIdInput) {
+  const employee = await employeeOrThrow(ctx, input.id);
+  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  const [restored] = await ctx.db
+    .update(employees)
+    .set({ archivedAt: null })
+    .where(eq(employees.id, input.id))
+    .returning();
+  return restored;
+}
+
 export async function deleteEmployee(ctx: Context, input: ResourceIdInput) {
   const employee = await employeeOrThrow(ctx, input.id);
   await requirePermission(ctx, "workforce:manage", employee.branchId);
+  if (!employee.archivedAt) {
+    conflict("Archive the employee first; delete for good is only offered from the archive");
+  }
   const [contract] = await ctx.db
     .select({ id: employmentContracts.id })
     .from(employmentContracts)
@@ -179,22 +210,23 @@ export async function deleteEmployee(ctx: Context, input: ResourceIdInput) {
   if (contract) {
     conflict("Employees with employment contracts cannot be deleted; terminate them instead");
   }
-  const [event] = await ctx.db
-    .select({ id: attendanceEvents.id })
-    .from(attendanceEvents)
-    .where(eq(attendanceEvents.employeeId, input.id))
+  const [ownedClient] = await ctx.db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(eq(clients.ownerEmployeeId, input.id))
     .limit(1);
-  const [correction] = await ctx.db
-    .select({ id: attendanceCorrections.id })
-    .from(attendanceCorrections)
-    .where(eq(attendanceCorrections.employeeId, input.id))
-    .limit(1);
-  if (event || correction) {
-    conflict(
-      "Employees with attendance history cannot be deleted; terminate their employment instead",
-    );
+  if (ownedClient) {
+    conflict("This employee owns clients; move those clients to another owner first");
   }
+
   return withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .delete(attendanceCorrections)
+      .where(eq(attendanceCorrections.employeeId, input.id));
+    await ctx.db
+      .delete(manualAttendanceEntries)
+      .where(eq(manualAttendanceEntries.employeeId, input.id));
+    await ctx.db.delete(attendanceEvents).where(eq(attendanceEvents.employeeId, input.id));
     const [deleted] = await ctx.db.delete(employees).where(eq(employees.id, input.id)).returning();
     await ctx.db.delete(people).where(eq(people.id, employee.personId));
     return deleted;

@@ -111,6 +111,7 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
         and(
           eq(employmentPeriods.branchId, input.branchId),
           eq(employmentPeriods.status, EMPLOYEE_STATUSES[0]),
+          isNull(employees.archivedAt),
           lte(employmentPeriods.effectiveFrom, input.date),
           or(isNull(employmentPeriods.effectiveTo), gte(employmentPeriods.effectiveTo, input.date)),
           input.departmentId ? eq(employmentPeriods.departmentId, input.departmentId) : undefined,
@@ -134,6 +135,9 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     from (
       select distinct ep.employee_id
       from employment_periods ep
+      join employees emp
+        on emp.id = ep.employee_id
+       and emp.archived_at is null
       where ep.status = 'active'
         and ep.effective_from <= ${input.date}
         and (ep.effective_to is null or ep.effective_to >= ${input.date})
