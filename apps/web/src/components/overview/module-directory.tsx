@@ -63,6 +63,11 @@ const moduleMeta: Record<NavLabel, { icon: typeof Building2; description: string
       description: "Issued amounts, payments and outstanding balances.",
       tone: "text-success bg-success/10",
     },
+    "Users & access": {
+      icon: ShieldCheck,
+      description: "Sign-in accounts, their roles and what each role may do.",
+      tone: "text-workflow bg-workflow/10",
+    },
   };
 
 export function ModuleDirectory({ access, name }: { access: Access; name: string }) {

@@ -13,6 +13,7 @@ import {
   type LucideIcon,
   PieChart,
   ReceiptText,
+  ShieldCheck,
   UserRoundPlus,
   UsersRound,
 } from "lucide-react";
@@ -49,6 +50,7 @@ const moduleIcons = {
   "Leads & pipeline": UserRoundPlus,
   Contracts: FileSignature,
   Invoices: ReceiptText,
+  "Users & access": ShieldCheck,
 } satisfies Record<NavLabel, LucideIcon>;
 
 const groupLabelClass =
@@ -99,10 +101,6 @@ export function AppSidebar({ brand }: { brand: Brand }) {
   return (
     <Sidebar collapsible="icon" className="bg-sidebar-gradient border-sidebar-border">
       <SidebarHeader className="gap-4 border-b border-sidebar-border px-3 py-4">
-        {/* Dashboard pages render per-request (session + database), so a
-            prefetched copy can never be reused — prefetching them only turns
-            every visible link into a full server render, and on the Next 16
-            dev server it loops doing so. Navigation itself is unaffected. */}
         <Link
           href="/dashboard"
           prefetch={false}

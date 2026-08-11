@@ -14,5 +14,13 @@ export const assignRoleInput = z.object({
   roleId: id,
 });
 
+export const createUserInput = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(8).max(128),
+  roleId: id,
+});
+
 export type UpdateRolePermissionsInput = z.output<typeof updateRolePermissionsInput>;
 export type AssignRoleInput = z.output<typeof assignRoleInput>;
+export type CreateUserInput = z.output<typeof createUserInput>;

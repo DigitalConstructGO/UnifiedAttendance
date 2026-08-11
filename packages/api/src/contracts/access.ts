@@ -11,3 +11,15 @@ export type MyAccessEntry = {
 };
 
 export type RoleAssignment = RoleGrant & { roleName: string };
+
+export type RolePermissionGrant = { roleId: string; permissionCode: string };
+
+export type UserAccount = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+  roleId: string | null;
+  roleName: string | null;
+  assignedAt: Date | null;
+};
