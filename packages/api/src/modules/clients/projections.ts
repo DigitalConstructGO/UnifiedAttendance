@@ -145,7 +145,7 @@ export async function getClientProfile(ctx: Context, input: ClientProjectionInpu
 
 export async function listClientAuditEntries(ctx: Context, input: ClientResourceIdInput) {
   const client = await clientOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   return ctx.db
     .select({ entry: clientAuditEntries, actorUser: user })
     .from(clientAuditEntries)
@@ -165,7 +165,7 @@ type TimelineItem = {
 
 export async function getClientTimeline(ctx: Context, input: ClientProjectionInput) {
   const client = await clientOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const asOf = input.asOf ?? localBusinessDate(organization.timezone);
   const [assignments, transitions, contracts, clientInvoices, payments, activities, balances] =

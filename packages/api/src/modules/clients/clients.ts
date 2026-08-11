@@ -56,7 +56,7 @@ function shapeClient(row: Awaited<ReturnType<typeof clientQuery>>[number]) {
 }
 
 export async function createClient(ctx: Context, input: CreateClientInput) {
-  await requirePermission(ctx, "clients:manage", input.branchId);
+  await requirePermission(ctx, "clients.create", input.branchId);
   const actorUserId = requireSessionUser(ctx);
   const organization = await currentOrganizationOrThrow(ctx);
   await validateClientReferences(ctx, { organizationId: organization.id, ...input });
@@ -66,9 +66,7 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
   return withTransaction(ctx, async (ctx) => {
     await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
 
-    // TIN is unique per organization where it is set. Now that it can be supplied at
-    // creation, check it under the lock already held — otherwise a duplicate surfaces
-    // as a raw unique-violation rather than something the form can show.
+
     if (input.tin) {
       const [duplicate] = await ctx.db
         .select({ clientCode: clients.clientCode })
@@ -136,14 +134,14 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
 
 export async function getClient(ctx: Context, input: ClientResourceIdInput) {
   const client = await clientOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const [row] = await clientQuery(ctx).where(eq(clients.id, input.id)).limit(1);
   if (!row) throw new Error("Client details could not be loaded");
   return shapeClient(row);
 }
 
 export async function listClients(ctx: Context, input: ListClientsInput) {
-  await requirePermission(ctx, "clients:read", input.branchId);
+  await requirePermission(ctx, "clients.read", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(clients.organizationId, organization.id)];
   if (input.branchId) filters.push(eq(clients.branchId, input.branchId));
@@ -208,9 +206,9 @@ export async function listClients(ctx: Context, input: ListClientsInput) {
 
 export async function updateClient(ctx: Context, input: UpdateClientInput) {
   const current = await clientOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:manage", current.branchId);
+  await requirePermission(ctx, "clients.update", current.branchId);
   if (input.branchId && input.branchId !== current.branchId) {
-    await requirePermission(ctx, "clients:manage", input.branchId);
+    await requirePermission(ctx, "clients.update", input.branchId);
   }
   const organization = await currentOrganizationOrThrow(ctx);
   await validateClientReferences(ctx, {
@@ -284,7 +282,7 @@ export async function updateClient(ctx: Context, input: UpdateClientInput) {
 
 export async function listClientOwnerAssignments(ctx: Context, input: ClientResourceIdInput) {
   const client = await clientOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const rows = await ctx.db
     .select({ assignment: clientOwnerAssignments, employee: employees, person: people })
     .from(clientOwnerAssignments)
@@ -300,7 +298,7 @@ export async function listClientOwnerAssignments(ctx: Context, input: ClientReso
 
 export async function archiveClient(ctx: Context, input: ClientResourceIdInput) {
   const current = await clientOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:manage", current.branchId);
+  await requirePermission(ctx, "clients.archive", current.branchId);
   if (current.status === "archived") return current;
   const actorUserId = requireSessionUser(ctx);
   const [archived] = await withTransaction(ctx, async (ctx) => {

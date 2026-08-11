@@ -15,11 +15,10 @@ import type {
 } from "../../validations/corrections";
 import type { Context } from "../../context";
 
-
 export async function listCorrections(ctx: Context, input: ListCorrectionsInput) {
   await requirePermission(
     ctx,
-    "corrections:read",
+    "corrections.read",
     await employeeBranchOrThrow(ctx, input.employeeId),
   );
   const rows = await ctx.db
@@ -35,7 +34,7 @@ export async function listCorrections(ctx: Context, input: ListCorrectionsInput)
 
 export async function createCorrection(ctx: Context, input: CreateCorrectionInput) {
   const branchId = await employeeBranchOrThrow(ctx, input.employeeId);
-  await requirePermission(ctx, "corrections:manage", branchId);
+  await requirePermission(ctx, "corrections.create", branchId);
   if (input.disputedEventId) {
     const [event] = await ctx.db
       .select()
@@ -71,7 +70,7 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
   if (!current) notFound("Correction");
   await requirePermission(
     ctx,
-    "corrections:manage",
+    "corrections.update",
     await employeeBranchOrThrow(ctx, current.employeeId),
   );
   const [correction] = await ctx.db
@@ -97,7 +96,6 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
   return correction;
 }
 
-
 export async function deleteCorrection(ctx: Context, input: DeleteCorrectionInput) {
   const [current] = await ctx.db
     .select()
@@ -107,7 +105,7 @@ export async function deleteCorrection(ctx: Context, input: DeleteCorrectionInpu
   if (!current) notFound("Correction");
   await requirePermission(
     ctx,
-    "corrections:manage",
+    "corrections.delete",
     await employeeBranchOrThrow(ctx, current.employeeId),
   );
   await ctx.db.delete(attendanceCorrections).where(eq(attendanceCorrections.id, input.id));

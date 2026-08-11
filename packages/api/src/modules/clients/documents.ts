@@ -127,7 +127,7 @@ export async function getClientDocument(ctx: Context, input: ClientResourceIdInp
   const client = await clientOrThrow(ctx, document.clientId);
   await requirePermission(
     ctx,
-    document.accessLevel === "restricted" ? "clients:manage" : "clients:read",
+    document.accessLevel === "restricted" ? "client_documents.upload" : "clients.read",
     client.branchId,
   );
   const [row] = await documentQuery(ctx).where(eq(clientDocuments.id, document.id)).limit(1);
@@ -137,7 +137,7 @@ export async function getClientDocument(ctx: Context, input: ClientResourceIdInp
 
 export async function listClientDocuments(ctx: Context, input: ListClientDocumentsInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:read", client.branchId);
+  await requirePermission(ctx, "clients.read", client.branchId);
   const rows = await documentQuery(ctx)
     .where(
       and(
@@ -151,7 +151,7 @@ export async function listClientDocuments(ctx: Context, input: ListClientDocumen
 
 export async function createClientDocument(ctx: Context, input: CreateClientDocumentInput) {
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_documents.upload", client.branchId);
   await Promise.all([
     validateUploader(ctx, input.uploadedByEmployeeId),
     validateDocumentContext(ctx, input, client.organizationId),
@@ -206,7 +206,7 @@ export async function createClientDocumentVersion(
     .limit(1);
   if (!latest) notFound("Client Document");
   const client = await clientOrThrow(ctx, latest.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_documents.upload", client.branchId);
   await validateUploader(ctx, input.uploadedByEmployeeId);
   const actorUserId = requireSessionUser(ctx);
   const documentId = await withTransaction(ctx, async (ctx) => {
@@ -257,7 +257,7 @@ export async function createClientDocumentVersion(
 export async function deleteClientDocument(ctx: Context, input: ClientResourceIdInput) {
   const document = await documentOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, document.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "client_documents.delete", client.branchId);
   const actorUserId = requireSessionUser(ctx);
 
   return withTransaction(ctx, async (ctx) => {

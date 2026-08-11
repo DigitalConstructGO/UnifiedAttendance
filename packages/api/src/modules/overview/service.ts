@@ -25,9 +25,8 @@ function shiftDate(date: string, days: number) {
   return shifted.toISOString().slice(0, 10);
 }
 
-
 export async function getOperationsOverview(ctx: Context, input: OperationsOverviewInput) {
-  await requirePermission(ctx, "attendance:read");
+  await requirePermission(ctx, "dashboard.read");
 
   const { date } = input;
   const trendFrom = shiftDate(date, -(TREND_DAYS - 1));
@@ -141,7 +140,6 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
   const sum = (pick: (row: (typeof todayRows)[number]) => number) =>
     working.reduce((total, row) => total + pick(row), 0);
 
-  
   const recorded = todayRows.reduce((total, row) => total + row.value, 0);
   const onWorkingDay = sum((row) => row.value);
   const late = sum((row) => row.late);

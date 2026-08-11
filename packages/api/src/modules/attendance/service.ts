@@ -29,11 +29,11 @@ import type {
 import type { Context } from "../../context";
 
 export async function listEvents(ctx: Context, input: ListEventsInput) {
-  if (!input.employeeId) await requirePermission(ctx, "attendance:read");
+  if (!input.employeeId) await requirePermission(ctx, "attendance.read");
   if (input.employeeId)
     await requirePermission(
       ctx,
-      "attendance:read",
+      "attendance.read",
       await employeeBranchOrThrow(ctx, input.employeeId),
     );
   const conditions = [
@@ -53,7 +53,7 @@ export async function listEvents(ctx: Context, input: ListEventsInput) {
 export async function listDays(ctx: Context, input: ListDaysInput) {
   await requirePermission(
     ctx,
-    "attendance:read",
+    "attendance.read",
     await employeeBranchOrThrow(ctx, input.employeeId),
   );
   const conditions = [
@@ -82,7 +82,7 @@ export async function recomputeDay(ctx: Context, input: RecomputeDayInput) {
     )
     .limit(1);
   const branchId = period?.branchId ?? (await employeeBranchOrThrow(ctx, input.employeeId));
-  await requirePermission(ctx, "attendance:manage", branchId);
+  await requirePermission(ctx, "attendance.recompute", branchId);
   return deriveAttendanceDay(ctx, {
     employeeId: input.employeeId,
     attendanceDate: input.date,
@@ -92,7 +92,7 @@ export async function recomputeDay(ctx: Context, input: RecomputeDayInput) {
 const DERIVE_CONCURRENCY = 8;
 
 export async function listDailyRegister(ctx: Context, input: ListDailyRegisterInput) {
-  await requirePermission(ctx, "attendance:read", input.branchId);
+  await requirePermission(ctx, "attendance.read", input.branchId);
   const branchToday = await loadBranchToday(ctx);
   const cte = expectedDaysCte({
     from: input.date,
@@ -221,7 +221,7 @@ export async function listManualAttendanceEntries(
 ) {
   await requirePermission(
     ctx,
-    "attendance:read",
+    "attendance.read",
     await employeeBranchOrThrow(ctx, input.employeeId),
   );
   return ctx.db
@@ -255,7 +255,7 @@ export async function createManualAttendanceEntry(
     )
     .limit(1);
   const branchId = period?.branchId ?? (await employeeBranchOrThrow(ctx, input.employeeId));
-  await requirePermission(ctx, "attendance:manage", branchId);
+  await requirePermission(ctx, "attendance.record", branchId);
 
   if (input.kind === "check_out" || input.kind === "check_in") {
     const current = await deriveAttendanceDay(ctx, {
@@ -290,7 +290,7 @@ export async function createManualAttendanceEntry(
 }
 
 export async function listPushBatches(ctx: Context, input: ListPushBatchesInput) {
-  await requirePermission(ctx, "attendance:read");
+  await requirePermission(ctx, "attendance.read");
   return ctx.db
     .select()
     .from(attendancePushBatches)

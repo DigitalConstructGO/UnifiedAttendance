@@ -90,7 +90,7 @@ async function ensureUniqueContractNumber(
 }
 
 export async function listEmploymentContracts(ctx: Context, input: ListEmploymentContractsInput) {
-  await requirePermission(ctx, "workforce:read");
+  await requirePermission(ctx, "employment_contracts.read");
   return contractQuery(ctx)
     .where(input.employeeId ? eq(employmentContracts.employeeId, input.employeeId) : undefined)
     .orderBy(desc(employmentContracts.createdAt));
@@ -98,7 +98,7 @@ export async function listEmploymentContracts(ctx: Context, input: ListEmploymen
 
 export async function createEmploymentContract(ctx: Context, input: CreateEmploymentContractInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
-  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  await requirePermission(ctx, "employment_contracts.create", employee.branchId);
   const period = await employmentAt(ctx, input.employeeId, input.startsOn);
   if (!period) badRequest("No employment period covers the contract start date");
   await ensureUniqueContractNumber(ctx, input.contractNumber);
@@ -134,7 +134,7 @@ export async function createEmploymentContract(ctx: Context, input: CreateEmploy
 export async function updateEmploymentContract(ctx: Context, input: UpdateEmploymentContractInput) {
   const current = await employmentContractOrThrow(ctx, input.id);
   const employee = await employeeOrThrow(ctx, current.employeeId);
-  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  await requirePermission(ctx, "employment_contracts.update", employee.branchId);
   const startsOn = input.startsOn ?? current.startsOn;
   const endsOn = input.endsOn === undefined ? current.endsOn : input.endsOn;
   const status = input.status ?? current.status;
@@ -160,7 +160,7 @@ export async function updateEmploymentContract(ctx: Context, input: UpdateEmploy
 export async function deleteEmploymentContract(ctx: Context, input: ResourceIdInput) {
   const contract = await employmentContractOrThrow(ctx, input.id);
   const employee = await employeeOrThrow(ctx, contract.employeeId);
-  await requirePermission(ctx, "workforce:manage", employee.branchId);
+  await requirePermission(ctx, "employment_contracts.delete", employee.branchId);
   const [deleted] = await ctx.db
     .delete(employmentContracts)
     .where(eq(employmentContracts.id, input.id))

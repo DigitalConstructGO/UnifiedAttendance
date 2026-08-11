@@ -19,10 +19,9 @@ type DocumentOwner = {
   employmentContractId?: string | null;
 };
 
-
 async function requireDocumentPermission(
   ctx: Context,
-  permission: "workforce:read" | "workforce:manage",
+  permission: "workforce_documents.read" | "workforce_documents.manage",
   owner: DocumentOwner,
 ) {
   if (owner.personId) {
@@ -57,7 +56,7 @@ function storagePrefix(input: CreateWorkforceDocumentInput) {
 
 /** Creates private metadata first; the web route returns the corresponding signed upload URL. */
 export async function createWorkforceDocument(ctx: Context, input: CreateWorkforceDocumentInput) {
-  await requireDocumentPermission(ctx, "workforce:manage", input);
+  await requireDocumentPermission(ctx, "workforce_documents.manage", input);
   const [document] = await ctx.db
     .insert(workforceDocuments)
     .values({
@@ -80,7 +79,7 @@ export async function finalizeWorkforceDocument(ctx: Context, documentId: string
     .where(eq(workforceDocuments.id, documentId))
     .limit(1);
   if (!document) notFound("Employee document");
-  await requireDocumentPermission(ctx, "workforce:manage", document);
+  await requireDocumentPermission(ctx, "workforce_documents.manage", document);
   const [finalized] = await ctx.db
     .update(workforceDocuments)
     .set({ finalizedAt: new Date() })
@@ -96,13 +95,13 @@ export async function getWorkforceDocument(ctx: Context, documentId: string) {
     .where(eq(workforceDocuments.id, documentId))
     .limit(1);
   if (!document) notFound("Employee document");
-  await requireDocumentPermission(ctx, "workforce:read", document);
+  await requireDocumentPermission(ctx, "workforce_documents.read", document);
   return document;
 }
 
 export async function deleteWorkforceDocument(ctx: Context, documentId: string) {
   const document = await getWorkforceDocument(ctx, documentId);
-  await requireDocumentPermission(ctx, "workforce:manage", document);
+  await requireDocumentPermission(ctx, "workforce_documents.manage", document);
   await ctx.db.delete(workforceDocuments).where(eq(workforceDocuments.id, documentId));
   return document;
 }

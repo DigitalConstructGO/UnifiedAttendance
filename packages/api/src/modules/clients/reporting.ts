@@ -71,7 +71,7 @@ function averageMeasure(totals: Map<string, { amount: bigint; count: number }>) 
 }
 
 export async function getClientOverview(ctx: Context, input: ClientOverviewInput) {
-  await requirePermission(ctx, "clients:read", input.branchId);
+  await requirePermission(ctx, "clients.read", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const asOf = input.asOf ?? localBusinessDate(organization.timezone);
   const from = input.from ?? defaultReportingStart(asOf);

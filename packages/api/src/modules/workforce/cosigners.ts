@@ -13,18 +13,18 @@ import type {
 import type { Context } from "../../context";
 
 export async function listCosigners(ctx: Context) {
-  await requirePermission(ctx, "workforce:read");
+  await requirePermission(ctx, "cosigners.read");
   return ctx.db.select().from(cosigners).orderBy(cosigners.fullName);
 }
 
 export async function createCosigner(ctx: Context, input: CreateCosignerInput) {
-  await requirePermission(ctx, "workforce:manage");
+  await requirePermission(ctx, "cosigners.create");
   const [cosigner] = await ctx.db.insert(cosigners).values(input).returning();
   return cosigner;
 }
 
 export async function updateCosigner(ctx: Context, input: UpdateCosignerInput) {
-  await requirePermission(ctx, "workforce:manage");
+  await requirePermission(ctx, "cosigners.update");
   const { id: cosignerId, ...values } = input;
   const [cosigner] = await ctx.db
     .update(cosigners)
@@ -35,7 +35,7 @@ export async function updateCosigner(ctx: Context, input: UpdateCosignerInput) {
 }
 
 export async function deleteCosigner(ctx: Context, input: ResourceIdInput) {
-  await requirePermission(ctx, "workforce:manage");
+  await requirePermission(ctx, "cosigners.delete");
   const [contract] = await ctx.db
     .select({ id: employmentContracts.id })
     .from(employmentContracts)

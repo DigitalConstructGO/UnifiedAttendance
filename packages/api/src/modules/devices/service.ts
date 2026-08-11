@@ -41,7 +41,7 @@ async function employeeOrThrow(ctx: Context, employeeId: string) {
 }
 
 export async function listDevices(ctx: Context, input: ListDevicesInput) {
-  await requirePermission(ctx, "devices:read", input.branchId);
+  await requirePermission(ctx, "devices.read", input.branchId);
   return ctx.db
     .select()
     .from(attendanceDevices)
@@ -51,21 +51,21 @@ export async function listDevices(ctx: Context, input: ListDevicesInput) {
 
 export async function getDevice(ctx: Context, input: DeviceIdInput) {
   const device = await deviceOrThrow(ctx, input.id);
-  await requirePermission(ctx, "devices:read", device.branchId);
+  await requirePermission(ctx, "devices.read", device.branchId);
   return device;
 }
 
 export async function createDevice(ctx: Context, input: CreateDeviceInput) {
-  await requirePermission(ctx, "devices:manage", input.branchId);
+  await requirePermission(ctx, "devices.create", input.branchId);
   const [device] = await ctx.db.insert(attendanceDevices).values(input).returning();
   return device;
 }
 
 export async function updateDevice(ctx: Context, input: UpdateDeviceInput) {
   const current = await deviceOrThrow(ctx, input.id);
-  await requirePermission(ctx, "devices:manage", current.branchId);
+  await requirePermission(ctx, "devices.update", current.branchId);
   if (input.branchId && input.branchId !== current.branchId)
-    await requirePermission(ctx, "devices:manage", input.branchId);
+    await requirePermission(ctx, "devices.update", input.branchId);
   const { id: deviceId, ...values } = input;
   const [device] = await ctx.db
     .update(attendanceDevices)
@@ -77,7 +77,7 @@ export async function updateDevice(ctx: Context, input: UpdateDeviceInput) {
 
 export async function listIdentities(ctx: Context, input: ListIdentitiesInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
-  await requirePermission(ctx, "devices:read", employee.branchId);
+  await requirePermission(ctx, "devices.read", employee.branchId);
   // Newest first, so the badge currently in force leads the history.
   return ctx.db
     .select()
@@ -88,10 +88,7 @@ export async function listIdentities(ctx: Context, input: ListIdentitiesInput) {
 
 export async function assignIdentity(ctx: Context, input: AssignIdentityInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
-  await requirePermission(ctx, "devices:manage", employee.branchId);
-  // A badge number can only be live for one person at a time, which the partial
-  // unique index enforces. Checking first turns that into an explanation rather
-  // than a constraint violation the caller has to decode.
+  await requirePermission(ctx, "devices.manage_identities", employee.branchId);
   const [held] = await ctx.db
     .select({ employeeId: employeeDeviceIdentities.employeeId })
     .from(employeeDeviceIdentities)
@@ -124,7 +121,7 @@ export async function closeIdentity(ctx: Context, input: CloseIdentityInput) {
     .limit(1);
   if (!identity) notFound("Device identity");
   const employee = await employeeOrThrow(ctx, identity.employeeId);
-  await requirePermission(ctx, "devices:manage", employee.branchId);
+  await requirePermission(ctx, "devices.manage_identities", employee.branchId);
   const [updated] = await ctx.db
     .update(employeeDeviceIdentities)
     .set({ validTo: input.validTo })

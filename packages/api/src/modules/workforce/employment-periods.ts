@@ -20,7 +20,7 @@ import type { Context } from "../../context";
 
 export async function listEmploymentPeriods(ctx: Context, input: ListEmploymentPeriodsInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
-  await requirePermission(ctx, "workforce:read", employee.branchId);
+  await requirePermission(ctx, "employment.read", employee.branchId);
   return ctx.db
     .select()
     .from(employmentPeriods)
@@ -32,9 +32,9 @@ export async function listEmploymentPeriods(ctx: Context, input: ListEmploymentP
 export async function transitionEmployment(ctx: Context, input: TransitionEmploymentInput) {
   const employee = await employeeOrThrow(ctx, input.employeeId);
   const current = await openEmploymentOrThrow(ctx, input.employeeId);
-  await requirePermission(ctx, "workforce:manage", current.branchId);
+  await requirePermission(ctx, "employment.transition", current.branchId);
   if (input.branchId !== current.branchId) {
-    await requirePermission(ctx, "workforce:manage", input.branchId);
+    await requirePermission(ctx, "employment.transition", input.branchId);
   }
   await positionFitsDepartmentOrThrow(ctx, input.positionId, input.departmentId);
   if (input.effectiveFrom <= current.effectiveFrom) {

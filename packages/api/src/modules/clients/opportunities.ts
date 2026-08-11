@@ -132,14 +132,14 @@ function validateValueCurrency(value?: string | null, currency?: string | null) 
 
 export async function getOpportunity(ctx: Context, input: ClientResourceIdInput) {
   const opportunity = await opportunityOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:read", opportunity.branchId);
+  await requirePermission(ctx, "clients.read", opportunity.branchId);
   const [row] = await opportunityQuery(ctx).where(eq(opportunities.id, input.id)).limit(1);
   if (!row) throw new Error("Opportunity details could not be loaded");
   return shapeOpportunity(row);
 }
 
 export async function listOpportunities(ctx: Context, input: ListOpportunitiesInput) {
-  await requirePermission(ctx, "clients:read", input.branchId);
+  await requirePermission(ctx, "clients.read", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(opportunities.organizationId, organization.id)];
   if (input.branchId) filters.push(eq(opportunities.branchId, input.branchId));
@@ -154,7 +154,7 @@ export async function listOpportunities(ctx: Context, input: ListOpportunitiesIn
 }
 
 export async function createOpportunity(ctx: Context, input: CreateOpportunityInput) {
-  await requirePermission(ctx, "clients:manage", input.branchId);
+  await requirePermission(ctx, "opportunities.create", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   await validateOpportunityReferences(ctx, organization.id, input);
   await stageOrThrow(ctx, organization.id, input.pipelineStageId);
@@ -200,9 +200,9 @@ export async function createOpportunity(ctx: Context, input: CreateOpportunityIn
 
 export async function updateOpportunity(ctx: Context, input: UpdateOpportunityInput) {
   const current = await opportunityOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:manage", current.branchId);
+  await requirePermission(ctx, "opportunities.update", current.branchId);
   if (input.branchId && input.branchId !== current.branchId) {
-    await requirePermission(ctx, "clients:manage", input.branchId);
+    await requirePermission(ctx, "opportunities.update", input.branchId);
   }
   const branchId = input.branchId ?? current.branchId;
   const ownerEmployeeId = input.ownerEmployeeId ?? current.ownerEmployeeId;
@@ -241,7 +241,7 @@ export async function transitionOpportunityStage(
   input: TransitionOpportunityStageInput,
 ) {
   const current = await opportunityOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:manage", current.branchId);
+  await requirePermission(ctx, "opportunities.move_stage", current.branchId);
   if (current.pipelineStageId === input.toPipelineStageId) {
     badRequest("Opportunity is already in that Pipeline Stage");
   }
@@ -282,10 +282,10 @@ export async function transitionOpportunityStage(
 
 export async function convertOpportunity(ctx: Context, input: ConvertOpportunityInput) {
   const current = await opportunityOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:manage", current.branchId);
+  await requirePermission(ctx, "opportunities.convert", current.branchId);
   if (current.convertedAt) conflict("Opportunity has already been converted");
   const client = await clientOrThrow(ctx, input.clientId);
-  await requirePermission(ctx, "clients:manage", client.branchId);
+  await requirePermission(ctx, "opportunities.convert", client.branchId);
   if (client.organizationId !== current.organizationId) {
     badRequest("Opportunity and Client belong to different Organizations");
   }
@@ -340,7 +340,7 @@ export async function listOpportunityStageTransitions(
   input: ListOpportunityStageTransitionsInput,
 ) {
   const opportunity = await opportunityOrThrow(ctx, input.opportunityId);
-  await requirePermission(ctx, "clients:read", opportunity.branchId);
+  await requirePermission(ctx, "clients.read", opportunity.branchId);
   return ctx.db
     .select({ transition: opportunityStageTransitions, toPipelineStage: pipelineStages })
     .from(opportunityStageTransitions)

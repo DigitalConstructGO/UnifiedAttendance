@@ -118,14 +118,14 @@ function validateProjectState(input: {
 
 export async function getProject(ctx: Context, input: ClientResourceIdInput) {
   const project = await projectOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:read", project.branchId);
+  await requirePermission(ctx, "clients.read", project.branchId);
   const [row] = await projectQuery(ctx).where(eq(projects.id, input.id)).limit(1);
   if (!row) throw new Error("Project details could not be loaded");
   return shapeProject(row);
 }
 
 export async function listProjects(ctx: Context, input: ListProjectsInput) {
-  await requirePermission(ctx, "clients:read", input.branchId);
+  await requirePermission(ctx, "clients.read", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(projects.organizationId, organization.id)];
   if (input.clientId) filters.push(eq(projects.clientId, input.clientId));
@@ -138,7 +138,7 @@ export async function listProjects(ctx: Context, input: ListProjectsInput) {
 }
 
 export async function createProject(ctx: Context, input: CreateProjectInput) {
-  await requirePermission(ctx, "clients:manage", input.branchId);
+  await requirePermission(ctx, "projects.create", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const client = await validateProjectReferences(ctx, {
     organizationId: organization.id,
@@ -178,11 +178,11 @@ export async function createProject(ctx: Context, input: CreateProjectInput) {
 
 export async function updateProject(ctx: Context, input: UpdateProjectInput) {
   const current = await projectOrThrow(ctx, input.id);
-  await requirePermission(ctx, "clients:manage", current.branchId);
+  await requirePermission(ctx, "projects.update", current.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const clientId = current.clientId;
   const branchId = input.branchId ?? current.branchId;
-  if (branchId !== current.branchId) await requirePermission(ctx, "clients:manage", branchId);
+  if (branchId !== current.branchId) await requirePermission(ctx, "projects.update", branchId);
   const status = input.status ?? current.status;
   const startsOn = input.startsOn === undefined ? current.startsOn : input.startsOn;
   const dueOn = input.dueOn ?? current.dueOn;
