@@ -118,9 +118,12 @@ export const updateClientContactInput = createClientContactInput
   .partial()
   .extend({ id });
 
+const MONEY_MESSAGE =
+  "Enter the amount in digits only, like 6050 or 6050.50 — no commas or letters";
+
 const optionalMoney = z
   .string()
-  .regex(/^\d+(\.\d{1,2})?$/)
+  .regex(/^\d+(\.\d{1,2})?$/, MONEY_MESSAGE)
   .nullable()
   .optional();
 
@@ -212,7 +215,12 @@ export const listCommercialContractsInput = z.object({
   status: z.enum(COMMERCIAL_CONTRACT_STATUSES).optional(),
 });
 
-const positiveMoney = z.string().regex(/^(?!0+(\.0{1,2})?$)\d+(\.\d{1,2})?$/);
+const positiveMoney = z
+  .string()
+  .regex(
+    /^(?!0+(\.0{1,2})?$)\d+(\.\d{1,2})?$/,
+    "Enter an amount greater than zero in digits only, like 6050 or 6050.50 — no commas or letters",
+  );
 
 export const createInvoiceInput = z.object({
   clientId: id,

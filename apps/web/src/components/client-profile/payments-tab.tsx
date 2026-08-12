@@ -8,7 +8,7 @@ import { useAccess } from "@/components/access-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clientKeys, clientsApi, workforceQueries, type InvoiceRow } from "@/lib/api";
-import { money, personName } from "@/lib/client-presentation";
+import { money, normalizeAmount, personName } from "@/lib/client-presentation";
 import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 
@@ -150,7 +150,7 @@ export function PaymentsTab({
             if (!invoice) return;
             recordPayment.mutate({
               invoiceId,
-              amount: String(data.get("amount")),
+              amount: normalizeAmount(data.get("amount")),
               currency: invoice.invoice.currency,
               paidOn: String(data.get("paidOn")),
               method: String(data.get("method")) || null,

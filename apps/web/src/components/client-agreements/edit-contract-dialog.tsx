@@ -10,6 +10,7 @@ import {
   CONTRACT_PAYMENT_STRUCTURES,
   CONTRACT_RENEWAL_MODES,
   CONTRACT_STATUS_META,
+  normalizeAmount,
   PAYMENT_STRUCTURE_LABELS,
   RENEWAL_MODE_LABELS,
   type CommercialContractStatus,
@@ -66,7 +67,7 @@ export function EditContractDialog({
       onClose={onClose}
       onSubmit={(form) => {
         const data = new FormData(form);
-        const amount = String(data.get("amount") ?? "").trim();
+        const amount = normalizeAmount(data.get("amount"));
         const signedOn = String(data.get("signedOn") ?? "").trim();
         updateContract.mutate({
           id: contract.id,
