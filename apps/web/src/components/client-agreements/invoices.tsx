@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { clientKeys, clientQueries, clientsApi } from "@/lib/api";
-import { clientName, money } from "@/lib/client-presentation";
+import { clientName, money, normalizeAmount } from "@/lib/client-presentation";
 import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
@@ -276,7 +276,7 @@ export function ClientInvoices() {
               clientId,
               branchId,
               currency: "ETB",
-              totalAmount: String(data.get("totalAmount")),
+              totalAmount: normalizeAmount(data.get("totalAmount")),
               description: String(data.get("description")) || null,
               note: String(data.get("note")) || null,
             });

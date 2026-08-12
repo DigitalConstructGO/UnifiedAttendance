@@ -14,6 +14,7 @@ import {
   CONTRACT_PAYMENT_STRUCTURES,
   CONTRACT_RENEWAL_MODES,
   CONTRACT_STATUS_META,
+  normalizeAmount,
   PAYMENT_STRUCTURE_LABELS,
   RENEWAL_MODE_LABELS,
   type CommercialContractStatus,
@@ -223,8 +224,8 @@ export function ClientContracts() {
               renewalMode: String(
                 data.get("renewalMode"),
               ) as (typeof CONTRACT_RENEWAL_MODES)[number],
-              amount: String(data.get("amount")) || null,
-              currency: String(data.get("amount")) ? "ETB" : null,
+              amount: normalizeAmount(data.get("amount")) || null,
+              currency: normalizeAmount(data.get("amount")) ? "ETB" : null,
               paymentStructure: String(
                 data.get("paymentStructure"),
               ) as (typeof CONTRACT_PAYMENT_STRUCTURES)[number],

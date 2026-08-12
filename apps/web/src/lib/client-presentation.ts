@@ -136,6 +136,10 @@ export const DOCUMENT_KIND_LABELS = {
   invoice: "Invoice",
 } as const satisfies Record<ClientDocumentKind, string>;
 
+export function normalizeAmount(raw: FormDataEntryValue | null) {
+  return String(raw ?? "").replace(/[,\s]/g, "");
+}
+
 export function money(amount: string | number | null | undefined, currency = "ETB") {
   if (amount === null || amount === undefined || amount === "") return "—";
   const value = typeof amount === "string" ? Number(amount) : amount;
@@ -143,7 +147,6 @@ export function money(amount: string | number | null | undefined, currency = "ET
   return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)} ${currency}`;
 }
 
-/** Document money: cents always shown, the way an invoice states an amount. */
 export function exactMoney(amount: string | number, currency: string) {
   const value = typeof amount === "string" ? Number(amount) : amount;
   if (Number.isNaN(value)) return `${amount} ${currency}`;
