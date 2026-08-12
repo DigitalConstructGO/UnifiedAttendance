@@ -225,6 +225,25 @@ export async function updateCrmActivity(ctx: Context, input: UpdateCrmActivityIn
   return shapeActivity(row);
 }
 
+export async function deleteCrmActivity(ctx: Context, input: ClientResourceIdInput) {
+  const current = await activityOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
+  await requirePermission(ctx, "client_engagement.manage", client.branchId);
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(crmActivities).where(eq(crmActivities.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: client.id,
+      actorUserId,
+      action: "crm_activity.deleted",
+      entityType: "crm_activity",
+      entityId: current.id,
+    });
+  });
+  return { id: current.id };
+}
+
 function activityQuery(ctx: Context) {
   return ctx.db
     .select({

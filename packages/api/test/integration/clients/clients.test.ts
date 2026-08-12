@@ -16,6 +16,10 @@ import {
   archiveClient,
   archiveClientContact,
   archiveClientNote,
+  archiveProject,
+  deleteCrmActivity,
+  deleteProject,
+  restoreProject,
   createClient,
   createClientContact,
   createCommercialContract,
@@ -377,6 +381,85 @@ describe("clients", () => {
       completedOn: "2026-12-20",
     });
     expect(await listProjects(context, { clientId: client.client.id })).toHaveLength(1);
+  });
+
+  it("archives a project out of the active list and only deletes from the archive", async () => {
+    const industry = await createIndustry(context, { name: "Banking" });
+    const clientType = await createClientType(context, { name: "Enterprise" });
+    const client = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Commercial Bank of Ethiopia",
+      industryId: industry.id,
+      clientTypeId: clientType.id,
+    });
+    const project = await createProject(context, {
+      clientId: client.client.id,
+      branchId,
+      name: "Core platform rollout",
+      managerEmployeeId: ownerEmployeeId,
+      dueOn: "2026-12-30",
+    });
+
+    // A live project refuses hard deletion outright.
+    await expect(deleteProject(context, { id: project.project.id })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+
+    const archived = await archiveProject(context, { id: project.project.id });
+    expect(archived.project.archivedAt).toBeInstanceOf(Date);
+    expect(await listProjects(context, { clientId: client.client.id })).toEqual([]);
+    expect(
+      await listProjects(context, { clientId: client.client.id, includeArchived: true }),
+    ).toHaveLength(1);
+    await expect(
+      updateProject(context, { id: project.project.id, name: "Renamed" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    const restored = await restoreProject(context, { id: project.project.id });
+    expect(restored.project.archivedAt).toBeNull();
+    expect(await listProjects(context, { clientId: client.client.id })).toHaveLength(1);
+
+    await archiveProject(context, { id: project.project.id });
+    await deleteProject(context, { id: project.project.id });
+    expect(
+      await listProjects(context, { clientId: client.client.id, includeArchived: true }),
+    ).toEqual([]);
+  });
+
+  it("refuses to delete an archived project that still carries invoices", async () => {
+    const industry = await createIndustry(context, { name: "Banking" });
+    const clientType = await createClientType(context, { name: "Enterprise" });
+    const client = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Commercial Bank of Ethiopia",
+      industryId: industry.id,
+      clientTypeId: clientType.id,
+    });
+    const project = await createProject(context, {
+      clientId: client.client.id,
+      branchId,
+      name: "Core platform rollout",
+      managerEmployeeId: ownerEmployeeId,
+      dueOn: "2026-12-30",
+    });
+    await createInvoice(context, {
+      clientId: client.client.id,
+      projectId: project.project.id,
+      branchId,
+      currency: "ETB",
+      totalAmount: "6050.00",
+    });
+
+    await archiveProject(context, { id: project.project.id });
+    await expect(deleteProject(context, { id: project.project.id })).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    // The project survives, archived, invoices intact.
+    expect(
+      await listProjects(context, { clientId: client.client.id, includeArchived: true }),
+    ).toHaveLength(1);
   });
 
   it("keeps Commercial Contracts separate and requires a signature before activation", async () => {
@@ -923,6 +1006,8 @@ describe("clients", () => {
     expect(updatedActivity.activity).toMatchObject({
       note: "Discovery meeting - Scope confirmed",
     });
+    await deleteCrmActivity(context, { id: activity.activity.id });
+    expect(await listCrmActivities(context, { clientId: client.client.id })).toEqual([]);
 
     const invoice = await createInvoice(context, {
       clientId: client.client.id,

@@ -118,6 +118,7 @@ export function ClientProfile({
               projects={profile.projects}
               timeZone={timeZone}
               manageable={manageable}
+              clientId={clientId}
               onAddProject={() => setProjectDialogOpen(true)}
               onEditProject={setEditingProject}
             />
@@ -145,7 +146,13 @@ export function ClientProfile({
             />
           ) : null}
           {!profile.tabLoading && tab === "activities" ? (
-            <ActivitiesTab activities={profile.activities} timeZone={timeZone} />
+            <ActivitiesTab
+              activities={profile.activities}
+              timeZone={timeZone}
+              clientId={clientId}
+              branchId={profile.client.branch.id}
+              ownerEmployeeId={profile.client.client.ownerEmployeeId}
+            />
           ) : null}
           {!profile.tabLoading && tab === "notes" ? (
             <NotesTab
