@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
+import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
-import { clientKeys, clientQueries, clientsApi } from "@/lib/api";
-import { CLIENT_PRIORITIES, type ClientPriority } from "@/lib/client-presentation";
-import { presentRequestError } from "@/lib/errors";
+import { clientKeys, clientQueries, clientsApi, workforceQueries } from "@/lib/api";
+import { CLIENT_PRIORITIES, personName, type ClientPriority } from "@/lib/client-presentation";
+import { presentRequestError, type RequestErrorPresentation } from "@/lib/errors";
 
 import { DialogField, dialogFieldClass, RecordDialog } from "../client-agreements/record-dialog";
 
@@ -21,6 +22,7 @@ type EditableClient = {
   priority: ClientPriority | null;
   industry: string;
   clientType: string;
+  owner: string;
 };
 
 function optionalValue(data: FormData, name: string) {
@@ -30,16 +32,21 @@ function optionalValue(data: FormData, name: string) {
 
 export function EditClientDialog({
   client,
+  branchId,
   onClose,
 }: {
   client: EditableClient;
+  branchId: string;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const [localError, setLocalError] = useState<RequestErrorPresentation | null>(null);
   const industriesQuery = useQuery(clientQueries.industries());
   const clientTypesQuery = useQuery(clientQueries.clientTypes());
+  const employeesQuery = useQuery(workforceQueries.employees(branchId));
   const industries = (industriesQuery.data ?? []).filter((row) => row.status === "active");
   const clientTypes = (clientTypesQuery.data ?? []).filter((row) => row.status === "active");
+  const employees = employeesQuery.data ?? [];
 
   const updateClient = useMutation({
     mutationFn: clientsApi.update,
@@ -57,15 +64,33 @@ export function EditClientDialog({
       busy={updateClient.isPending}
       submitLabel="Save changes"
       error={
-        updateClient.error
-          ? presentRequestError(updateClient.error, "Could not save these details.")
-          : null
+        localError
+          ? localError
+          : updateClient.error
+            ? presentRequestError(updateClient.error, "Could not save these details.")
+            : null
       }
       onClose={onClose}
       onSubmit={(form) => {
         const data = new FormData(form);
         const priority = String(data.get("priority") ?? "").trim();
 
+        // The owner is typed as a name; it must resolve to a real employee.
+        const ownerName = String(data.get("ownerName") ?? "").trim();
+        const owner = employees.find(
+          (row) => personName(row.person).toLowerCase() === ownerName.toLowerCase(),
+        );
+        if (!owner) {
+          setLocalError({
+            code: "OWNER_NOT_FOUND",
+            message: `No employee named “${ownerName}” in this branch — pick one of the suggestions.`,
+            retryable: false,
+            fieldErrors: [],
+          });
+          return;
+        }
+
+        setLocalError(null);
         updateClient.mutate({
           id: client.id,
           legalName: String(data.get("legalName") ?? "").trim(),
@@ -76,6 +101,7 @@ export function EditClientDialog({
           businessLicenseNumber: optionalValue(data, "businessLicenseNumber"),
           industry: String(data.get("industry") ?? "").trim(),
           clientType: String(data.get("clientType") ?? "").trim(),
+          ownerEmployeeId: owner.employee.id,
           priority: priority ? (priority as ClientPriority) : null,
         });
       }}
@@ -125,6 +151,20 @@ export function EditClientDialog({
           <datalist id="edit-client-types">
             {clientTypes.map((clientType) => (
               <option key={clientType.id} value={clientType.name} />
+            ))}
+          </datalist>
+        </DialogField>
+        <DialogField label="Account owner">
+          <Input
+            required
+            name="ownerName"
+            list="edit-client-owners"
+            defaultValue={client.owner}
+            autoComplete="off"
+          />
+          <datalist id="edit-client-owners">
+            {employees.map((row) => (
+              <option key={row.employee.id} value={personName(row.person)} />
             ))}
           </datalist>
         </DialogField>

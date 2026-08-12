@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { clientKeys, clientQueries, clientsApi } from "@/lib/api";
 import { clientName, money } from "@/lib/client-presentation";
@@ -33,6 +34,8 @@ export function ClientInvoices() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [issuing, setIssuing] = useState<{ id: string; invoiceNumber: string } | null>(null);
+  const [voiding, setVoiding] = useState<{ id: string; invoiceNumber: string } | null>(null);
 
   const invoicesQuery = useQuery(clientQueries.invoices());
   const clientsQuery = useQuery(clientQueries.list({ pageSize: 100 }));
@@ -41,6 +44,21 @@ export function ClientInvoices() {
     mutationFn: clientsApi.createInvoice,
     onSuccess: async () => {
       setDialogOpen(false);
+      await queryClient.invalidateQueries({ queryKey: clientKeys.invoicesAll });
+    },
+  });
+
+  const issueInvoice = useMutation({
+    mutationFn: clientsApi.issueInvoice,
+    onSuccess: async () => {
+      setIssuing(null);
+      await queryClient.invalidateQueries({ queryKey: clientKeys.invoicesAll });
+    },
+  });
+
+  const voidInvoice = useMutation({
+    mutationFn: clientsApi.voidInvoice,
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: clientKeys.invoicesAll });
     },
   });
@@ -98,6 +116,11 @@ export function ClientInvoices() {
 
       {loadFailure ? (
         <RequestErrorAlert error={loadFailure.error} onRetry={loadFailure.retry} />
+      ) : null}
+      {voidInvoice.error ? (
+        <RequestErrorAlert
+          error={presentRequestError(voidInvoice.error, "Could not void the invoice.")}
+        />
       ) : null}
 
       {rows.length === 0 && !invoicesQuery.isPending ? (
@@ -176,16 +199,47 @@ export function ClientInvoices() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Open invoice ${invoice.invoiceNumber} as a document`}
-                        >
-                          <Link href={`/dashboard/clients/invoices/${invoice.id}`} prefetch={false}>
-                            <FileDown aria-hidden="true" />
-                          </Link>
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {invoice.lifecycleStatus === "draft" && can("invoices.issue") ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-[9px] px-3 font-bold"
+                              onClick={() =>
+                                setIssuing({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                              }
+                            >
+                              Issue
+                            </Button>
+                          ) : null}
+                          {invoice.lifecycleStatus === "issued" && can("invoices.void") ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-[9px] px-3 font-bold text-destructive hover:text-destructive"
+                              onClick={() =>
+                                setVoiding({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                              }
+                            >
+                              Void
+                            </Button>
+                          ) : null}
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Open invoice ${invoice.invoiceNumber} as a document`}
+                          >
+                            <Link
+                              href={`/dashboard/clients/invoices/${invoice.id}`}
+                              prefetch={false}
+                            >
+                              <FileDown aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -254,6 +308,52 @@ export function ClientInvoices() {
             issued, which is why a draft can never be overdue.
           </p>
         </RecordDialog>
+      ) : null}
+
+      {issuing ? (
+        <RecordDialog
+          title={`Issue ${issuing.invoiceNumber}`}
+          description="Issuing sets the dates and lets payments be recorded against it"
+          icon={<ReceiptText className="size-5" />}
+          busy={issueInvoice.isPending}
+          submitLabel="Issue invoice"
+          error={
+            issueInvoice.error
+              ? presentRequestError(issueInvoice.error, "Could not issue the invoice.")
+              : null
+          }
+          onClose={() => setIssuing(null)}
+          onSubmit={(form) => {
+            const data = new FormData(form);
+            issueInvoice.mutate({
+              id: issuing.id,
+              issuedOn: String(data.get("issuedOn")),
+              dueOn: String(data.get("dueOn")),
+            });
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <DialogField label="Issued on">
+              <Input required type="date" name="issuedOn" />
+            </DialogField>
+            <DialogField label="Due on">
+              <Input required type="date" name="dueOn" />
+            </DialogField>
+          </div>
+        </RecordDialog>
+      ) : null}
+
+      {voiding ? (
+        <ConfirmDialog
+          title={`Void ${voiding.invoiceNumber}?`}
+          description="A void invoice no longer counts as owed and cannot take payments. Its number is kept for the records."
+          confirmLabel="Void invoice"
+          onCancel={() => setVoiding(null)}
+          onConfirm={() => {
+            voidInvoice.mutate(voiding.id);
+            setVoiding(null);
+          }}
+        />
       ) : null}
     </div>
   );

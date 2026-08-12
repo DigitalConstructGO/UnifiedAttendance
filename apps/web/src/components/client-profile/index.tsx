@@ -6,12 +6,14 @@ import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
-import type { ProjectStatus } from "@/lib/client-presentation";
+import type { ProjectRow } from "@/lib/api";
+import { personName, type ProjectStatus } from "@/lib/client-presentation";
 import { DEFAULT_TIME_ZONE } from "@/lib/timezone";
 
 import { ActivitiesTab } from "./activities-tab";
 import { AddContactDialog } from "./add-contact-dialog";
 import { AddProjectDialog } from "./add-project-dialog";
+import { EditProjectDialog } from "./edit-project-dialog";
 import { AuditTab } from "./audit-tab";
 import { ContactsTab } from "./contacts-tab";
 import { ContractsTab } from "./contracts-tab";
@@ -44,6 +46,7 @@ export function ClientProfile({
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectRow | null>(null);
   const profile = useClientProfile(clientId, tab, opportunityId);
   const manageable = can("clients.update");
   const projectStatuses = (profile.client?.currentProjects ?? []).map(
@@ -116,6 +119,7 @@ export function ClientProfile({
               timeZone={timeZone}
               manageable={manageable}
               onAddProject={() => setProjectDialogOpen(true)}
+              onEditProject={setEditingProject}
             />
           ) : null}
           {!profile.tabLoading && tab === "contracts" ? (
@@ -144,7 +148,13 @@ export function ClientProfile({
             <ActivitiesTab activities={profile.activities} timeZone={timeZone} />
           ) : null}
           {!profile.tabLoading && tab === "notes" ? (
-            <NotesTab notes={profile.notes} timeZone={timeZone} />
+            <NotesTab
+              notes={profile.notes}
+              timeZone={timeZone}
+              clientId={clientId}
+              branchId={profile.client.branch.id}
+              ownerEmployeeId={profile.client.client.ownerEmployeeId}
+            />
           ) : null}
           {!profile.tabLoading && tab === "timeline" ? (
             <TimelineTab timeline={profile.timeline} timeZone={timeZone} />
@@ -162,7 +172,9 @@ export function ClientProfile({
                 ...profile.client.client,
                 industry: profile.client.industry.name,
                 clientType: profile.client.clientType.name,
+                owner: personName(profile.client.owner.person),
               }}
+              branchId={profile.client.branch.id}
               onClose={() => setEditDialogOpen(false)}
             />
           ) : null}
@@ -171,6 +183,13 @@ export function ClientProfile({
               clientId={clientId}
               branchId={profile.client.branch.id}
               onClose={() => setProjectDialogOpen(false)}
+            />
+          ) : null}
+          {editingProject ? (
+            <EditProjectDialog
+              row={editingProject}
+              branchId={profile.client.branch.id}
+              onClose={() => setEditingProject(null)}
             />
           ) : null}
         </>
