@@ -10,7 +10,6 @@ import { firstQueryFailure } from "@/lib/query-errors";
 
 import { transitionPayload, updateEmployeePayload } from "./employee-form-payloads";
 
-
 export function useEmployeeProfile(employeeId: string) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -91,15 +90,9 @@ export function useEmployeeProfile(employeeId: string) {
       clearFeedback();
       transitionEmployee.mutate(transitionPayload(new FormData(form), employeeId));
     },
+    // The confirmation lives in the profile's ConfirmDialog, not here.
     archiveEmployee: () => {
-      if (
-        !employee ||
-        !window.confirm(
-          `Move ${employee.person.firstName} ${employee.person.lastName} to the archive? ` +
-            "You can restore them, or delete them for good, from Employees → Archive.",
-        )
-      )
-        return;
+      if (!employee) return;
       clearFeedback();
       archiveEmployee.mutate(employeeId);
     },

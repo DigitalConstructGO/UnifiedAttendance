@@ -2,9 +2,11 @@
 
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EMPLOYEE_STATUS_META, employmentLabel } from "@/lib/workforce-presentation";
 
 import { EmployeeDetails } from "./employee-details";
@@ -17,6 +19,7 @@ export function EmployeeProfile({ employeeId }: { employeeId: string }) {
   const manageable = can("employees.update");
   const employee = profile.employee;
   const fullName = employee ? `${employee.person.firstName} ${employee.person.lastName}` : null;
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
 
   return (
     <div className="mx-auto w-full max-w-[1240px] space-y-6">
@@ -86,7 +89,20 @@ export function EmployeeProfile({ employeeId }: { employeeId: string }) {
           busy={profile.busy}
           onUpdate={profile.updateEmployee}
           onTransition={profile.transitionEmployee}
-          onDelete={profile.archiveEmployee}
+          onDelete={() => setConfirmingArchive(true)}
+        />
+      ) : null}
+
+      {confirmingArchive ? (
+        <ConfirmDialog
+          title={`Archive ${fullName ?? "this employee"}?`}
+          description="They leave the directory, the register and the reports. Everything is kept and they can be restored — or deleted for good — from the archive."
+          confirmLabel="Archive employee"
+          onCancel={() => setConfirmingArchive(false)}
+          onConfirm={() => {
+            profile.archiveEmployee();
+            setConfirmingArchive(false);
+          }}
         />
       ) : null}
     </div>

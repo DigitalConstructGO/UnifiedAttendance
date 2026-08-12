@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -35,6 +36,7 @@ export function CorrectionsPanel({
 
   const [choice, setChoice] = useState({ branchId: "", employeeId: "" });
   const [notice, setNotice] = useState<string | null>(null);
+  const [undoing, setUndoing] = useState<{ id: string; type: CorrectionType } | null>(null);
 
   const employeeId = choice.branchId === branchId ? choice.employeeId : "";
   const manageable = can("corrections.create");
@@ -46,7 +48,6 @@ export function CorrectionsPanel({
 
   const correctionsQuery = useQuery(correctionsQueries.list({ employeeId }));
   const corrections = correctionsQuery.data ?? [];
-
 
   async function refresh() {
     await Promise.all([
@@ -168,10 +169,7 @@ export function CorrectionsPanel({
                     timeZone={timeZone}
                     manageable={manageable}
                     busy={undoCorrection.isPending}
-                    onUndo={() => {
-                      setNotice(null);
-                      undoCorrection.mutate(correction.id);
-                    }}
+                    onUndo={() => setUndoing({ id: correction.id, type: correction.type })}
                   />
                 ))}
               </div>
@@ -203,6 +201,20 @@ export function CorrectionsPanel({
           ) : null}
         </div>
       )}
+
+      {undoing ? (
+        <ConfirmDialog
+          title={`Undo this ${CORRECTION_TYPE_META[undoing.type].label.toLowerCase()}?`}
+          description="The day is recalculated back to exactly what the devices recorded."
+          confirmLabel="Undo correction"
+          onCancel={() => setUndoing(null)}
+          onConfirm={() => {
+            setNotice(null);
+            undoCorrection.mutate(undoing.id);
+            setUndoing(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

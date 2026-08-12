@@ -9,6 +9,7 @@ import { Search, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { type Cosigner, workforceApi, workforceKeys } from "@/lib/api";
@@ -30,6 +31,7 @@ export function CosignerDirectory({
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Cosigner | null>(null);
+  const [deleting, setDeleting] = useState<Cosigner | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
@@ -92,9 +94,7 @@ export function CosignerDirectory({
   }
 
   function remove(item: Cosigner) {
-    if (!window.confirm(`Delete cosigner ${item.fullName}?`)) return;
-    clearFeedback();
-    deleteCosigner.mutate(item.id);
+    setDeleting(item);
   }
 
   const columns = useMemo(
@@ -165,6 +165,20 @@ export function CosignerDirectory({
           <TableFooter table={table} itemLabel="cosigners" />
         </CardContent>
       </Card>
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete cosigner ${deleting.fullName}?`}
+          description="Their record leaves the directory. A cosigner still named on a contract cannot be deleted."
+          confirmLabel="Delete cosigner"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            clearFeedback();
+            deleteCosigner.mutate(deleting.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
