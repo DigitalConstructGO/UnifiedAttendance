@@ -1,6 +1,9 @@
 "use client";
 
-import type { EmployeeRow } from "@/lib/api";
+import { useState } from "react";
+
+import type { EmployeeRow, EmploymentContractRow } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 
 import { ContractForm } from "./contract-form";
@@ -25,6 +28,7 @@ export function EmploymentContractsWorkspace({
 }) {
   const workspace = useContractsWorkspace({ employees, contractId });
   const activeView = !manageable && view === "create" ? "list" : view;
+  const [contractToDelete, setContractToDelete] = useState<EmploymentContractRow | null>(null);
 
   return (
     <div className="space-y-5">
@@ -44,7 +48,7 @@ export function EmploymentContractsWorkspace({
           manageable={manageable}
           busy={workspace.busy}
           onEdit={workspace.editContract}
-          onDelete={workspace.deleteContract}
+          onDelete={setContractToDelete}
         />
       ) : null}
 
@@ -60,6 +64,19 @@ export function EmploymentContractsWorkspace({
 
       {activeView === "cosigners" ? (
         <CosignerDirectory items={workspace.cosigners} manageable={manageable} />
+      ) : null}
+
+      {contractToDelete ? (
+        <ConfirmDialog
+          title={`Delete contract ${contractToDelete.contract.contractNumber}?`}
+          description={`${contractToDelete.person.firstName} ${contractToDelete.person.lastName}'s contract record is removed for good.`}
+          confirmLabel="Delete contract"
+          onCancel={() => setContractToDelete(null)}
+          onConfirm={() => {
+            workspace.deleteContract(contractToDelete);
+            setContractToDelete(null);
+          }}
+        />
       ) : null}
     </div>
   );

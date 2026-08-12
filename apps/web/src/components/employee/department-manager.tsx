@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import {
@@ -27,6 +28,7 @@ import { compactSelectClass } from "./fields";
 export function DepartmentManager({ branches }: { branches: Branch[] }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Department | null>(null);
+  const [deleting, setDeleting] = useState<Department | null>(null);
 
   const departmentsQuery = useQuery(workforceQueries.departments());
   const items = departmentsQuery.data ?? [];
@@ -85,11 +87,7 @@ export function DepartmentManager({ branches }: { branches: Branch[] }) {
   }
 
   function remove(item: Department) {
-    if (!window.confirm(`Delete ${item.name}? Employees will keep no department assignment.`))
-      return;
-    saveDepartment.reset();
-    deleteDepartment.reset();
-    deleteDepartment.mutate(item.id);
+    setDeleting(item);
   }
 
   return (
@@ -182,6 +180,21 @@ export function DepartmentManager({ branches }: { branches: Branch[] }) {
           </p>
         ) : null}
       </CardContent>
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete ${deleting.name}?`}
+          description="The department is removed and its employees keep no department assignment."
+          confirmLabel="Delete department"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            saveDepartment.reset();
+            deleteDepartment.reset();
+            deleteDepartment.mutate(deleting.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
     </Card>
   );
 }

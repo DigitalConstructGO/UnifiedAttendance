@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { type Position, workforceApi, workforceKeys, workforceQueries } from "@/lib/api";
@@ -21,6 +22,7 @@ import { compactSelectClass } from "./fields";
 export function PositionManager() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Position | null>(null);
+  const [deleting, setDeleting] = useState<Position | null>(null);
 
   const positionsQuery = useQuery(workforceQueries.positions());
   const positions = positionsQuery.data ?? [];
@@ -86,10 +88,7 @@ export function PositionManager() {
   }
 
   function remove(position: Position) {
-    if (!window.confirm(`Delete position ${position.title}?`)) return;
-    savePosition.reset();
-    deletePosition.reset();
-    deletePosition.mutate(position.id);
+    setDeleting(position);
   }
 
   return (
@@ -198,6 +197,21 @@ export function PositionManager() {
           </p>
         ) : null}
       </CardContent>
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete the ${deleting.title} position?`}
+          description="The title leaves the catalog and can no longer be assigned to employees."
+          confirmLabel="Delete position"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            savePosition.reset();
+            deletePosition.reset();
+            deletePosition.mutate(deleting.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
     </Card>
   );
 }

@@ -2,15 +2,18 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArchiveRestore, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { workforceApi, workforceKeys, workforceQueries } from "@/lib/api";
 import { formatDate } from "@/lib/format-date";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 export function ArchivedPanel({ branchId }: { branchId: string }) {
+  const [destroying, setDestroying] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
   const archivedQuery = useQuery(workforceQueries.archivedEmployees(branchId));
 
@@ -68,18 +71,12 @@ export function ArchivedPanel({ branchId }: { branchId: string }) {
                 size="sm"
                 disabled={restore.isPending || destroy.isPending}
                 className="h-9 rounded-[9px] font-bold"
-                onClick={() => {
-                  const name = `${row.person.firstName} ${row.person.lastName}`;
-                  if (
-                    !window.confirm(
-                      `Delete ${name} for good? Their attendance records go with them. This cannot be undone.`,
-                    )
-                  )
-                    return;
-                  restore.reset();
-                  destroy.reset();
-                  destroy.mutate(row.employee.id);
-                }}
+                onClick={() =>
+                  setDestroying({
+                    id: row.employee.id,
+                    name: `${row.person.firstName} ${row.person.lastName}`,
+                  })
+                }
               >
                 <Trash2 aria-hidden="true" />
                 Delete forever
@@ -88,6 +85,21 @@ export function ArchivedPanel({ branchId }: { branchId: string }) {
           ))}
         </ul>
       )}
+
+      {destroying ? (
+        <ConfirmDialog
+          title={`Delete ${destroying.name} for good?`}
+          description="Their attendance records go with them. This cannot be undone."
+          confirmLabel="Delete forever"
+          onCancel={() => setDestroying(null)}
+          onConfirm={() => {
+            restore.reset();
+            destroy.reset();
+            destroy.mutate(destroying.id);
+            setDestroying(null);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

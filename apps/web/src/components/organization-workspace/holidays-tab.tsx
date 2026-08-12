@@ -1,7 +1,9 @@
 import { Plus, Trash2 } from "lucide-react";
 import type React from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import type { Branch, Holiday } from "@/lib/api/organization";
 
@@ -14,6 +16,7 @@ type Props = {
 };
 
 export function HolidaysTab({ branches, holidays, busy, onSubmit, onDelete }: Props) {
+  const [deleting, setDeleting] = useState<Holiday | null>(null);
   return (
     <section className="space-y-4">
       <form
@@ -62,7 +65,7 @@ export function HolidaysTab({ branches, holidays, busy, onSubmit, onDelete }: Pr
                 variant="ghost"
                 size="icon"
                 aria-label={`Remove ${holiday.name}`}
-                onClick={() => onDelete(holiday.id)}
+                onClick={() => setDeleting(holiday)}
                 disabled={busy}
               >
                 <Trash2 className="size-4 text-destructive" />
@@ -75,6 +78,19 @@ export function HolidaysTab({ branches, holidays, busy, onSubmit, onDelete }: Pr
           </p>
         )}
       </div>
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Remove ${deleting.name}?`}
+          description={`${deleting.holidayDate} counts as a normal working day again, and attendance for it is recalculated.`}
+          confirmLabel="Remove holiday"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            onDelete(deleting.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

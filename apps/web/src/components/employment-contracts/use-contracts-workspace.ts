@@ -46,7 +46,6 @@ export function useContractsWorkspace({
     ]);
   }
 
- 
   const saveContract = useMutation({
     mutationFn: async (data: FormData) => {
       const contractValues = contractValuesFrom(data);
@@ -121,8 +120,8 @@ export function useContractsWorkspace({
       setUploadProgress(null);
       saveContract.mutate(new FormData(form));
     },
+    // The confirmation lives in the workspace's ConfirmDialog, not here.
     deleteContract: (row: EmploymentContractRow) => {
-      if (!window.confirm(`Delete contract ${row.contract.contractNumber}?`)) return;
       clearFeedback();
       deleteContract.mutate(row.contract.id);
     },

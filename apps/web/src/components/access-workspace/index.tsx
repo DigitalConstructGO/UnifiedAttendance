@@ -1,9 +1,12 @@
 "use client";
 
 import { Check, LoaderCircle } from "lucide-react";
+import { useState } from "react";
 
 import { RequestErrorAlert } from "@/components/request-error-alert";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { authClient } from "@/lib/auth-client";
+import type { RoleSummary } from "@/lib/api";
 
 import { CreateRoleCard } from "./create-role-card";
 import { CreateUserCard } from "./create-user-card";
@@ -15,6 +18,7 @@ import { useAccessWorkspace } from "./use-access-workspace";
 export function AccessWorkspace() {
   const workspace = useAccessWorkspace();
   const { data: session } = authClient.useSession();
+  const [roleToArchive, setRoleToArchive] = useState<RoleSummary | null>(null);
 
   if (!workspace.loaded) {
     return (
@@ -54,13 +58,20 @@ export function AccessWorkspace() {
         <RequestErrorAlert error={workspace.error} onRetry={workspace.retry} />
       ) : null}
 
-      <RolesCard
-        roles={workspace.roles}
-        busy={workspace.busy}
-        onArchive={(role) => {
-          if (window.confirm(`Archive the ${role.name} role?`)) workspace.archiveRole(role.id);
-        }}
-      />
+      <RolesCard roles={workspace.roles} busy={workspace.busy} onArchive={setRoleToArchive} />
+
+      {roleToArchive ? (
+        <ConfirmDialog
+          title={`Archive the ${roleToArchive.name} role?`}
+          description="It disappears from every list and can no longer be assigned. Its name and code become free for a future role."
+          confirmLabel="Archive role"
+          onCancel={() => setRoleToArchive(null)}
+          onConfirm={() => {
+            workspace.archiveRole(roleToArchive.id);
+            setRoleToArchive(null);
+          }}
+        />
+      ) : null}
 
       <CreateRoleCard busy={workspace.creatingRole} onSubmit={workspace.createRole} />
 
