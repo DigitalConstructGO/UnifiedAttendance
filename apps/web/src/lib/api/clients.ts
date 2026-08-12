@@ -44,7 +44,6 @@ type ClientDocumentVersionMetadata = Omit<
   "fileName" | "contentType" | "contentLength"
 >;
 
-
 export const clientKeys = {
   all: ["clients"] as const,
   list: (query: ListClientsQuery) => ["clients", "list", query] as const,
@@ -163,6 +162,16 @@ export const clientsApi = {
       method: "PATCH",
       body: values,
     }),
+  archiveProject: (id: string) =>
+    apiFetch<Returned<typeof service.archiveProject>>(`/projects/${id}/archive`, {
+      method: "POST",
+    }),
+  restoreProject: (id: string) =>
+    apiFetch<Returned<typeof service.restoreProject>>(`/projects/${id}/restore`, {
+      method: "POST",
+    }),
+  deleteProject: (id: string) =>
+    apiFetch<Returned<typeof service.deleteProject>>(`/projects/${id}`, { method: "DELETE" }),
 
   commercialContracts: (query: ListCommercialContractsQuery = {}, signal?: AbortSignal) =>
     apiFetch<CommercialContractRow[]>("/commercial-contracts", {
@@ -233,6 +242,10 @@ export const clientsApi = {
     apiFetch<CrmActivityRow>(`/crm-activities/${id}`, {
       method: "PATCH",
       body: values,
+    }),
+  deleteActivity: (id: string) =>
+    apiFetch<Returned<typeof service.deleteCrmActivity>>(`/crm-activities/${id}`, {
+      method: "DELETE",
     }),
 
   documents: (query: z.input<typeof validations.listClientDocumentsInput>, signal?: AbortSignal) =>

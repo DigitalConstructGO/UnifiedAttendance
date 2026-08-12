@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   clientAuditEntries,
@@ -68,7 +68,11 @@ async function clientHealth(ctx: Context, clientId: string, asOf: string) {
     .select({ id: projects.id, dueOn: projects.dueOn })
     .from(projects)
     .where(
-      and(eq(projects.clientId, clientId), inArray(projects.status, ["planning", "in_progress"])),
+      and(
+        eq(projects.clientId, clientId),
+        inArray(projects.status, ["planning", "in_progress"]),
+        isNull(projects.archivedAt),
+      ),
     );
   const balances = await invoiceBalances(ctx, clientId);
   const reasons: string[] = [];

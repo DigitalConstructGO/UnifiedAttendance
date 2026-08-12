@@ -1,16 +1,18 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import {
   branches,
   clientAuditEntries,
+  clientDocuments,
   clients,
   commercialContracts,
   employees,
+  invoices,
   people,
   projects,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { badRequest, notFound } from "../../errors";
+import { badRequest, conflict, notFound } from "../../errors";
 import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { clientOrThrow, currentOrganizationOrThrow } from "./shared";
@@ -128,6 +130,7 @@ export async function listProjects(ctx: Context, input: ListProjectsInput) {
   await requirePermission(ctx, "clients.read", input.branchId);
   const organization = await currentOrganizationOrThrow(ctx);
   const filters = [eq(projects.organizationId, organization.id)];
+  if (!input.includeArchived) filters.push(isNull(projects.archivedAt));
   if (input.clientId) filters.push(eq(projects.clientId, input.clientId));
   if (input.branchId) filters.push(eq(projects.branchId, input.branchId));
   if (input.status) filters.push(eq(projects.status, input.status));
@@ -179,6 +182,7 @@ export async function createProject(ctx: Context, input: CreateProjectInput) {
 export async function updateProject(ctx: Context, input: UpdateProjectInput) {
   const current = await projectOrThrow(ctx, input.id);
   await requirePermission(ctx, "projects.update", current.branchId);
+  if (current.archivedAt) badRequest("Archived Projects cannot be edited");
   const organization = await currentOrganizationOrThrow(ctx);
   const clientId = current.clientId;
   const branchId = input.branchId ?? current.branchId;
@@ -222,4 +226,89 @@ export async function updateProject(ctx: Context, input: UpdateProjectInput) {
     });
   });
   return getProject(ctx, { id: projectId });
+}
+
+export async function archiveProject(ctx: Context, input: ClientResourceIdInput) {
+  const current = await projectOrThrow(ctx, input.id);
+  await requirePermission(ctx, "projects.archive", current.branchId);
+  if (current.archivedAt) return getProject(ctx, { id: current.id });
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .update(projects)
+      .set({ archivedAt: new Date() })
+      .where(eq(projects.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: current.clientId,
+      actorUserId,
+      action: "project.archived",
+      entityType: "project",
+      entityId: current.id,
+    });
+  });
+  return getProject(ctx, { id: current.id });
+}
+
+export async function restoreProject(ctx: Context, input: ClientResourceIdInput) {
+  const current = await projectOrThrow(ctx, input.id);
+  await requirePermission(ctx, "projects.restore", current.branchId);
+  if (!current.archivedAt) return getProject(ctx, { id: current.id });
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.update(projects).set({ archivedAt: null }).where(eq(projects.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: current.clientId,
+      actorUserId,
+      action: "project.restored",
+      entityType: "project",
+      entityId: current.id,
+    });
+  });
+  return getProject(ctx, { id: current.id });
+}
+
+export async function deleteProject(ctx: Context, input: ClientResourceIdInput) {
+  const current = await projectOrThrow(ctx, input.id);
+  await requirePermission(ctx, "projects.delete", current.branchId);
+  if (!current.archivedAt) {
+    badRequest("Archive this Project first — deletion is only allowed from the archive");
+  }
+  const [[invoice], [document]] = await Promise.all([
+    ctx.db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(eq(invoices.projectId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: clientDocuments.id })
+      .from(clientDocuments)
+      .where(eq(clientDocuments.projectId, current.id))
+      .limit(1),
+  ]);
+  if (invoice) {
+    conflict(
+      "This Project has invoices attached to it, so it cannot be deleted. Keep it archived instead.",
+    );
+  }
+  if (document) {
+    conflict(
+      "This Project has documents attached to it, so it cannot be deleted. Keep it archived instead.",
+    );
+  }
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(projects).where(eq(projects.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: current.clientId,
+      actorUserId,
+      action: "project.deleted",
+      entityType: "project",
+      entityId: current.id,
+      changeSummary: { name: current.name, status: current.status },
+    });
+  });
+  return { id: current.id };
 }

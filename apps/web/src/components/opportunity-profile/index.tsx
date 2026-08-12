@@ -8,6 +8,7 @@ import {
   History,
   LoaderCircle,
   MapPin,
+  PhoneCall,
   UserRound,
 } from "lucide-react";
 import type { Route } from "next";
@@ -180,12 +181,23 @@ export function OpportunityProfile({
           ) : null}
 
           {tab === "activities" ? (
-            activitiesQuery.isPending ? (
+            !row.opportunity.clientId ? (
+              <TabPanel>
+                <EmptyState
+                  icon={<PhoneCall className="size-5" aria-hidden="true" />}
+                  title="No activities yet"
+                  hint="Link this opportunity to a Client record to start logging calls, meetings, and site visits."
+                />
+              </TabPanel>
+            ) : activitiesQuery.isPending ? (
               <LoadingTab label="activities" />
             ) : (
               <ActivitiesTab
                 activities={activitiesQuery.data ?? []}
                 timeZone={row.branch.timezone}
+                clientId={row.opportunity.clientId}
+                branchId={row.branch.id}
+                ownerEmployeeId={row.opportunity.ownerEmployeeId}
               />
             )
           ) : null}

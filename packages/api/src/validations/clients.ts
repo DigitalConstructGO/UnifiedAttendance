@@ -185,6 +185,7 @@ export const listProjectsInput = z.object({
   clientId: id.optional(),
   branchId: id.optional(),
   status: z.enum(PROJECT_STATUSES).optional(),
+  includeArchived: z.stringbool().optional(),
 });
 
 export const createCommercialContractInput = z.object({

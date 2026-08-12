@@ -46,6 +46,7 @@ export const projects = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
+    archivedAt: timestamp("archived_at"),
   },
   (table) => [
     index("projects_client_status_idx").on(table.clientId, table.status),

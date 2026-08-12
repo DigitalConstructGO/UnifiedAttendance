@@ -1,4 +1,3 @@
-
 export const PERMISSION_GROUPS = {
   organization: ["read", "update"],
   branches: ["read", "create", "update", "manage_schedule"],
@@ -16,7 +15,7 @@ export const PERMISSION_GROUPS = {
   clients: ["read", "create", "update", "archive"],
   client_contacts: ["create", "update", "archive"],
   opportunities: ["create", "update", "move_stage", "convert"],
-  projects: ["create", "update"],
+  projects: ["create", "update", "archive", "restore", "delete"],
   commercial_contracts: ["create", "update"],
   invoices: ["create", "update", "issue", "void"],
   payments: ["record"],
