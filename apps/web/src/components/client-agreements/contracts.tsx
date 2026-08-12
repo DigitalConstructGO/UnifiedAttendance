@@ -1,14 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileSignature, Plus } from "lucide-react";
+import { FileSignature, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { clientKeys, clientQueries, clientsApi } from "@/lib/api";
+import { clientKeys, clientQueries, clientsApi, type CommercialContractRow } from "@/lib/api";
 import {
   clientName,
   CONTRACT_PAYMENT_STRUCTURES,
@@ -23,6 +23,7 @@ import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 import { EmptyState, TabPanel } from "../client-profile/tab-shell";
+import { EditContractDialog } from "./edit-contract-dialog";
 import { DialogField, dialogFieldClass, RecordDialog } from "./record-dialog";
 
 const EXPIRING_SOON_DAYS = 60;
@@ -40,6 +41,8 @@ export function ClientContracts() {
   const { can } = useAccess();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<CommercialContractRow | null>(null);
+  const editable = can("commercial_contracts.update");
 
   const contractsQuery = useQuery(clientQueries.commercialContracts());
   const clientsQuery = useQuery(clientQueries.list({ pageSize: 100 }));
@@ -121,6 +124,11 @@ export function ClientContracts() {
                   <th scope="col" className="px-4 py-3.5 font-bold">
                     Status
                   </th>
+                  {editable ? (
+                    <th scope="col" className="px-4 py-3.5 font-bold">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -168,6 +176,20 @@ export function ClientContracts() {
                           {tone.label}
                         </span>
                       </td>
+                      {editable ? (
+                        <td className="px-4 py-4">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-[9px] font-bold"
+                            onClick={() => setEditing(row)}
+                          >
+                            <Pencil aria-hidden="true" />
+                            Edit
+                          </Button>
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
@@ -259,6 +281,8 @@ export function ClientContracts() {
           </p>
         </RecordDialog>
       ) : null}
+
+      {editing ? <EditContractDialog row={editing} onClose={() => setEditing(null)} /> : null}
     </div>
   );
 }

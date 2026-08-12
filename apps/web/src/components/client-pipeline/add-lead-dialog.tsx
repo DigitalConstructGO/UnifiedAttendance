@@ -1,8 +1,8 @@
 import { Target } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import type { Branch, EmployeeRow, Industry, PipelineStage } from "@/lib/api";
-import { personName } from "@/lib/client-presentation";
+import type { Branch, ClientRow, EmployeeRow, Industry, PipelineStage } from "@/lib/api";
+import { clientName, personName } from "@/lib/client-presentation";
 import type { RequestErrorPresentation } from "@/lib/errors";
 
 import { DialogField, dialogFieldClass, RecordDialog } from "../client-agreements/record-dialog";
@@ -12,6 +12,7 @@ export function AddLeadDialog({
   industries,
   stages,
   employees,
+  clients,
   busy,
   error,
   onSubmit,
@@ -21,6 +22,7 @@ export function AddLeadDialog({
   industries: Industry[];
   stages: PipelineStage[];
   employees: EmployeeRow[];
+  clients: ClientRow[];
   busy: boolean;
   error: RequestErrorPresentation | null;
   onSubmit: (form: HTMLFormElement) => void;
@@ -39,6 +41,17 @@ export function AddLeadDialog({
     >
       <DialogField label="Company / lead name">
         <Input required name="name" placeholder="e.g. Awash Insurance S.C." />
+      </DialogField>
+
+      <DialogField label="Existing client (optional)">
+        <select name="clientId" className={dialogFieldClass} defaultValue="">
+          <option value="">Not a client yet — this is a fresh lead</option>
+          {clients.map((row) => (
+            <option key={row.client.id} value={row.client.id}>
+              {clientName(row.client)}
+            </option>
+          ))}
+        </select>
       </DialogField>
 
       <div className="grid gap-4 sm:grid-cols-2">

@@ -1,9 +1,15 @@
-import { FileSignature } from "lucide-react";
+"use client";
 
+import { FileSignature, Pencil } from "lucide-react";
+import { useState } from "react";
+
+import { useAccess } from "@/components/access-provider";
+import { Button } from "@/components/ui/button";
 import type { CommercialContractRow } from "@/lib/api";
 import { CONTRACT_STATUS_META, RENEWAL_MODE_LABELS } from "@/lib/client-presentation";
 import { formatDate } from "@/lib/format-date";
 
+import { EditContractDialog } from "../client-agreements/edit-contract-dialog";
 import { EmptyState, TabPanel } from "./tab-shell";
 
 export function ContractsTab({
@@ -13,6 +19,10 @@ export function ContractsTab({
   contracts: CommercialContractRow[];
   timeZone: string;
 }) {
+  const { can } = useAccess();
+  const editable = can("commercial_contracts.update");
+  const [editing, setEditing] = useState<CommercialContractRow | null>(null);
+
   if (contracts.length === 0) {
     return (
       <TabPanel>
@@ -44,10 +54,16 @@ export function ContractsTab({
               <th scope="col" className="px-4 py-3.5">
                 Status
               </th>
+              {editable ? (
+                <th scope="col" className="px-4 py-3.5">
+                  <span className="sr-only">Actions</span>
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
-            {contracts.map(({ commercialContract: contract }) => {
+            {contracts.map((row) => {
+              const { commercialContract: contract } = row;
               const status = CONTRACT_STATUS_META[contract.status];
               return (
                 <tr key={contract.id} className="border-t border-border">
@@ -74,12 +90,28 @@ export function ContractsTab({
                       {status.label}
                     </span>
                   </td>
+                  {editable ? (
+                    <td className="px-4 py-4">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-[9px] font-bold"
+                        onClick={() => setEditing(row)}
+                      >
+                        <Pencil aria-hidden="true" />
+                        Edit
+                      </Button>
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {editing ? <EditContractDialog row={editing} onClose={() => setEditing(null)} /> : null}
     </TabPanel>
   );
 }

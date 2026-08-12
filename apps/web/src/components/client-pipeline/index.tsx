@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, GripVertical, Plus } from "lucide-react";
+import { Clock3, Columns3, GripVertical, Plus } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 import { AddLeadDialog } from "./add-lead-dialog";
+import { ManageStagesDialog } from "./manage-stages-dialog";
 
 const STAGE_DOT_TONES = [
   "bg-muted-foreground",
@@ -150,6 +151,7 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   const queryClient = useQueryClient();
 
   const [dialogOpen, setDialogOpen] = useState(createOpen && can("opportunities.create"));
+  const [stagesOpen, setStagesOpen] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overStageId, setOverStageId] = useState<string | null>(null);
 
@@ -158,12 +160,16 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   const opportunitiesQuery = useQuery(opportunitiesOptions);
   const branchesQuery = useQuery(organizationQueries.branches());
   const industriesQuery = useQuery(clientQueries.industries());
+  const clientsQuery = useQuery(clientQueries.list({ pageSize: 100 }));
   const branchId = branchesQuery.data?.[0]?.id ?? "";
   const employeesQuery = useQuery(workforceQueries.employees(branchId));
 
   const creatable = can("opportunities.create");
   const manageable = can("opportunities.move_stage");
-  const stages = stagesQuery.data ?? [];
+  const allStages = stagesQuery.data ?? [];
+  // Inactive stages stay in history but leave the board.
+  const stages = allStages.filter((stage) => stage.status === "active");
+  const configurable = can("client_catalogs.manage");
   const opportunities = opportunitiesQuery.data ?? [];
 
   const createLead = useMutation({
@@ -230,18 +236,30 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
               : "Every open opportunity by stage. Select a card to open its client."}
           </p>
         </div>
-        {creatable ? (
-          <Button
-            className="h-10 rounded-[11px] px-4 font-bold"
-            onClick={() => {
-              createLead.reset();
-              setDialogOpen(true);
-            }}
-          >
-            <Plus aria-hidden="true" />
-            New lead
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {configurable ? (
+            <Button
+              variant="outline"
+              className="h-10 rounded-[11px] px-4 font-bold"
+              onClick={() => setStagesOpen(true)}
+            >
+              <Columns3 aria-hidden="true" />
+              Manage stages
+            </Button>
+          ) : null}
+          {creatable ? (
+            <Button
+              className="h-10 rounded-[11px] px-4 font-bold"
+              onClick={() => {
+                createLead.reset();
+                setDialogOpen(true);
+              }}
+            >
+              <Plus aria-hidden="true" />
+              New lead
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       {error ? <RequestErrorAlert error={error} onRetry={loadFailure?.retry} /> : null}
@@ -328,6 +346,7 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
           industries={industriesQuery.data ?? []}
           stages={stages.filter((stage) => stage.outcome === "open")}
           employees={employeesQuery.data ?? []}
+          clients={clientsQuery.data?.items ?? []}
           busy={createLead.isPending}
           error={
             createLead.error
@@ -338,8 +357,10 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
           onSubmit={(form) => {
             const data = new FormData(form);
             const industryId = String(data.get("industryId"));
+            const clientId = String(data.get("clientId") ?? "");
             createLead.mutate({
               name: String(data.get("name")),
+              clientId: clientId || null,
               industryId: industryId || null,
               ownerEmployeeId: String(data.get("ownerEmployeeId")),
               branchId: String(data.get("branchId")),
@@ -347,6 +368,10 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
             });
           }}
         />
+      ) : null}
+
+      {stagesOpen ? (
+        <ManageStagesDialog stages={allStages} onClose={() => setStagesOpen(false)} />
       ) : null}
     </div>
   );
