@@ -3,7 +3,7 @@ import type * as service from "@UnifiedAttendance/api/modules/clients/service";
 import type * as validations from "@UnifiedAttendance/api/validations/clients";
 import { CLIENT_DOCUMENT_CONTENT_TYPES } from "@UnifiedAttendance/api/validations/clients";
 
-import { apiFetch, type JsonOf, type QueryParams } from "./client";
+import { apiFetch, uploadToStorage, type JsonOf, type QueryParams } from "./client";
 
 type Returned<T extends (...args: never[]) => unknown> = JsonOf<Awaited<ReturnType<T>>>;
 
@@ -262,25 +262,19 @@ export const clientsApi = {
     if (!contentType) {
       throw new Error(`${file.name} must be a PDF, JPG, PNG, or WebP file.`);
     }
-    const prepared = await apiFetch<ClientDocumentRow & { uploadUrl: string }>(
-      "/client-documents",
-      {
-        method: "POST",
-        body: {
-          ...metadata,
-          fileName: file.name,
-          contentType,
-          contentLength: file.size,
-        },
+    const prepared = await apiFetch<
+      ClientDocumentRow & { uploadUrl: string; uploadFields: Record<string, string> }
+    >("/client-documents", {
+      method: "POST",
+      body: {
+        ...metadata,
+        fileName: file.name,
+        contentType,
+        contentLength: file.size,
       },
-    );
+    });
     try {
-      const uploaded = await fetch(prepared.uploadUrl, {
-        method: "PUT",
-        headers: { "content-type": contentType },
-        body: file,
-      });
-      if (!uploaded.ok) throw new Error(`S3 rejected ${file.name}.`);
+      await uploadToStorage(prepared.uploadUrl, prepared.uploadFields, file);
     } catch (cause) {
       try {
         await apiFetch(`/client-documents/${prepared.document.id}`, { method: "DELETE" });
@@ -300,24 +294,18 @@ export const clientsApi = {
     if (!contentType) {
       throw new Error(`${file.name} must be a PDF, JPG, PNG, or WebP file.`);
     }
-    const prepared = await apiFetch<ClientDocumentRow & { uploadUrl: string }>(
-      "/client-document-versions",
-      {
-        method: "POST",
-        body: {
-          ...metadata,
-          fileName: file.name,
-          contentType,
-          contentLength: file.size,
-        },
+    const prepared = await apiFetch<
+      ClientDocumentRow & { uploadUrl: string; uploadFields: Record<string, string> }
+    >("/client-document-versions", {
+      method: "POST",
+      body: {
+        ...metadata,
+        fileName: file.name,
+        contentType,
+        contentLength: file.size,
       },
-    );
-    const uploaded = await fetch(prepared.uploadUrl, {
-      method: "PUT",
-      headers: { "content-type": contentType },
-      body: file,
     });
-    if (!uploaded.ok) throw new Error(`S3 rejected ${file.name}.`);
+    await uploadToStorage(prepared.uploadUrl, prepared.uploadFields, file);
     return prepared;
   },
 

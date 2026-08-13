@@ -15,8 +15,9 @@ export const GET = route({
     if (!document.finalizedAt) return { document, downloadUrl: null };
     return {
       document,
-      downloadUrl: await getDownloadUrl(document.storageKey, {
-        responseContentDisposition: "attachment",
+      downloadUrl: getDownloadUrl(document.storageKey, {
+        contentType: document.contentType,
+        attachment: true,
       }),
     };
   },
@@ -31,17 +32,17 @@ export const DELETE = route({
   },
 });
 
-/** Marks an upload usable only after the object matches its validated declaration. */
 export const PATCH = route({
   input: resourceIdInput,
   handler: async ({ ctx, input }) => {
     const document = await getWorkforceDocument(ctx, input.id);
     const metadata = await getFileMetadata(document.storageKey);
-    if (
-      !metadata ||
-      metadata.contentType !== document.contentType ||
-      metadata.contentLength !== document.contentLength
-    ) {
+    const sizeOk =
+      document.contentType === "application/pdf"
+        ? metadata?.contentLength === document.contentLength
+        : (metadata?.contentLength ?? 0) > 0 &&
+          (metadata?.contentLength ?? 0) <= document.contentLength;
+    if (!metadata || metadata.contentType !== document.contentType || !sizeOk) {
       throw new Error("Uploaded file does not match the validated document metadata");
     }
     return finalizeWorkforceDocument(ctx, input.id);

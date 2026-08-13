@@ -1,18 +1,46 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { v2 as cloudinary } from "cloudinary";
+
+export { cloudinary };
+
+export const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!;
+
+export const DEFAULT_URL_TTL = 3600;
 
 /**
- * AWS S3 client for file storage
- * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/
+ * Every document this system accepts (PDF, JPG, PNG, WebP) is stored under
+ * Cloudinary's `image` resource type — Cloudinary treats PDFs as images —
+ * and as `type: "private"`, so assets are never publicly deliverable.
  */
-export const s3Client = new S3Client({
-  region: process.env.AWS_S3_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY!,
-  },
-});
+export const RESOURCE_TYPE = "image";
+export const DELIVERY_TYPE = "private";
 
-export const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
+const FORMAT_BY_CONTENT_TYPE: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
-/** Default lifetime of a presigned URL, in seconds. */
-export const DEFAULT_URL_TTL = 3600;
+const CONTENT_TYPE_BY_FORMAT: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+export function formatForContentType(contentType: string) {
+  const format = FORMAT_BY_CONTENT_TYPE[contentType];
+  if (!format) throw new Error(`Unsupported document content type: ${contentType}`);
+  return format;
+}
+
+export const INCOMING_IMAGE_TRANSFORMATION = "c_limit,w_2500,h_2500,q_auto:good";
+
+export function isOptimizableImage(contentType: string) {
+  return contentType !== "application/pdf" && contentType in FORMAT_BY_CONTENT_TYPE;
+}
+
+export function contentTypeForFormat(format: string | undefined) {
+  return format ? CONTENT_TYPE_BY_FORMAT[format] : undefined;
+}

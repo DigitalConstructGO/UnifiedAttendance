@@ -4,7 +4,7 @@ import {
   listClientDocumentsInput,
 } from "@UnifiedAttendance/api/validations/clients";
 
-import { getUploadUrl } from "@/lib/storage";
+import { getUploadParams } from "@/lib/storage";
 import { route } from "@/lib/route";
 
 export const GET = route({
@@ -19,7 +19,7 @@ export const POST = route({
     const document = await createClientDocument(ctx, input);
     return {
       ...document,
-      uploadUrl: await getUploadUrl(document.document.storageKey, {
+      ...getUploadParams(document.document.storageKey, {
         contentType: document.document.contentType,
       }),
     };

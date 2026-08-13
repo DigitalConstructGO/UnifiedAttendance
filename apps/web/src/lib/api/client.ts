@@ -167,3 +167,16 @@ export async function apiFetch<TResult>(
 
   return payload as TResult;
 }
+
+
+export async function uploadToStorage(
+  uploadUrl: string,
+  uploadFields: Record<string, string>,
+  file: File,
+): Promise<void> {
+  const form = new FormData();
+  for (const [name, value] of Object.entries(uploadFields)) form.append(name, value);
+  form.append("file", file);
+  const response = await fetch(uploadUrl, { method: "POST", body: form });
+  if (!response.ok) throw new Error(`The storage service rejected ${file.name}.`);
+}

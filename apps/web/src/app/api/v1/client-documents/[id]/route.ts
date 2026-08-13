@@ -10,8 +10,9 @@ export const GET = route({
     const document = await getClientDocument(ctx, input);
     return {
       ...document,
-      downloadUrl: await getDownloadUrl(document.document.storageKey, {
-        responseContentDisposition: "attachment",
+      downloadUrl: getDownloadUrl(document.document.storageKey, {
+        contentType: document.document.contentType,
+        attachment: true,
       }),
     };
   },
