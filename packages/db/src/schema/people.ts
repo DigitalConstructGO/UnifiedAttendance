@@ -24,8 +24,6 @@ export const people = pgTable("people", {
   email: text("email"),
   gender: gender("gender"),
   profilePhotoUrl: text("profile_photo_url"),
-  nationalIdFrontUrl: text("national_id_front_url"),
-  nationalIdBackUrl: text("national_id_back_url"),
   emergencyContactName: text("emergency_contact_name"),
   emergencyContactPhone: text("emergency_contact_phone"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

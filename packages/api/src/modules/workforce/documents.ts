@@ -1,17 +1,40 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import {
   employmentContracts,
   employees,
+  people,
   workforceDocuments,
 } from "@UnifiedAttendance/db/schema/index";
 
 import { notFound } from "../../errors";
+import { withTransaction } from "../../context";
 import { requirePermission } from "../shared/guards";
 
 import type { CreateWorkforceDocumentInput } from "../../validations/workforce";
 import type { Context } from "../../context";
+
+const PERSON_ASSET_COLUMNS = {
+  profile_photo: "profilePhotoUrl",
+} as const;
+
+const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+function personAssetColumn(document: { personId: string | null; kind: string }) {
+  if (!document.personId) return null;
+  return PERSON_ASSET_COLUMNS[document.kind as keyof typeof PERSON_ASSET_COLUMNS] ?? null;
+}
+
+function personAssetValue(document: { storageKey: string; contentType: string }) {
+  const extension = EXTENSION_BY_CONTENT_TYPE[document.contentType];
+  return extension ? `${document.storageKey}.${extension}` : document.storageKey;
+}
 
 type DocumentOwner = {
   personId?: string | null;
@@ -80,12 +103,21 @@ export async function finalizeWorkforceDocument(ctx: Context, documentId: string
     .limit(1);
   if (!document) notFound("Employee document");
   await requireDocumentPermission(ctx, "workforce_documents.manage", document);
-  const [finalized] = await ctx.db
-    .update(workforceDocuments)
-    .set({ finalizedAt: new Date() })
-    .where(eq(workforceDocuments.id, documentId))
-    .returning();
-  return finalized;
+  return withTransaction(ctx, async (ctx) => {
+    const [finalized] = await ctx.db
+      .update(workforceDocuments)
+      .set({ finalizedAt: new Date() })
+      .where(eq(workforceDocuments.id, documentId))
+      .returning();
+    const column = personAssetColumn(document);
+    if (column && document.personId) {
+      await ctx.db
+        .update(people)
+        .set({ [column]: personAssetValue(document) })
+        .where(eq(people.id, document.personId));
+    }
+    return finalized;
+  });
 }
 
 export async function getWorkforceDocument(ctx: Context, documentId: string) {
@@ -102,6 +134,17 @@ export async function getWorkforceDocument(ctx: Context, documentId: string) {
 export async function deleteWorkforceDocument(ctx: Context, documentId: string) {
   const document = await getWorkforceDocument(ctx, documentId);
   await requireDocumentPermission(ctx, "workforce_documents.manage", document);
-  await ctx.db.delete(workforceDocuments).where(eq(workforceDocuments.id, documentId));
-  return document;
+  return withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(workforceDocuments).where(eq(workforceDocuments.id, documentId));
+    const column = personAssetColumn(document);
+    if (column && document.personId) {
+      await ctx.db
+        .update(people)
+        .set({ [column]: null })
+        .where(
+          and(eq(people.id, document.personId), eq(people[column], personAssetValue(document))),
+        );
+    }
+    return document;
+  });
 }

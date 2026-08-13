@@ -32,13 +32,21 @@ export function EmployeeProfile({ employeeId }: { employeeId: string }) {
           </p>
           {employee ? (
             <div className="mt-3 flex items-center gap-4">
-              <span
-                className="grid size-14 shrink-0 place-items-center rounded-[11px] bg-primary/10 text-lg font-bold text-primary"
-                aria-hidden="true"
-              >
-                {employee.person.firstName[0]}
-                {employee.person.lastName[0]}
-              </span>
+              {employee.personAssets.profilePhotoUrl ? (
+                <img
+                  src={employee.personAssets.profilePhotoUrl}
+                  alt=""
+                  className="size-14 shrink-0 rounded-[11px] object-cover ring-1 ring-border"
+                />
+              ) : (
+                <span
+                  className="grid size-14 shrink-0 place-items-center rounded-[11px] bg-primary/10 text-lg font-bold text-primary"
+                  aria-hidden="true"
+                >
+                  {employee.person.firstName[0]}
+                  {employee.person.lastName[0]}
+                </span>
+              )}
               <div>
                 <h1 className="text-strong font-heading text-2xl font-bold tracking-[-0.03em]">
                   {fullName}

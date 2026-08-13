@@ -13,6 +13,11 @@ export type Position = JsonOf<contracts.Position>;
 export type Cosigner = JsonOf<contracts.Cosigner>;
 export type EmploymentContractRow = JsonOf<contracts.EmploymentContractRow>;
 export type EmployeeRow = JsonOf<contracts.EmployeeRow>;
+export type PersonAssetUrls = {
+  profilePhotoUrl: string | null;
+};
+export type DirectoryEmployeeRow = EmployeeRow & { profilePhotoUrl: string | null };
+export type EmployeeProfileRow = EmployeeRow & { personAssets: PersonAssetUrls };
 export type EmployeeWrite = JsonOf<contracts.EmployeeWrite>;
 export type EmploymentPeriod = JsonOf<contracts.EmploymentPeriod>;
 export type WorkforceDocument = JsonOf<contracts.WorkforceDocument>;
@@ -111,15 +116,18 @@ export const workforceApi = {
   uploadDocument: uploadWorkforceDocument,
 
   employees: (branchId: string, signal?: AbortSignal) =>
-    apiFetch<EmployeeRow[]>("/employees", { query: { branchId }, signal }),
+    apiFetch<DirectoryEmployeeRow[]>("/employees", { query: { branchId }, signal }),
   archivedEmployees: (branchId: string, signal?: AbortSignal) =>
-    apiFetch<EmployeeRow[]>("/employees", { query: { branchId, archived: "true" }, signal }),
+    apiFetch<DirectoryEmployeeRow[]>("/employees", {
+      query: { branchId, archived: "true" },
+      signal,
+    }),
   archiveEmployee: (id: string) =>
     apiFetch<EmployeeRow["employee"]>(`/employees/${id}/archive`, { method: "POST" }),
   restoreEmployee: (id: string) =>
     apiFetch<EmployeeRow["employee"]>(`/employees/${id}/restore`, { method: "POST" }),
   employee: (id: string, signal?: AbortSignal) =>
-    apiFetch<EmployeeRow>(`/employees/${id}`, { signal }),
+    apiFetch<EmployeeProfileRow>(`/employees/${id}`, { signal }),
   createEmployee: (input: z.input<typeof validations.createEmployeeInput>) =>
     apiFetch<EmployeeWrite>("/employees", { method: "POST", body: input }),
   updateEmployee: ({ id, ...values }: z.input<typeof validations.updateEmployeeInput>) =>

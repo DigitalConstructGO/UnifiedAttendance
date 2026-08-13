@@ -37,12 +37,29 @@ export function EmployeeDetailForm({
             className={fieldClass}
           />
           <Input
+            name="middleName"
+            defaultValue={selected.person.middleName ?? ""}
+            aria-label="Middle name"
+            placeholder="Middle name"
+            className={fieldClass}
+          />
+          <Input
             required
             name="lastName"
             defaultValue={selected.person.lastName}
             aria-label="Last name"
             className={fieldClass}
           />
+          <select
+            name="gender"
+            defaultValue={selected.person.gender ?? ""}
+            aria-label="Gender"
+            className={compactSelectClass}
+          >
+            <option value="">Gender not recorded</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
           <Input
             name="phone"
             defaultValue={selected.person.phone ?? ""}
@@ -82,6 +99,21 @@ export function EmployeeDetailForm({
             <option value="fixed">Fixed working days</option>
             <option value="flexible">Comes as needed — never counted absent</option>
           </select>
+          <Input
+            name="emergencyContactName"
+            defaultValue={selected.person.emergencyContactName ?? ""}
+            aria-label="Emergency contact name"
+            placeholder="Emergency contact name"
+            className={fieldClass}
+          />
+          <Input
+            name="emergencyContactPhone"
+            type="tel"
+            defaultValue={selected.person.emergencyContactPhone ?? ""}
+            aria-label="Emergency contact phone"
+            placeholder="Emergency contact phone"
+            className={fieldClass}
+          />
           <Button disabled={busy} className="h-9 rounded-[9px] font-bold">
             Save details
           </Button>

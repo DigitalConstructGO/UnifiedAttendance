@@ -53,8 +53,23 @@ export function CreateEmployeePanel({
           <Field label="First name">
             <Input required name="firstName" autoComplete="given-name" className={inputClass} />
           </Field>
+          <Field label="Middle name">
+            <Input
+              name="middleName"
+              autoComplete="additional-name"
+              placeholder="Optional"
+              className={inputClass}
+            />
+          </Field>
           <Field label="Last name">
             <Input required name="lastName" autoComplete="family-name" className={inputClass} />
+          </Field>
+          <Field label="Gender">
+            <select name="gender" defaultValue="" className={selectClass}>
+              <option value="">Not recorded</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
           </Field>
           <Field label="Phone">
             <Input
@@ -117,6 +132,17 @@ export function CreateEmployeePanel({
               <option value="fixed">Fixed working days</option>
               <option value="flexible">Comes as needed — never counted absent</option>
             </select>
+          </Field>
+          <Field label="Emergency contact name">
+            <Input name="emergencyContactName" placeholder="Optional" className={inputClass} />
+          </Field>
+          <Field label="Emergency contact phone">
+            <Input
+              name="emergencyContactPhone"
+              type="tel"
+              placeholder="Optional"
+              className={inputClass}
+            />
           </Field>
           <div className="flex items-end gap-2 md:col-span-2 xl:col-span-3">
             <Button
