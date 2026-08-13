@@ -67,10 +67,13 @@ export function useContractsWorkspace({
       return { saved, failures };
     },
     onSuccess: async ({ saved, failures }) => {
-      await invalidateContracts();
+      await Promise.all([
+        invalidateContracts(),
+        queryClient.invalidateQueries({ queryKey: workforceKeys.employeesAll }),
+      ]);
       if (failures.length > 0) {
         setNotice(
-          `Contract saved, but these uploads failed: ${failures.join(", ")}. You can retry here.`,
+          `Contract saved, but these uploads failed: ${failures.join("; ")}. You can retry here.`,
         );
         router.replace(
           `/dashboard/employees?section=contracts&view=create&contractId=${saved.contract.id}`,
@@ -120,7 +123,6 @@ export function useContractsWorkspace({
       setUploadProgress(null);
       saveContract.mutate(new FormData(form));
     },
-    // The confirmation lives in the workspace's ConfirmDialog, not here.
     deleteContract: (row: EmploymentContractRow) => {
       clearFeedback();
       deleteContract.mutate(row.contract.id);

@@ -10,18 +10,31 @@ function selectedFile(data: FormData, name: string) {
   return value instanceof File && value.size > 0 ? value : null;
 }
 
-
 async function runUploads(uploads: PendingUpload[], onProgress: (message: string) => void) {
-  const failures: string[] = [];
-  for (const [index, upload] of uploads.entries()) {
-    onProgress(`Uploading ${index + 1} of ${uploads.length}: ${upload.label}…`);
-    try {
-      await workforceApi.uploadDocument(upload.owner, upload.kind, upload.file);
-    } catch {
-      failures.push(upload.label);
-    }
-  }
-  return failures;
+  if (uploads.length === 0) return [];
+  const pending = new Set(uploads.map((upload) => upload.file.name));
+  const announce = () =>
+    onProgress(
+      pending.size > 0
+        ? `Uploading ${pending.size} of ${uploads.length} files: ${[...pending].join(", ")}…`
+        : "Uploads finished.",
+    );
+  announce();
+  const results = await Promise.all(
+    uploads.map(async (upload) => {
+      try {
+        await workforceApi.uploadDocument(upload.owner, upload.kind, upload.file);
+        return null;
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : "the upload failed";
+        return `${upload.label} (${upload.file.name}) — ${reason}`;
+      } finally {
+        pending.delete(upload.file.name);
+        announce();
+      }
+    }),
+  );
+  return results.filter((failure): failure is string => failure !== null);
 }
 
 export async function uploadContractDocuments(

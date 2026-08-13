@@ -55,7 +55,7 @@ export function CosignerDirectory({
     onSuccess: async (failures) => {
       await invalidateCosigners();
       if (failures.length > 0) {
-        setNotice(`Cosigner saved, but these uploads failed: ${failures.join(", ")}.`);
+        setNotice(`Cosigner saved, but these uploads failed: ${failures.join("; ")}.`);
         return;
       }
       setNotice("Cosigner details and selected documents saved.");
