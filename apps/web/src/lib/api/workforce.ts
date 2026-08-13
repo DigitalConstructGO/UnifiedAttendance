@@ -23,13 +23,15 @@ export type EmploymentPeriod = JsonOf<contracts.EmploymentPeriod>;
 export type WorkforceDocument = JsonOf<contracts.WorkforceDocument>;
 
 type WorkforceDocumentKind = z.input<typeof validations.createWorkforceDocumentInput>["kind"];
-type WorkforceDocumentOwner =
+export type WorkforceDocumentOwner =
   { personId: string } | { cosignerId: string } | { employmentContractId: string };
+export type WorkforceDocumentOnFile = { document: WorkforceDocument; downloadUrl: string };
 
 async function uploadWorkforceDocument(
   owner: WorkforceDocumentOwner,
   kind: WorkforceDocumentKind,
   file: File,
+  onProgress?: (fraction: number) => void,
 ) {
   const contentType = WORKFORCE_DOCUMENT_CONTENT_TYPES.find(
     (value): value is WorkforceDocumentContentType => value === file.type,
@@ -44,7 +46,7 @@ async function uploadWorkforceDocument(
     body: { ...owner, kind, contentType, contentLength: file.size },
   });
   try {
-    await uploadToStorage(prepared.uploadUrl, prepared.uploadFields, file);
+    await uploadToStorage(prepared.uploadUrl, prepared.uploadFields, file, onProgress);
     return await apiFetch<WorkforceDocument>(`/workforce-documents/${prepared.document.id}`, {
       method: "PATCH",
     });
@@ -68,6 +70,8 @@ export const workforceKeys = {
   archivedEmployees: (branchId: string) => ["employees", { branchId, archived: true }] as const,
   employee: (id: string) => ["employees", id] as const,
   employmentPeriods: (id: string) => ["employees", id, "employment-periods"] as const,
+  documentsAll: ["workforce-documents"] as const,
+  documents: (owner: WorkforceDocumentOwner) => ["workforce-documents", owner] as const,
 };
 
 export const workforceApi = {
@@ -114,6 +118,8 @@ export const workforceApi = {
     }),
 
   uploadDocument: uploadWorkforceDocument,
+  documents: (owner: WorkforceDocumentOwner, signal?: AbortSignal) =>
+    apiFetch<WorkforceDocumentOnFile[]>("/workforce-documents", { query: { ...owner }, signal }),
 
   employees: (branchId: string, signal?: AbortSignal) =>
     apiFetch<DirectoryEmployeeRow[]>("/employees", { query: { branchId }, signal }),

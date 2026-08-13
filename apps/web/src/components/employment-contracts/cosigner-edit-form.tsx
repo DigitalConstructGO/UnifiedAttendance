@@ -1,29 +1,39 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+
 import { DocumentUploadField } from "@/components/document-upload-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { Cosigner } from "@/lib/api";
+import { workforceQueries, type Cosigner } from "@/lib/api";
+
+import type { UploadStatusMap } from "./uploads";
 
 const DOCUMENT_FIELDS = [
-  { name: "cosignerNationalIdFront", label: "National ID — front" },
-  { name: "cosignerNationalIdBack", label: "National ID — back" },
-  { name: "cosignerWorkplaceIdFront", label: "Workplace ID — front" },
-  { name: "cosignerWorkplaceIdBack", label: "Workplace ID — back" },
+  { name: "cosignerNationalIdFront", label: "National ID — front", kind: "national_id_front" },
+  { name: "cosignerNationalIdBack", label: "National ID — back", kind: "national_id_back" },
+  { name: "cosignerWorkplaceIdFront", label: "Workplace ID — front", kind: "workplace_id_front" },
+  { name: "cosignerWorkplaceIdBack", label: "Workplace ID — back", kind: "workplace_id_back" },
 ] as const;
 
 export function CosignerEditForm({
   editing,
   busy,
   uploadProgress,
+  uploadStates,
   onSubmit,
   onCancel,
 }: {
   editing: Cosigner;
   busy: boolean;
   uploadProgress: string | null;
+  uploadStates: UploadStatusMap;
   onSubmit: (form: HTMLFormElement) => void;
   onCancel: () => void;
 }) {
+  const documents = useQuery(workforceQueries.documents({ cosignerId: editing.id }));
+
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
       <CardHeader className="border-b border-border px-5 py-4">
@@ -56,14 +66,21 @@ export function CosignerEditForm({
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {DOCUMENT_FIELDS.map((field) => (
-              <DocumentUploadField
-                key={field.name}
-                name={field.name}
-                label={field.label}
-                hint="Image or PDF"
-              />
-            ))}
+            {DOCUMENT_FIELDS.map((field) => {
+              const row = documents.data?.find((entry) => entry.document.kind === field.kind);
+              return (
+                <DocumentUploadField
+                  key={field.name}
+                  name={field.name}
+                  label={field.label}
+                  hint="Image or PDF"
+                  current={
+                    row ? { url: row.downloadUrl, contentType: row.document.contentType } : null
+                  }
+                  upload={uploadStates[field.name] ?? null}
+                />
+              );
+            })}
           </div>
           <div className="flex gap-2">
             <Button disabled={busy}>

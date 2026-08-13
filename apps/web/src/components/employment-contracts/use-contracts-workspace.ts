@@ -15,7 +15,7 @@ import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
 
 import { contractValuesFrom, cosignerValuesFrom } from "./contract-form-payloads";
-import { uploadContractDocuments } from "./uploads";
+import { uploadContractDocuments, type UploadFieldStatus, type UploadStatusMap } from "./uploads";
 
 export function useContractsWorkspace({
   employees,
@@ -27,7 +27,11 @@ export function useContractsWorkspace({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadStates, setUploadStates] = useState<UploadStatusMap>({});
+
+  function noteUpload(field: string, status: UploadFieldStatus) {
+    setUploadStates((previous) => ({ ...previous, [field]: status }));
+  }
 
   const contractsQuery = useQuery(workforceQueries.employmentContracts());
   const cosignersQuery = useQuery(workforceQueries.cosigners());
@@ -63,13 +67,14 @@ export function useContractsWorkspace({
       if (editing) {
         await workforceApi.updateCosigner({ id: editing.cosigner.id, ...cosignerValues });
       }
-      const failures = await uploadContractDocuments(data, saved, setUploadProgress);
+      const failures = await uploadContractDocuments(data, saved, noteUpload);
       return { saved, failures };
     },
     onSuccess: async ({ saved, failures }) => {
       await Promise.all([
         invalidateContracts(),
         queryClient.invalidateQueries({ queryKey: workforceKeys.employeesAll }),
+        queryClient.invalidateQueries({ queryKey: workforceKeys.documentsAll }),
       ]);
       if (failures.length > 0) {
         setNotice(
@@ -83,7 +88,6 @@ export function useContractsWorkspace({
       setNotice("Contract, cosigner, and selected documents saved.");
       router.push("/dashboard/employees?section=contracts&view=list");
     },
-    onSettled: () => setUploadProgress(null),
   });
 
   const deleteContract = useMutation({
@@ -110,6 +114,14 @@ export function useContractsWorkspace({
     deleteContract.reset();
   }
 
+  const uploadingCount = Object.values(uploadStates).filter(
+    (status) => status.state === "uploading",
+  ).length;
+  const uploadProgress =
+    uploadingCount > 0
+      ? `Uploading ${uploadingCount} file${uploadingCount === 1 ? "" : "s"}…`
+      : null;
+
   return {
     branchContracts,
     cosigners: cosignersQuery.data ?? [],
@@ -118,9 +130,10 @@ export function useContractsWorkspace({
     error: writeError ?? loadFailure?.error ?? null,
     notice,
     uploadProgress,
+    uploadStates,
     saveContract: (form: HTMLFormElement) => {
       clearFeedback();
-      setUploadProgress(null);
+      setUploadStates({});
       saveContract.mutate(new FormData(form));
     },
     deleteContract: (row: EmploymentContractRow) => {

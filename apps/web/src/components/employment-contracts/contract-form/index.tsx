@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EmployeeRow, EmploymentContractRow } from "@/lib/api";
 
 import { DEFAULT_CONTRACT_STATUS, type ContractStatus } from "../contract-model";
+import type { UploadStatusMap } from "../uploads";
 import { ContractDetails } from "./contract-details";
 import { CosignerFields } from "./cosigner-fields";
 import { ContractDocuments } from "./documents";
@@ -16,12 +17,14 @@ export function ContractForm({
   editing,
   busy,
   uploadProgress,
+  uploadStates,
   onSubmit,
 }: {
   employees: EmployeeRow[];
   editing: EmploymentContractRow | null;
   busy: boolean;
   uploadProgress: string | null;
+  uploadStates: UploadStatusMap;
   onSubmit: (form: HTMLFormElement) => void;
 }) {
   const [employeeId, setEmployeeId] = useState(
@@ -70,7 +73,16 @@ export function ContractForm({
             onStatusChange={setStatus}
           />
           <CosignerFields editing={editing} />
-          <ContractDocuments />
+          <ContractDocuments
+            personId={
+              employees.find((row) => row.employee.id === employeeId)?.person.id ??
+              editing?.person.id ??
+              null
+            }
+            cosignerId={editing?.cosigner.id ?? null}
+            contractId={editing?.contract.id ?? null}
+            uploadStates={uploadStates}
+          />
 
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
             <Button

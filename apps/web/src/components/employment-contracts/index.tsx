@@ -58,6 +58,7 @@ export function EmploymentContractsWorkspace({
           editing={workspace.editing}
           busy={workspace.busy}
           uploadProgress={workspace.uploadProgress}
+          uploadStates={workspace.uploadStates}
           onSubmit={workspace.saveContract}
         />
       ) : null}

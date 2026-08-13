@@ -168,15 +168,23 @@ export async function apiFetch<TResult>(
   return payload as TResult;
 }
 
-
 export async function uploadToStorage(
   uploadUrl: string,
   uploadFields: Record<string, string>,
   file: File,
+  onProgress?: (fraction: number) => void,
 ): Promise<void> {
   const form = new FormData();
   for (const [name, value] of Object.entries(uploadFields)) form.append(name, value);
   form.append("file", file);
-  const response = await fetch(uploadUrl, { method: "POST", body: form });
-  if (!response.ok) throw new Error(`The storage service rejected ${file.name}.`);
+  const response = await axios.post(uploadUrl, form, {
+    validateStatus: () => true,
+    onUploadProgress: (event) => {
+      const total = event.total ?? file.size;
+      if (total > 0) onProgress?.(Math.min(event.loaded / total, 1));
+    },
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`The storage service rejected ${file.name}.`);
+  }
 }

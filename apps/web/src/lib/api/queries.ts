@@ -107,6 +107,11 @@ export const workforceQueries = {
       queryKey: workforceKeys.employmentContracts(employeeId),
       queryFn: ({ signal }) => workforceApi.employmentContracts(employeeId, signal),
     }),
+  documents: (owner: Parameters<typeof workforceApi.documents>[0]) =>
+    queryOptions({
+      queryKey: workforceKeys.documents(owner),
+      queryFn: ({ signal }) => workforceApi.documents(owner, signal),
+    }),
   employees: (branchId: string) =>
     queryOptions({
       queryKey: workforceKeys.employees(branchId),
