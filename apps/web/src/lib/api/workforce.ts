@@ -6,7 +6,7 @@ import {
   type WorkforceDocumentContentType,
 } from "@/lib/workforce-presentation";
 
-import { apiFetch, type JsonOf } from "./client";
+import { apiFetch, uploadToStorage, type JsonOf } from "./client";
 
 export type Department = JsonOf<contracts.Department>;
 export type Position = JsonOf<contracts.Position>;
@@ -30,20 +30,16 @@ async function uploadWorkforceDocument(
     (value): value is WorkforceDocumentContentType => value === file.type,
   );
   if (!contentType) throw new Error(`${file.name} must be a JPG, PNG, WebP, or PDF file.`);
-  const prepared = await apiFetch<{ document: WorkforceDocument; uploadUrl: string }>(
-    "/workforce-documents",
-    {
-      method: "POST",
-      body: { ...owner, kind, contentType, contentLength: file.size },
-    },
-  );
+  const prepared = await apiFetch<{
+    document: WorkforceDocument;
+    uploadUrl: string;
+    uploadFields: Record<string, string>;
+  }>("/workforce-documents", {
+    method: "POST",
+    body: { ...owner, kind, contentType, contentLength: file.size },
+  });
   try {
-    const uploaded = await fetch(prepared.uploadUrl, {
-      method: "PUT",
-      headers: { "content-type": contentType },
-      body: file,
-    });
-    if (!uploaded.ok) throw new Error(`S3 rejected ${file.name}.`);
+    await uploadToStorage(prepared.uploadUrl, prepared.uploadFields, file);
     return await apiFetch<WorkforceDocument>(`/workforce-documents/${prepared.document.id}`, {
       method: "PATCH",
     });

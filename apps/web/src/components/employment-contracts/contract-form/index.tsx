@@ -49,7 +49,7 @@ export function ContractForm({
         </CardTitle>
         <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
           Contract terms, the employee assignment active on the start date, required cosigner
-          details, and private S3 documents are saved as one employment record.
+          details, and private documents are saved as one employment record.
         </p>
       </CardHeader>
       <CardContent className="p-5">
