@@ -63,7 +63,9 @@ const DOCUMENT_FIELDS = [
 
 function onFile(rows: WorkforceDocumentOnFile[] | undefined, kind: string) {
   const row = rows?.find((entry) => entry.document.kind === kind);
-  return row ? { url: row.downloadUrl, contentType: row.document.contentType } : null;
+  return row
+    ? { id: row.document.id, url: row.downloadUrl, contentType: row.document.contentType }
+    : null;
 }
 
 export function ContractDocuments({

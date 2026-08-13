@@ -75,7 +75,13 @@ export function CosignerEditForm({
                   label={field.label}
                   hint="Image or PDF"
                   current={
-                    row ? { url: row.downloadUrl, contentType: row.document.contentType } : null
+                    row
+                      ? {
+                          id: row.document.id,
+                          url: row.downloadUrl,
+                          contentType: row.document.contentType,
+                        }
+                      : null
                   }
                   upload={uploadStates[field.name] ?? null}
                 />

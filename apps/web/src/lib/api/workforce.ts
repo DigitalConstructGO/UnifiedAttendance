@@ -120,6 +120,8 @@ export const workforceApi = {
   uploadDocument: uploadWorkforceDocument,
   documents: (owner: WorkforceDocumentOwner, signal?: AbortSignal) =>
     apiFetch<WorkforceDocumentOnFile[]>("/workforce-documents", { query: { ...owner }, signal }),
+  deleteDocument: (id: string) =>
+    apiFetch<WorkforceDocument>(`/workforce-documents/${id}`, { method: "DELETE" }),
 
   employees: (branchId: string, signal?: AbortSignal) =>
     apiFetch<DirectoryEmployeeRow[]>("/employees", { query: { branchId }, signal }),
