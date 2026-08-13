@@ -1,4 +1,5 @@
 import {
+  badRequest,
   deleteWorkforceDocument,
   finalizeWorkforceDocument,
   getWorkforceDocument,
@@ -32,6 +33,8 @@ export const DELETE = route({
   },
 });
 
+const IMAGE_SIZE_SLACK = 64 * 1024;
+
 export const PATCH = route({
   input: resourceIdInput,
   handler: async ({ ctx, input }) => {
@@ -41,9 +44,9 @@ export const PATCH = route({
       document.contentType === "application/pdf"
         ? metadata?.contentLength === document.contentLength
         : (metadata?.contentLength ?? 0) > 0 &&
-          (metadata?.contentLength ?? 0) <= document.contentLength;
+          (metadata?.contentLength ?? 0) <= document.contentLength + IMAGE_SIZE_SLACK;
     if (!metadata || metadata.contentType !== document.contentType || !sizeOk) {
-      throw new Error("Uploaded file does not match the validated document metadata");
+      badRequest("The stored file does not match what was validated. Try the upload again.");
     }
     return finalizeWorkforceDocument(ctx, input.id);
   },
