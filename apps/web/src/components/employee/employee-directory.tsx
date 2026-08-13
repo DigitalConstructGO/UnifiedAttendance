@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import type { EmployeeRow } from "@/lib/api";
+import type { DirectoryEmployeeRow } from "@/lib/api";
 
 import { DirectoryPagination } from "./directory-pagination";
 import { DirectoryTable } from "./directory-table";
@@ -13,7 +13,7 @@ export function EmployeeDirectory({
   employees,
   manageable,
 }: {
-  employees: EmployeeRow[];
+  employees: DirectoryEmployeeRow[];
   manageable: boolean;
 }) {
   const [search, setSearch] = useState("");

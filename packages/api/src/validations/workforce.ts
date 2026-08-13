@@ -20,6 +20,8 @@ const WORKFORCE_DOCUMENT_CONTENT_TYPES = [
 const MAX_WORKFORCE_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
 
+// The photo and national-id pointers are deliberately absent: they are owned
+// by the person's workforce documents and set when one is finalized.
 const personInput = z.object({
   firstName: text,
   middleName: nullableText,
@@ -27,9 +29,6 @@ const personInput = z.object({
   phone: nullableText,
   email: z.email().nullable().optional(),
   gender: z.enum(GENDERS).nullable().optional(),
-  profilePhotoUrl: nullableUrl,
-  nationalIdFrontUrl: nullableUrl,
-  nationalIdBackUrl: nullableUrl,
   emergencyContactName: nullableText,
   emergencyContactPhone: nullableText,
 });

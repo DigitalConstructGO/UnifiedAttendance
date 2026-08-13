@@ -9,6 +9,11 @@ function optionalText(data: FormData, name: string) {
   return String(data.get(name)) || null;
 }
 
+function gender(data: FormData) {
+  const value = String(data.get("gender") ?? "");
+  return value === "male" || value === "female" ? value : null;
+}
+
 /** Maps the create form onto the person and initial assignment expected by the API. */
 export function createEmployeePayload(
   data: FormData,
@@ -16,15 +21,13 @@ export function createEmployeePayload(
   return {
     person: {
       firstName: text(data, "firstName"),
+      middleName: optionalText(data, "middleName"),
       lastName: text(data, "lastName"),
       phone: optionalText(data, "phone"),
       email: optionalText(data, "email"),
-      middleName: null,
-      profilePhotoUrl: null,
-      nationalIdFrontUrl: null,
-      nationalIdBackUrl: null,
-      emergencyContactName: null,
-      emergencyContactPhone: null,
+      gender: gender(data),
+      emergencyContactName: optionalText(data, "emergencyContactName"),
+      emergencyContactPhone: optionalText(data, "emergencyContactPhone"),
     },
     employee: {
       branchId: text(data, "branchId"),
@@ -47,9 +50,13 @@ export function updateEmployeePayload(
     id,
     person: {
       firstName: text(data, "firstName"),
+      middleName: optionalText(data, "middleName"),
       lastName: text(data, "lastName"),
       phone: optionalText(data, "phone"),
       email: optionalText(data, "email"),
+      gender: gender(data),
+      emergencyContactName: optionalText(data, "emergencyContactName"),
+      emergencyContactPhone: optionalText(data, "emergencyContactPhone"),
     },
     employee: {
       employeeCode: text(data, "employeeCode"),

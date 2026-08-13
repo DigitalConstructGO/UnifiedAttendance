@@ -155,6 +155,13 @@
       "when": 1785847011000,
       "tag": "0021_project_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785847012000,
+      "tag": "0022_drop_person_national_ids",
+      "breakpoints": true
     }
   ]
 }

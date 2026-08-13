@@ -1,8 +1,9 @@
-import type { EmployeeRow, EmploymentPeriod } from "@/lib/api";
+import type { EmployeeProfileRow, EmploymentPeriod } from "@/lib/api";
 
 import { EmployeeDetailForm } from "./employee-detail-form";
 import { EmploymentHistory } from "./employment-history";
 import { EmploymentTransitionForm } from "./employment-transition-form";
+import { PersonAssetsCard } from "./person-assets-card";
 import type { EmployeeCatalogs } from "./workspace-model";
 
 export function EmployeeDetails({
@@ -15,7 +16,7 @@ export function EmployeeDetails({
   onTransition,
   onDelete,
 }: {
-  selected: EmployeeRow;
+  selected: EmployeeProfileRow;
   periods: EmploymentPeriod[];
   catalogs: EmployeeCatalogs;
   manageable: boolean;
@@ -39,6 +40,7 @@ export function EmployeeDetails({
           />
         </>
       ) : null}
+      <PersonAssetsCard personId={selected.person.id} assets={selected.personAssets} />
     </section>
   );
 }

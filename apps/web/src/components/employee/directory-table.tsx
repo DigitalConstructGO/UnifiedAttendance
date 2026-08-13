@@ -2,16 +2,24 @@ import { MoreVertical, UsersRound } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import type { EmployeeRow } from "@/lib/api";
+import type { DirectoryEmployeeRow } from "@/lib/api";
 import { EMPLOYEE_STATUS_META, employmentLabel } from "@/lib/workforce-presentation";
 
-function EmployeeCell({ row }: { row: EmployeeRow }) {
+function EmployeeCell({ row }: { row: DirectoryEmployeeRow }) {
   return (
     <span className="flex items-center gap-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-[9px] bg-primary/10 text-xs font-bold text-primary">
-        {row.person.firstName[0]}
-        {row.person.lastName[0]}
-      </span>
+      {row.profilePhotoUrl ? (
+        <img
+          src={row.profilePhotoUrl}
+          alt=""
+          className="size-9 shrink-0 rounded-[9px] object-cover ring-1 ring-border"
+        />
+      ) : (
+        <span className="grid size-9 shrink-0 place-items-center rounded-[9px] bg-primary/10 text-xs font-bold text-primary">
+          {row.person.firstName[0]}
+          {row.person.lastName[0]}
+        </span>
+      )}
       <span className="min-w-0">
         <span className="block truncate">
           {row.person.firstName} {row.person.lastName}
@@ -24,7 +32,7 @@ function EmployeeCell({ row }: { row: EmployeeRow }) {
   );
 }
 
-export function DirectoryTable({ employees }: { employees: EmployeeRow[] }) {
+export function DirectoryTable({ employees }: { employees: DirectoryEmployeeRow[] }) {
   return (
     <>
       <div className="overflow-x-auto">
