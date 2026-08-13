@@ -10,6 +10,7 @@ import {
   createWorkforceDocument,
   deleteWorkforceDocument,
   finalizeWorkforceDocument,
+  listWorkforceDocuments,
 } from "../../../src/modules/workforce/service";
 import { resetDatabase, testContext } from "../../fixtures";
 
@@ -96,6 +97,55 @@ describe("workforce documents", () => {
     // …and deleting the current one clears it.
     await deleteWorkforceDocument(context, second!.id);
     expect((await personOnFile(personId)).profilePhotoUrl).toBeNull();
+  });
+
+  it("lists only the newest finalized document per kind", async () => {
+    const created = await createEmployee(context, {
+      person: { firstName: "Sara", lastName: "Bekele" },
+      employee: {
+        branchId,
+        employeeCode: "EMP-102",
+        employmentType: "permanent",
+        hireDate: "2026-01-01",
+      },
+    });
+    const personId = created.person.id;
+
+    const oldPhoto = await createWorkforceDocument(context, {
+      personId,
+      kind: "profile_photo",
+      contentType: "image/jpeg",
+      contentLength: 100_000,
+    });
+    await finalizeWorkforceDocument(context, oldPhoto!.id);
+    const newPhoto = await createWorkforceDocument(context, {
+      personId,
+      kind: "profile_photo",
+      contentType: "image/webp",
+      contentLength: 90_000,
+    });
+    await finalizeWorkforceDocument(context, newPhoto!.id);
+    const idFront = await createWorkforceDocument(context, {
+      personId,
+      kind: "national_id_front",
+      contentType: "application/pdf",
+      contentLength: 200_000,
+    });
+    await finalizeWorkforceDocument(context, idFront!.id);
+    await createWorkforceDocument(context, {
+      personId,
+      kind: "national_id_back",
+      contentType: "application/pdf",
+      contentLength: 200_000,
+    });
+
+    const listed = await listWorkforceDocuments(context, { personId });
+    expect(listed.map((row) => [row.kind, row.id]).sort()).toEqual(
+      [
+        ["profile_photo", newPhoto!.id],
+        ["national_id_front", idFront!.id],
+      ].sort(),
+    );
   });
 
   it("leaves the person untouched by documents of other kinds", async () => {

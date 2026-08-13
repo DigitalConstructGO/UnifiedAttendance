@@ -20,8 +20,6 @@ const WORKFORCE_DOCUMENT_CONTENT_TYPES = [
 const MAX_WORKFORCE_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
 
-// The photo and national-id pointers are deliberately absent: they are owned
-// by the person's workforce documents and set when one is finalized.
 const personInput = z.object({
   firstName: text,
   middleName: nullableText,
@@ -135,6 +133,18 @@ export const transitionEmploymentInput = employmentValues.extend({ employeeId: i
 
 export const listEmploymentPeriodsInput = z.object({ employeeId: id });
 
+export const listWorkforceDocumentsInput = z
+  .object({
+    personId: id.optional(),
+    cosignerId: id.optional(),
+    employmentContractId: id.optional(),
+  })
+  .refine(
+    (value) =>
+      [value.personId, value.cosignerId, value.employmentContractId].filter(Boolean).length === 1,
+    { message: "List documents for exactly one person, cosigner, or employment contract" },
+  );
+
 export const createWorkforceDocumentInput = z
   .object({
     personId: id.optional(),
@@ -215,3 +225,4 @@ export type UpdateEmployeeInput = z.output<typeof updateEmployeeInput>;
 export type TransitionEmploymentInput = z.output<typeof transitionEmploymentInput>;
 export type ListEmploymentPeriodsInput = z.output<typeof listEmploymentPeriodsInput>;
 export type CreateWorkforceDocumentInput = z.output<typeof createWorkforceDocumentInput>;
+export type ListWorkforceDocumentsInput = z.output<typeof listWorkforceDocumentsInput>;

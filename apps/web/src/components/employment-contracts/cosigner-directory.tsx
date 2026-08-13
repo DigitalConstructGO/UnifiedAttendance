@@ -19,7 +19,7 @@ import { COSIGNER_TABLE_PAGE_SIZE } from "./contract-model";
 import { cosignerColumns } from "./cosigner-columns";
 import { CosignerEditForm } from "./cosigner-edit-form";
 import { DataTable, TableEmptyState, TableFooter } from "./data-table";
-import { uploadCosignerDocuments } from "./uploads";
+import { uploadCosignerDocuments, type UploadFieldStatus, type UploadStatusMap } from "./uploads";
 
 export function CosignerDirectory({
   items,
@@ -33,12 +33,17 @@ export function CosignerDirectory({
   const [editing, setEditing] = useState<Cosigner | null>(null);
   const [deleting, setDeleting] = useState<Cosigner | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadStates, setUploadStates] = useState<UploadStatusMap>({});
+
+  function noteUpload(field: string, status: UploadFieldStatus) {
+    setUploadStates((previous) => ({ ...previous, [field]: status }));
+  }
 
   async function invalidateCosigners() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: workforceKeys.cosigners }),
       queryClient.invalidateQueries({ queryKey: workforceKeys.contracts }),
+      queryClient.invalidateQueries({ queryKey: workforceKeys.documentsAll }),
     ]);
   }
 
@@ -50,7 +55,7 @@ export function CosignerDirectory({
         phone: String(data.get("phone")),
         workplace: String(data.get("workplace")),
       });
-      return uploadCosignerDocuments(data, id, setUploadProgress);
+      return uploadCosignerDocuments(data, id, noteUpload);
     },
     onSuccess: async (failures) => {
       await invalidateCosigners();
@@ -61,7 +66,6 @@ export function CosignerDirectory({
       setNotice("Cosigner details and selected documents saved.");
       setEditing(null);
     },
-    onSettled: () => setUploadProgress(null),
   });
 
   const deleteCosigner = useMutation({
@@ -74,6 +78,13 @@ export function CosignerDirectory({
   });
 
   const busy = saveCosigner.isPending || deleteCosigner.isPending;
+  const uploadingCount = Object.values(uploadStates).filter(
+    (status) => status.state === "uploading",
+  ).length;
+  const uploadProgress =
+    uploadingCount > 0
+      ? `Uploading ${uploadingCount} file${uploadingCount === 1 ? "" : "s"}…`
+      : null;
   const error = saveCosigner.error
     ? presentRequestError(saveCosigner.error, "Could not save the cosigner.")
     : deleteCosigner.error
@@ -89,7 +100,7 @@ export function CosignerDirectory({
   function save(form: HTMLFormElement) {
     if (!editing) return;
     clearFeedback();
-    setUploadProgress(null);
+    setUploadStates({});
     saveCosigner.mutate({ id: editing.id, data: new FormData(form) });
   }
 
@@ -127,6 +138,7 @@ export function CosignerDirectory({
           editing={editing}
           busy={busy}
           uploadProgress={uploadProgress}
+          uploadStates={uploadStates}
           onSubmit={save}
           onCancel={() => setEditing(null)}
         />

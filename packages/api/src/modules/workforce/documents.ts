@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -12,7 +12,10 @@ import { notFound } from "../../errors";
 import { withTransaction } from "../../context";
 import { requirePermission } from "../shared/guards";
 
-import type { CreateWorkforceDocumentInput } from "../../validations/workforce";
+import type {
+  CreateWorkforceDocumentInput,
+  ListWorkforceDocumentsInput,
+} from "../../validations/workforce";
 import type { Context } from "../../context";
 
 const PERSON_ASSET_COLUMNS = {
@@ -117,6 +120,27 @@ export async function finalizeWorkforceDocument(ctx: Context, documentId: string
         .where(eq(people.id, document.personId));
     }
     return finalized;
+  });
+}
+
+/** The finalized documents currently on file for one owner — newest per kind. */
+export async function listWorkforceDocuments(ctx: Context, input: ListWorkforceDocumentsInput) {
+  await requireDocumentPermission(ctx, "workforce_documents.read", input);
+  const owner = input.personId
+    ? eq(workforceDocuments.personId, input.personId)
+    : input.cosignerId
+      ? eq(workforceDocuments.cosignerId, input.cosignerId)
+      : eq(workforceDocuments.employmentContractId, input.employmentContractId!);
+  const rows = await ctx.db
+    .select()
+    .from(workforceDocuments)
+    .where(and(owner, isNotNull(workforceDocuments.finalizedAt)))
+    .orderBy(desc(workforceDocuments.finalizedAt), desc(workforceDocuments.createdAt));
+  const kinds = new Set<string>();
+  return rows.filter((row) => {
+    if (kinds.has(row.kind)) return false;
+    kinds.add(row.kind);
+    return true;
   });
 }
 
