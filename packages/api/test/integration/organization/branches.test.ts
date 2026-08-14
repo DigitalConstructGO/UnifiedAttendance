@@ -5,10 +5,15 @@ import { eq } from "drizzle-orm";
 import { db } from "@UnifiedAttendance/db";
 import { branchWorkingDays, roles, user, userRoles } from "@UnifiedAttendance/db/schema/index";
 
+import { createEmployee } from "../../../src/modules/workforce/service";
 import {
+  archiveBranch,
   createBranch,
+  deleteBranch,
+  listBranches,
   listWorkingDays,
   replaceWorkingDays,
+  restoreBranch,
 } from "../../../src/modules/organization/service";
 import { resetDatabase, testContext } from "../../fixtures";
 
@@ -93,5 +98,80 @@ describe("branch working days", () => {
       .from(branchWorkingDays)
       .where(eq(branchWorkingDays.branchId, legacy!.id));
     expect(stored).toHaveLength(7);
+  });
+});
+
+describe("branch archive and delete", () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    await db.insert(user).values({
+      id: "admin",
+      name: "Admin",
+      email: "admin@example.test",
+      emailVerified: true,
+    });
+    const [adminRole] = await db.select().from(roles).where(eq(roles.name, "Admin")).limit(1);
+    await db.insert(userRoles).values({ userId: "admin", roleId: adminRole!.id });
+  });
+
+  it("hides an archived branch from the active list and shows it in the archive", async () => {
+    const branch = await createBranch(context, { name: "Dukem", code: "DUKEM", address: null });
+
+    await archiveBranch(context, { branchId: branch!.id });
+
+    expect((await listBranches(context)).map((row) => row.id)).not.toContain(branch!.id);
+    expect((await listBranches(context, { archived: true })).map((row) => row.id)).toContain(
+      branch!.id,
+    );
+  });
+
+  it("brings a branch back with restore", async () => {
+    const branch = await createBranch(context, { name: "Dukem", code: "DUKEM", address: null });
+    await archiveBranch(context, { branchId: branch!.id });
+
+    await restoreBranch(context, { branchId: branch!.id });
+
+    expect((await listBranches(context)).map((row) => row.id)).toContain(branch!.id);
+  });
+
+  it("refuses to delete a branch that is not archived first", async () => {
+    const branch = await createBranch(context, { name: "Dukem", code: "DUKEM", address: null });
+
+    await expect(deleteBranch(context, { branchId: branch!.id })).rejects.toThrow();
+  });
+
+  it("refuses to delete an archived branch that still has employees on it", async () => {
+    const branch = await createBranch(context, { name: "Dukem", code: "DUKEM", address: null });
+    await createEmployee(context, {
+      person: { firstName: "Aster", lastName: "Mekonnen" },
+      employee: {
+        branchId: branch!.id,
+        employeeCode: "EMP-1",
+        employmentType: "permanent",
+        hireDate: "2026-01-01",
+      },
+    });
+    await archiveBranch(context, { branchId: branch!.id });
+
+    await expect(deleteBranch(context, { branchId: branch!.id })).rejects.toThrow();
+    expect((await listBranches(context, { archived: true })).map((row) => row.id)).toContain(
+      branch!.id,
+    );
+  });
+
+  it("deletes an archived, empty branch for good — schedule included", async () => {
+    const branch = await createBranch(context, { name: "Dukem", code: "DUKEM", address: null });
+    await archiveBranch(context, { branchId: branch!.id });
+
+    await deleteBranch(context, { branchId: branch!.id });
+
+    const remainingDays = await db
+      .select()
+      .from(branchWorkingDays)
+      .where(eq(branchWorkingDays.branchId, branch!.id));
+    expect(remainingDays).toHaveLength(0);
+    expect((await listBranches(context, { archived: true })).map((row) => row.id)).not.toContain(
+      branch!.id,
+    );
   });
 });

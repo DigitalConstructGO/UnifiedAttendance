@@ -76,8 +76,9 @@ export const updateOrganizationInput = z.object({
   address: nullableText,
 });
 
-/** Branch routes nest (`/branches/:branchId/working-days`), so every level names the segment alike. */
 export const branchIdInput = z.object({ branchId: id });
+
+export const listBranchesInput = z.object({ archived: z.stringbool().optional() });
 
 export const createBranchInput = z.object({
   name: text,
@@ -132,6 +133,7 @@ export type CreateOrganizationInput = z.output<typeof createOrganizationInput>;
 export type BootstrapOrganizationInput = z.output<typeof bootstrapOrganizationInput>;
 export type UpdateOrganizationInput = z.output<typeof updateOrganizationInput>;
 export type BranchIdInput = z.output<typeof branchIdInput>;
+export type ListBranchesInput = z.output<typeof listBranchesInput>;
 export type CreateBranchInput = z.output<typeof createBranchInput>;
 export type UpdateBranchInput = z.output<typeof updateBranchInput>;
 export type WorkingDaysInput = z.output<typeof workingDaysInput>;

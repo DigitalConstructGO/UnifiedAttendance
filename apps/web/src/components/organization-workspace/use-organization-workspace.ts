@@ -28,10 +28,12 @@ export function useOrganizationWorkspace() {
 
   const organizationQuery = useQuery(organizationQueries.organization());
   const branchesQuery = useQuery(organizationQueries.branches());
+  const archivedBranchesQuery = useQuery(organizationQueries.branches(true));
   const holidaysQuery = useQuery(organizationQueries.holidays());
 
   const organization = organizationQuery.data ?? null;
   const branches = branchesQuery.data ?? [];
+  const archivedBranches = archivedBranchesQuery.data ?? [];
   const selectedBranch = chosenBranch || branches[0]?.id || "";
 
   const workingDaysQuery = useQuery(organizationQueries.workingDays(selectedBranch));
@@ -97,7 +99,31 @@ export function useOrganizationWorkspace() {
     onSuccess: async () => {
       setBranchDraft(null);
       setNotice("Branch saved.");
-      await queryClient.invalidateQueries({ queryKey: organizationKeys.branches });
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.branchesAll });
+    },
+  });
+
+  const archiveBranch = useMutation({
+    mutationFn: organizationApi.archiveBranch,
+    onSuccess: async () => {
+      setNotice("Branch archived.");
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.branchesAll });
+    },
+  });
+
+  const restoreBranch = useMutation({
+    mutationFn: organizationApi.restoreBranch,
+    onSuccess: async () => {
+      setNotice("Branch restored.");
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.branchesAll });
+    },
+  });
+
+  const deleteBranch = useMutation({
+    mutationFn: organizationApi.deleteBranch,
+    onSuccess: async () => {
+      setNotice("Branch deleted for good.");
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.branchesAll });
     },
   });
 
@@ -121,6 +147,9 @@ export function useOrganizationWorkspace() {
     [saveOrganization, "Could not save changes."],
     [saveDays, "Could not save schedule."],
     [saveBranch, "Could not save branch."],
+    [archiveBranch, "Could not archive the branch."],
+    [restoreBranch, "Could not restore the branch."],
+    [deleteBranch, "Could not delete the branch."],
     [addHoliday, "Could not add holiday."],
     [deleteHoliday, "Could not remove holiday."],
   ] as const;
@@ -150,6 +179,7 @@ export function useOrganizationWorkspace() {
     tab,
     organization,
     branches,
+    archivedBranches,
     holidays: holidaysQuery.data ?? [],
     selectedBranch,
     days,
@@ -192,6 +222,18 @@ export function useOrganizationWorkspace() {
       event.preventDefault();
       clearFeedback();
       saveBranch.mutate(branchDraft ?? emptyBranchDraft(organization?.timezone));
+    },
+    archiveBranch: (branchId: string) => {
+      clearFeedback();
+      archiveBranch.mutate(branchId);
+    },
+    restoreBranch: (branchId: string) => {
+      clearFeedback();
+      restoreBranch.mutate(branchId);
+    },
+    deleteBranch: (branchId: string) => {
+      clearFeedback();
+      deleteBranch.mutate(branchId);
     },
     addHoliday: (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();

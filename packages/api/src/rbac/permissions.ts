@@ -1,6 +1,6 @@
 export const PERMISSION_GROUPS = {
   organization: ["read", "update"],
-  branches: ["read", "create", "update", "manage_schedule"],
+  branches: ["read", "create", "update", "manage_schedule", "archive", "restore", "delete"],
   holidays: ["read", "create", "update", "delete"],
   departments: ["read", "create", "update", "delete"],
   positions: ["read", "create", "update", "delete"],

@@ -19,7 +19,8 @@ export type BootstrapResult = JsonOf<contracts.BootstrapResult>;
 export const organizationKeys = {
   organization: ["organization"] as const,
   letterhead: ["organization", "letterhead"] as const,
-  branches: ["branches"] as const,
+  branchesAll: ["branches"] as const,
+  branches: (archived?: boolean) => ["branches", { archived: archived ?? false }] as const,
   branch: (branchId: string) => ["branches", branchId] as const,
   workingDays: (branchId: string) => ["branches", branchId, "working-days"] as const,
   holidays: (branchId?: string | null) => ["holidays", branchId ?? "all"] as const,
@@ -36,13 +37,20 @@ export const organizationApi = {
   update: ({ id, ...values }: z.input<typeof validations.updateOrganizationInput>) =>
     apiFetch<Organization>(`/organization/${id}`, { method: "PATCH", body: values }),
 
-  branches: (signal?: AbortSignal) => apiFetch<Branch[]>("/branches", { signal }),
+  branches: (archived?: boolean, signal?: AbortSignal) =>
+    apiFetch<Branch[]>("/branches", { query: { archived }, signal }),
   branch: (branchId: string, signal?: AbortSignal) =>
     apiFetch<Branch>(`/branches/${branchId}`, { signal }),
   createBranch: (input: z.input<typeof validations.createBranchInput>) =>
     apiFetch<Branch>("/branches", { method: "POST", body: input }),
   updateBranch: ({ branchId, ...values }: z.input<typeof validations.updateBranchInput>) =>
     apiFetch<Branch>(`/branches/${branchId}`, { method: "PATCH", body: values }),
+  archiveBranch: (branchId: string) =>
+    apiFetch<Branch>(`/branches/${branchId}/archive`, { method: "POST" }),
+  restoreBranch: (branchId: string) =>
+    apiFetch<Branch>(`/branches/${branchId}/restore`, { method: "POST" }),
+  deleteBranch: (branchId: string) =>
+    apiFetch<Branch>(`/branches/${branchId}`, { method: "DELETE" }),
 
   workingDays: (branchId: string, signal?: AbortSignal) =>
     apiFetch<WorkingDay[]>(`/branches/${branchId}/working-days`, { signal }),

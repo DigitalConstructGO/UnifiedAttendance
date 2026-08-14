@@ -45,6 +45,7 @@ export const branches = pgTable("branches", {
   address: text("address"),
   timezone: text("timezone").notNull().default(DEFAULT_TIME_ZONE),
   status: branchStatus("status").notNull().default(BRANCH_STATUSES[0]),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
