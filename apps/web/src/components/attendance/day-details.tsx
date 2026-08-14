@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { ManualEntryForm } from "./manual-entry-form";
 import type { ManualKind, RegisterRow } from "./register-model";
+import { registerStatus } from "./register-presentation";
 
 function DayStat({
   label,
@@ -76,7 +77,7 @@ export function DayDetails({
           />
           <DayStat
             label="Exception"
-            value={row.day.missingCheckIn || row.day.missingCheckOut ? "Missing punch" : "None"}
+            value={registerStatus(row) === "missing_punch" ? "Missing punch" : "None"}
           />
         </dl>
 

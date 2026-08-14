@@ -174,6 +174,24 @@ describe("attendance summary report", () => {
     expect(report.byDay[3]).toMatchObject({ date: THU, absent: 1 });
   });
 
+  it("does not count a manually marked present day as missing a punch", async () => {
+    // A branch with no device: staff are marked present by hand, so the day
+    // never gets a check-in or check-out timestamp — that is expected, not
+    // an exception to flag.
+    const branchId = await seedBranch("Manual Branch", [0, 1, 2, 3, 4]);
+    const employeeId = await seedEmployee({ code: "EMP-2", branchId });
+    await day(employeeId, MON, "present", { missingCheckIn: true, missingCheckOut: true });
+    await day(employeeId, TUE, "absent", { missingCheckIn: true, missingCheckOut: true });
+
+    const report = await summary({ from: MON, to: TUE });
+
+    expect(report.rows[0]).toMatchObject({
+      presentDays: 1,
+      absentDays: 1,
+      missingPunchDays: 0,
+    });
+  });
+
   it("removes branch, global, and doubly-listed holidays exactly once", async () => {
     const branchId = await seedBranch("HQ", [0, 1, 2, 3, 4]);
     await seedEmployee({ code: "EMP-1", branchId });

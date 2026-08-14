@@ -133,7 +133,7 @@ export async function getAttendanceSummary(ctx: Context, input: AttendanceSummar
              count(*) filter (where ad.outcome = 'unknown'
                            or (ad.id is null and not e.is_before_today))::int as unrecorded_days,
              coalesce(sum(ad.worked_minutes), 0)::int as worked_minutes,
-             count(*) filter (where ad.missing_check_in or ad.missing_check_out)::int as missing_punch_days,
+             count(*) filter (where ad.outcome in ('partial', 'unknown'))::int as missing_punch_days,
              count(*) filter (where ad.has_correction)::int as corrected_days
       from expected e
       left join attendance_days ad
