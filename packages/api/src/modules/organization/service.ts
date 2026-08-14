@@ -1,14 +1,16 @@
-import { and, asc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, ne, sql } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
 import {
+  attendanceDevices,
   branchWorkingDays,
   branches,
+  employees,
   holidays,
   organizations,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { conflict, notFound } from "../../errors";
+import { badRequest, conflict, notFound } from "../../errors";
 import { withTransaction } from "../../context";
 import { requireAdministrator, requirePermission, requireSuperAdmin } from "../shared/guards";
 
@@ -19,6 +21,7 @@ import type {
   CreateOrganizationInput,
   BootstrapOrganizationInput,
   HolidayIdInput,
+  ListBranchesInput,
   ListHolidaysInput,
   ReplaceWorkingDaysInput,
   UpdateBranchInput,
@@ -130,9 +133,13 @@ export async function updateOrganization(ctx: Context, input: UpdateOrganization
   return organization ?? null;
 }
 
-export async function listBranches(ctx: Context) {
+export async function listBranches(ctx: Context, input: ListBranchesInput = {}) {
   await requirePermission(ctx, "branches.read");
-  return ctx.db.select().from(branches).orderBy(branches.name);
+  return ctx.db
+    .select()
+    .from(branches)
+    .where(input.archived ? isNotNull(branches.archivedAt) : isNull(branches.archivedAt))
+    .orderBy(branches.name);
 }
 
 export async function getBranch(ctx: Context, input: BranchIdInput) {
@@ -150,7 +157,12 @@ async function referenceWorkingDays(ctx: Context, excludeBranchId?: string) {
   const [reference] = await ctx.db
     .select({ id: branches.id })
     .from(branches)
-    .where(excludeBranchId ? ne(branches.id, excludeBranchId) : undefined)
+    .where(
+      and(
+        isNull(branches.archivedAt),
+        excludeBranchId ? ne(branches.id, excludeBranchId) : undefined,
+      ),
+    )
     .orderBy(asc(branches.createdAt))
     .limit(1);
   if (reference) {
@@ -203,6 +215,63 @@ export async function updateBranch(ctx: Context, input: UpdateBranchInput) {
     .set(values)
     .where(eq(branches.id, branchId))
     .returning();
+  return branch;
+}
+
+export async function archiveBranch(ctx: Context, input: BranchIdInput) {
+  const branch = await getBranch(ctx, input);
+  await requirePermission(ctx, "branches.archive", branch.id);
+  if (branch.archivedAt) return branch;
+  const [archived] = await ctx.db
+    .update(branches)
+    .set({ archivedAt: new Date() })
+    .where(eq(branches.id, branch.id))
+    .returning();
+  return archived ?? branch;
+}
+
+export async function restoreBranch(ctx: Context, input: BranchIdInput) {
+  const branch = await getBranch(ctx, input);
+  await requirePermission(ctx, "branches.restore", branch.id);
+  if (!branch.archivedAt) return branch;
+  const [restored] = await ctx.db
+    .update(branches)
+    .set({ archivedAt: null })
+    .where(eq(branches.id, branch.id))
+    .returning();
+  return restored ?? branch;
+}
+
+export async function deleteBranch(ctx: Context, input: BranchIdInput) {
+  const branch = await getBranch(ctx, input);
+  await requirePermission(ctx, "branches.delete", branch.id);
+  if (!branch.archivedAt) {
+    badRequest("Archive this branch first — deletion is only allowed from the archive");
+  }
+  const [[employee], [device]] = await Promise.all([
+    ctx.db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(eq(employees.branchId, branch.id))
+      .limit(1),
+    ctx.db
+      .select({ id: attendanceDevices.id })
+      .from(attendanceDevices)
+      .where(eq(attendanceDevices.branchId, branch.id))
+      .limit(1),
+  ]);
+  if (employee) {
+    conflict(
+      "This branch still has employees assigned to it, so it cannot be deleted. Move or remove them first.",
+    );
+  }
+  if (device) {
+    conflict(
+      "This branch still has enrolled attendance devices, so it cannot be deleted. Remove them first.",
+    );
+  }
+  const [deleted] = await ctx.db.delete(branches).where(eq(branches.id, branch.id)).returning();
+  return deleted;
   return branch;
 }
 

@@ -1,5 +1,5 @@
 import { branchIdInput, updateBranchInput } from "@UnifiedAttendance/api/validations/organization";
-import { getBranch, updateBranch } from "@UnifiedAttendance/api";
+import { deleteBranch, getBranch, updateBranch } from "@UnifiedAttendance/api";
 import { route } from "@/lib/route";
 
 export const GET = route({
@@ -10,4 +10,9 @@ export const GET = route({
 export const PATCH = route({
   input: updateBranchInput,
   handler: ({ ctx, input }) => updateBranch(ctx, input),
+});
+
+export const DELETE = route({
+  input: branchIdInput,
+  handler: ({ ctx, input }) => deleteBranch(ctx, input),
 });

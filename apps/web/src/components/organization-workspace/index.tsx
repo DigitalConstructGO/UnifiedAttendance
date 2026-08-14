@@ -71,6 +71,7 @@ export function OrganizationWorkspace() {
       {workspace.tab === "branches" ? (
         <BranchesTab
           branches={workspace.branches}
+          archivedBranches={workspace.archivedBranches}
           draft={workspace.branchDraft}
           busy={workspace.busy}
           onDraftChange={workspace.setBranchDraft}
@@ -79,6 +80,9 @@ export function OrganizationWorkspace() {
             workspace.setSelectedBranch(branchId);
             workspace.selectTab("schedule");
           }}
+          onArchive={workspace.archiveBranch}
+          onRestore={workspace.restoreBranch}
+          onDelete={workspace.deleteBranch}
         />
       ) : null}
       {workspace.tab === "schedule" ? (

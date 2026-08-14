@@ -162,6 +162,13 @@
       "when": 1785847012000,
       "tag": "0022_drop_person_national_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1785847013000,
+      "tag": "0023_branch_archive",
+      "breakpoints": true
     }
   ]
 }

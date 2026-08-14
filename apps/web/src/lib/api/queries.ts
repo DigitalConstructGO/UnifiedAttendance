@@ -58,10 +58,10 @@ export const organizationQueries = {
       queryKey: organizationKeys.letterhead,
       queryFn: ({ signal }) => organizationApi.letterhead(signal),
     }),
-  branches: () =>
+  branches: (archived?: boolean) =>
     queryOptions({
-      queryKey: organizationKeys.branches,
-      queryFn: ({ signal }) => organizationApi.branches(signal),
+      queryKey: organizationKeys.branches(archived),
+      queryFn: ({ signal }) => organizationApi.branches(archived, signal),
       staleTime: CATALOG_STALE_TIME,
     }),
   branch: (branchId: string) =>
