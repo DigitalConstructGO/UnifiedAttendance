@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import { db } from "@UnifiedAttendance/db";
 import {
@@ -34,11 +34,6 @@ export async function getOrganization(ctx: Context) {
   return organization ?? null;
 }
 
-/**
- * The identity printed on documents such as invoices. Any signed-in user may
- * read it — the letterhead is on every page's sidebar already, and a clients
- * user without organization:read still has to print an invoice.
- */
 export async function getOrganizationLetterhead(ctx: Context) {
   const [organization] = await ctx.db
     .select({
@@ -151,10 +146,47 @@ export async function getBranch(ctx: Context, input: BranchIdInput) {
   return branch;
 }
 
+async function referenceWorkingDays(ctx: Context, excludeBranchId?: string) {
+  const [reference] = await ctx.db
+    .select({ id: branches.id })
+    .from(branches)
+    .where(excludeBranchId ? ne(branches.id, excludeBranchId) : undefined)
+    .orderBy(asc(branches.createdAt))
+    .limit(1);
+  if (reference) {
+    const days = await ctx.db
+      .select({
+        weekday: branchWorkingDays.weekday,
+        isWorkingDay: branchWorkingDays.isWorkingDay,
+        openingTime: branchWorkingDays.openingTime,
+        closingTime: branchWorkingDays.closingTime,
+      })
+      .from(branchWorkingDays)
+      .where(eq(branchWorkingDays.branchId, reference.id));
+    if (days.length > 0) return days;
+  }
+  return Array.from({ length: 7 }, (_, weekday) => {
+    const isWorkingDay = weekday < 5;
+    return {
+      weekday,
+      isWorkingDay,
+      openingTime: isWorkingDay ? "8:00 AM" : null,
+      closingTime: isWorkingDay ? "5:00 PM" : null,
+    };
+  });
+}
+
 export async function createBranch(ctx: Context, input: CreateBranchInput) {
   await requirePermission(ctx, "branches.create");
-  const [branch] = await ctx.db.insert(branches).values(input).returning();
-  return branch;
+  return withTransaction(ctx, async (ctx) => {
+    const [branch] = await ctx.db.insert(branches).values(input).returning();
+    if (!branch) throw new Error("Could not create the branch");
+    const days = await referenceWorkingDays(ctx, branch.id);
+    await ctx.db
+      .insert(branchWorkingDays)
+      .values(days.map((day) => ({ ...day, branchId: branch.id })));
+    return branch;
+  });
 }
 
 export async function updateBranch(ctx: Context, input: UpdateBranchInput) {
@@ -176,6 +208,20 @@ export async function updateBranch(ctx: Context, input: UpdateBranchInput) {
 
 export async function listWorkingDays(ctx: Context, input: WorkingDaysInput) {
   await requirePermission(ctx, "branches.read", input.branchId);
+  const existing = await ctx.db
+    .select()
+    .from(branchWorkingDays)
+    .where(eq(branchWorkingDays.branchId, input.branchId))
+    .orderBy(branchWorkingDays.weekday);
+  if (existing.length > 0) return existing;
+
+  const days = await referenceWorkingDays(ctx, input.branchId);
+  const inserted = await ctx.db
+    .insert(branchWorkingDays)
+    .values(days.map((day) => ({ ...day, branchId: input.branchId })))
+    .onConflictDoNothing()
+    .returning();
+  if (inserted.length > 0) return inserted.sort((a, b) => a.weekday - b.weekday);
   return ctx.db
     .select()
     .from(branchWorkingDays)
