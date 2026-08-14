@@ -58,7 +58,7 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
         outcome: attendanceDays.outcome,
         dayType: attendanceDays.dayType,
         late: sql<number>`count(*) filter (where ${attendanceDays.lateMinutes} > 0)::int`,
-        missingPunch: sql<number>`count(*) filter (where ${attendanceDays.missingCheckIn} or ${attendanceDays.missingCheckOut})::int`,
+        missingPunch: sql<number>`count(*) filter (where ${attendanceDays.outcome} in ('partial', 'unknown'))::int`,
         corrected: sql<number>`count(*) filter (where ${attendanceDays.hasCorrection})::int`,
         value: count(),
       })
