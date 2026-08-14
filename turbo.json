@@ -50,6 +50,9 @@
     },
     "db:down": {
       "cache": false
+    },
+    "rbac:seed": {
+      "cache": false
     }
   }
 }
