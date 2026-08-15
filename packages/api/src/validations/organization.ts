@@ -6,7 +6,7 @@ import {
   ORGANIZATION_STATUSES,
 } from "@UnifiedAttendance/db/schema/organization";
 
-import { date, id, nullableText, nullableUrl, text, time } from "./shared";
+import { date, id, minutes, nullableText, nullableUrl, text, time } from "./shared";
 
 export const timeZone = z
   .string()
@@ -85,6 +85,7 @@ export const createBranchInput = z.object({
   code: identifier,
   address: nullableText,
   timezone: timeZone.optional(),
+  graceMinutes: minutes.optional(),
 });
 
 export const updateBranchInput = z.object({
@@ -94,6 +95,7 @@ export const updateBranchInput = z.object({
   address: nullableText,
   timezone: timeZone.optional(),
   status: z.enum(BRANCH_STATUSES).optional(),
+  graceMinutes: minutes.optional(),
 });
 
 export const workingDaysInput = z.object({ branchId: id });

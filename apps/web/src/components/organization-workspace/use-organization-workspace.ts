@@ -94,6 +94,7 @@ export function useOrganizationWorkspace() {
             code: draft.code,
             address: draft.address,
             timezone: draft.timezone,
+            graceMinutes: draft.graceMinutes,
           })
         : organizationApi.createBranch(draft),
     onSuccess: async () => {

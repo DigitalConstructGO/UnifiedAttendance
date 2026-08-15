@@ -68,6 +68,18 @@ export function BranchesTab({
           placeholder="Africa/Addis_Ababa"
           onChange={(timezone) => onDraftChange({ ...draft, timezone })}
         />
+        <label className="text-strong space-y-2 text-xs font-bold">
+          Grace period (minutes)
+          <Input
+            type="number"
+            min={0}
+            required
+            value={draft.graceMinutes}
+            onChange={(event) =>
+              onDraftChange({ ...draft, graceMinutes: Number(event.target.value) })
+            }
+          />
+        </label>
         <Button type="submit" className="h-8 rounded-[9px] font-bold" disabled={busy}>
           <Plus className="size-4" />
           {draft.id ? "Save" : "Add"}
@@ -84,7 +96,9 @@ export function BranchesTab({
                 <h2 className="text-strong font-heading font-bold">{branch.name}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {branch.code} · {branch.address}
-                  <span className="block">{branch.timezone}</span>
+                  <span className="block">
+                    {branch.timezone} · {branch.graceMinutes}m grace
+                  </span>
                 </p>
               </div>
               <span className="rounded-full bg-success/10 px-2 py-1 text-[0.6875rem] font-bold text-success">
@@ -109,6 +123,7 @@ export function BranchesTab({
                     code: branch.code,
                     address: branch.address ?? "",
                     timezone: branch.timezone,
+                    graceMinutes: branch.graceMinutes,
                   })
                 }
               >
