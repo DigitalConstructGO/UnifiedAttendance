@@ -19,7 +19,10 @@ export async function deriveAttendanceDay(
   options: { employeeId: string; attendanceDate: string },
 ) {
   const { employeeId, attendanceDate } = options;
-  const { dayType, dayWindow } = await loadDayContext(ctx, { employeeId, attendanceDate });
+  const { dayType, dayWindow, graceMinutes } = await loadDayContext(ctx, {
+    employeeId,
+    attendanceDate,
+  });
 
   const events = await ctx.db
     .select()
@@ -73,11 +76,17 @@ export async function deriveAttendanceDay(
     );
   }
 
-  const outcome = outcomeOverride ?? attendanceOutcome(firstIn, lastOut, events.length > 0);
+  const shiftInProgress = Boolean(
+    dayWindow.expectedEnd && !lastOut && Date.now() < dayWindow.expectedEnd.getTime(),
+  );
+  const outcome =
+    outcomeOverride ?? attendanceOutcome(firstIn, lastOut, events.length > 0, shiftInProgress);
 
   let lateMinutes: number | null = null;
   if (firstIn && dayWindow.expectedStart) {
-    lateMinutes = latenessExcused ? 0 : minutesAfter(firstIn, dayWindow.expectedStart);
+    lateMinutes = latenessExcused
+      ? 0
+      : Math.max(0, minutesAfter(firstIn, dayWindow.expectedStart) - graceMinutes);
   }
   const earlyDepartureMinutes =
     lastOut && dayWindow.expectedEnd ? minutesAfter(dayWindow.expectedEnd, lastOut) : null;

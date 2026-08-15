@@ -169,6 +169,13 @@
       "when": 1785847013000,
       "tag": "0023_branch_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785847014000,
+      "tag": "0024_branch_grace_minutes",
+      "breakpoints": true
     }
   ]
 }

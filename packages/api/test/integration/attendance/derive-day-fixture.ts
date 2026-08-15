@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import { db } from "@UnifiedAttendance/db";
 import {
   attendanceCorrections,
@@ -25,6 +27,7 @@ export type DeriveDayFixture = {
   addCorrection: (
     type?: "add_check_out" | "mark_absent" | "mark_present" | "excuse_lateness",
   ) => Promise<void>;
+  setGraceMinutes: (graceMinutes: number) => Promise<void>;
   derive: (attendanceDate?: string) => ReturnType<typeof deriveAttendanceDay>;
 };
 
@@ -102,6 +105,10 @@ export async function setUpDeriveDayFixture(): Promise<DeriveDayFixture> {
         reason: "Attendance Device missed the event",
         appliedBy: officerId,
       });
+    },
+
+    async setGraceMinutes(graceMinutes) {
+      await db.update(branches).set({ graceMinutes }).where(eq(branches.id, branchId));
     },
 
     derive(attendanceDate = MONDAY) {

@@ -3,7 +3,7 @@ import { detectedTimeZone, WEEKDAY_NAMES } from "@/lib/timezone";
 
 export type WorkspaceTab = "overview" | "branches" | "schedule" | "holidays";
 
-export type BranchDraft = Pick<Branch, "name" | "code" | "timezone"> & {
+export type BranchDraft = Pick<Branch, "name" | "code" | "timezone" | "graceMinutes"> & {
   id?: string;
   address: string;
 };
@@ -14,6 +14,7 @@ export function emptyBranchDraft(timezone = detectedTimeZone()): BranchDraft {
     code: "",
     address: "",
     timezone,
+    graceMinutes: 0,
   };
 }
 

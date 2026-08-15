@@ -6,8 +6,15 @@ export function minutesAfter(actual: Date, expected: Date) {
   return Math.max(0, Math.floor((actual.getTime() - expected.getTime()) / 60_000));
 }
 
-export function attendanceOutcome(firstIn: Date | null, lastOut: Date | null, hasEvents: boolean) {
+
+export function attendanceOutcome(
+  firstIn: Date | null,
+  lastOut: Date | null,
+  hasEvents: boolean,
+  shiftInProgress = false,
+) {
   if (firstIn && lastOut) return "present";
+  if (firstIn && shiftInProgress) return "present";
   if (firstIn || lastOut) return "partial";
   return hasEvents ? "unknown" : "absent";
 }

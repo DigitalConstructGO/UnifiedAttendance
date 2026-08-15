@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { db } from "@UnifiedAttendance/db";
 import { attendanceDays, holidays } from "@UnifiedAttendance/db/schema/index";
@@ -56,6 +56,55 @@ describe("deriveAttendanceDay", () => {
       outcome: "partial",
       missingCheckIn: false,
       missingCheckOut: true,
+    });
+  });
+
+  describe("a branch's grace period", () => {
+    it("keeps an arrival inside the grace window from counting as late", async () => {
+      await fixture.setGraceMinutes(15);
+      await fixture.addEvent("2026-03-02T09:10:00+03:00", "in");
+      await fixture.addEvent("2026-03-02T17:00:00+03:00", "out");
+
+      await expect(fixture.derive()).resolves.toMatchObject({ lateMinutes: 0 });
+    });
+
+    it("only counts the minutes past the grace window as late", async () => {
+      await fixture.setGraceMinutes(15);
+      await fixture.addEvent("2026-03-02T09:20:00+03:00", "in");
+      await fixture.addEvent("2026-03-02T17:00:00+03:00", "out");
+
+      await expect(fixture.derive()).resolves.toMatchObject({ lateMinutes: 5 });
+    });
+  });
+
+  describe("a shift that is still in progress", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("reads as present, not a missing punch, while the office is still open", async () => {
+      await fixture.addEvent("2026-03-02T09:15:00+03:00", "in");
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-03-02T12:00:00+03:00"));
+
+      await expect(fixture.derive()).resolves.toMatchObject({
+        outcome: "present",
+        lateMinutes: 15,
+        missingCheckIn: false,
+        missingCheckOut: true,
+      });
+    });
+
+    it("becomes a missing punch once the office's closing time has passed", async () => {
+      await fixture.addEvent("2026-03-02T09:15:00+03:00", "in");
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-03-02T18:00:00+03:00"));
+
+      await expect(fixture.derive()).resolves.toMatchObject({
+        outcome: "partial",
+        missingCheckIn: false,
+        missingCheckOut: true,
+      });
     });
   });
 

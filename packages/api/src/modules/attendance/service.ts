@@ -193,7 +193,12 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     stored.map((day) => [day.employeeId, day]),
   );
 
-  const missing = employeeIds.filter((id) => !byEmployee.has(id));
+  const isToday = branchToday.get(input.branchId) === input.date;
+  const missing = employeeIds.filter((id) => {
+    const day = byEmployee.get(id);
+    if (!day) return true;
+    return isToday && day.firstIn && !day.lastOut;
+  });
   const queue = [...missing];
   await Promise.all(
     Array.from({ length: Math.min(DERIVE_CONCURRENCY, queue.length) }, async () => {

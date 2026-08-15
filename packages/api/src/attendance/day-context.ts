@@ -16,15 +16,10 @@ import type { Context } from "../context";
 export type DayContext = {
   dayType: "working_day" | "weekend" | "holiday";
   dayWindow: DayWindow;
+  graceMinutes: number;
 };
 
-/**
- * `branch_working_days.weekday` is stored Monday-first, because that is the
- * order the organization screen writes it in (`WEEKDAY_NAMES` starts at
- * Monday). JavaScript's `getUTCDay()` is Sunday-first, so reading it raw shifts
- * every day by one: Friday picks up Saturday's row and reads as a weekend,
- * while Sunday picks up Monday's and marks everybody absent on a working day.
- */
+
 export function mondayFirstWeekday(attendanceDate: string) {
   return (new Date(`${attendanceDate}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
@@ -63,7 +58,7 @@ export async function loadDayContext(
   const branchId = employment?.branchId ?? employee.branchId;
 
   const [branch] = await ctx.db
-    .select({ timezone: branches.timezone })
+    .select({ timezone: branches.timezone, graceMinutes: branches.graceMinutes })
     .from(branches)
     .where(eq(branches.id, branchId))
     .limit(1);
@@ -96,5 +91,6 @@ export async function loadDayContext(
   return {
     dayType: holiday ? "holiday" : workingDay?.isWorkingDay ? "working_day" : "weekend",
     dayWindow,
+    graceMinutes: branch.graceMinutes,
   };
 }
