@@ -3,6 +3,7 @@ import { CalendarClock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TablePagination } from "@/components/table-pagination";
 
 import type { QuickKind, RegisterRow } from "./register-model";
@@ -10,6 +11,7 @@ import { attendanceSelectClass } from "./register-controls";
 import {
   avatarTone,
   formatTime,
+  isAttendanceDayLocked,
   registerStatus,
   timeInputValue,
   today,
@@ -63,6 +65,7 @@ export function RecordPanel({
 }) {
   const checkedIn = rows.filter((row) => row.day.firstIn).length;
   const done = rows.filter((row) => row.day.firstIn && row.day.lastOut).length;
+  const locked = !isFuture && isAttendanceDayLocked(date, timeZone);
 
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
@@ -128,6 +131,7 @@ export function RecordPanel({
                 row={row}
                 timeZone={timeZone}
                 busyEmployeeId={busyEmployeeId}
+                locked={locked}
                 onRecord={onRecord}
               />
             ))}
@@ -174,11 +178,13 @@ function RecordRow({
   row,
   timeZone,
   busyEmployeeId,
+  locked,
   onRecord,
 }: {
   row: RegisterRow;
   timeZone: string;
   busyEmployeeId: string | null;
+  locked: boolean;
   onRecord: (row: RegisterRow, kind: QuickKind, time: string) => void;
 }) {
   const fullName = `${row.person.firstName} ${row.person.lastName}`;
@@ -207,6 +213,7 @@ function RecordRow({
         row={row}
         recording={recording}
         timeZone={timeZone}
+        locked={locked}
         onRecord={onRecord}
       />
     </li>
@@ -234,16 +241,28 @@ function RecordEntryForm({
   row,
   recording,
   timeZone,
+  locked,
   onRecord,
 }: {
   row: RegisterRow;
   recording: boolean;
   timeZone: string;
+  locked: boolean;
   onRecord: (row: RegisterRow, kind: QuickKind, time: string) => void;
 }) {
   const fullName = `${row.person.firstName} ${row.person.lastName}`;
   const suggestedKind: QuickKind = row.day.firstIn ? "check_out" : "check_in";
   const now = timeInputValue(new Date().toISOString(), timeZone);
+
+  const submitButton = (
+    <Button
+      size="sm"
+      disabled={recording || locked}
+      className="h-9 w-24 rounded-[9px] font-bold shadow-[var(--shadow-action)]"
+    >
+      {recording ? "Recording…" : "Record"}
+    </Button>
+  );
 
   return (
     <form
@@ -257,6 +276,7 @@ function RecordEntryForm({
       <select
         name="kind"
         defaultValue={suggestedKind}
+        disabled={locked}
         aria-label={`Action for ${fullName}`}
         className={`${attendanceSelectClass} h-9`}
       >
@@ -269,17 +289,23 @@ function RecordEntryForm({
         name="time"
         type="time"
         required
+        disabled={locked}
         defaultValue={now}
         aria-label={`Time for ${fullName}`}
         className="h-9 w-26 rounded-[9px] bg-background px-2 font-numeric font-normal"
       />
-      <Button
-        size="sm"
-        disabled={recording}
-        className="h-9 w-24 rounded-[9px] font-bold shadow-[var(--shadow-action)]"
-      >
-        {recording ? "Recording…" : "Record"}
-      </Button>
+      {locked ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0}>{submitButton}</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Attendance older than 24 hours can&apos;t be recorded here use Corrections instead.
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        submitButton
+      )}
     </form>
   );
 }

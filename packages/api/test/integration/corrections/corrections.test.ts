@@ -23,6 +23,7 @@ import { createEmployee } from "../../../src/modules/workforce/service";
 import { resetDatabase, testContext } from "../../fixtures";
 
 const officer = testContext("officer");
+const hrOfficer = testContext("hr-officer");
 const MONDAY = "2026-02-09";
 
 describe("corrections", () => {
@@ -39,6 +40,14 @@ describe("corrections", () => {
     });
     const [admin] = await db.select().from(roles).where(eq(roles.name, "Admin")).limit(1);
     await db.insert(userRoles).values({ userId: "officer", roleId: admin!.id });
+    await db.insert(user).values({
+      id: "hr-officer",
+      name: "Yonas Bekele",
+      email: "yonas@example.test",
+      emailVerified: true,
+    });
+    const [hr] = await db.select().from(roles).where(eq(roles.name, "HR")).limit(1);
+    await db.insert(userRoles).values({ userId: "hr-officer", roleId: hr!.id });
     const [branch] = await db
       .insert(branches)
       .values({ name: "Head Office", code: "HQ" })
@@ -143,5 +152,25 @@ describe("corrections", () => {
 
     await expect(listCorrections(officer, { employeeId } as never)).resolves.toHaveLength(0);
     await expect(day()).resolves.toHaveLength(0);
+  });
+
+  it("locks HR out of a day more than 24 hours after it closed, while Admin can still touch it", async () => {
+    await expect(
+      createCorrection(hrOfficer, {
+        employeeId,
+        attendanceDate: MONDAY,
+        type: "mark_present",
+        reason: "Worked from the client site all day.",
+      } as never),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(day()).resolves.toHaveLength(0);
+
+    await createCorrection(officer, {
+      employeeId,
+      attendanceDate: MONDAY,
+      type: "mark_present",
+      reason: "Worked from the client site all day.",
+    } as never);
+    await expect(day()).resolves.toMatchObject([{ outcome: "present" }]);
   });
 });

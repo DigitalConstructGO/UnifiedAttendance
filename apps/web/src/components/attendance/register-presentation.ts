@@ -94,6 +94,15 @@ export function avatarTone(name: string) {
   return AVATAR_TONES[index % AVATAR_TONES.length];
 }
 
+const EDIT_GRACE_MS = 24 * 60 * 60 * 1000;
+
+export function isAttendanceDayLocked(date: string, timeZone: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const nextDay = new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10);
+  const dayEnd = new Date(localDateTimeToIso(nextDay, "00:00", timeZone));
+  return Date.now() >= dayEnd.getTime() + EDIT_GRACE_MS;
+}
+
 export function localDateTimeToIso(date: string, time: string, timeZone: string) {
   const [year, month, day] = date.split("-").map(Number);
   const [hour, minute, second = 0] = time.split(":").map(Number);
