@@ -11,6 +11,7 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 import { EMPLOYEE_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums";
 
+import { assertAttendanceDayEditable } from "../../attendance/edit-lock";
 import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { badRequest } from "../../errors";
 import { expectedDaysCte, loadBranchToday } from "../reports/expected-days";
@@ -261,6 +262,7 @@ export async function createManualAttendanceEntry(
     .limit(1);
   const branchId = period?.branchId ?? (await employeeBranchOrThrow(ctx, input.employeeId));
   await requirePermission(ctx, "attendance.record", branchId);
+  await assertAttendanceDayEditable(ctx, { branchId, attendanceDate: input.attendanceDate });
 
   if (input.kind === "check_out" || input.kind === "check_in") {
     const current = await deriveAttendanceDay(ctx, {

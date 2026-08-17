@@ -31,16 +31,10 @@ async function loadGrantedPermissions(ctx: Context) {
   return rows.map((row) => row.code);
 }
 
-/**
- * Grants change when an administrator reassigns a role — rarely — yet every
- * API request was paying the four-table join to re-learn them. A short cache
- * bounds that to once a minute per user; the price is that a role change can
- * take up to a minute to bite on this server process.
- */
+
 const GRANT_CACHE_TTL_MS = 60_000;
 const grantCache = new Map<string, { permissions: string[]; expiresAt: number }>();
 
-/** Tests truncate and re-seed the database; the cache must not outlive that. */
 export function forgetGrantedPermissions() {
   grantCache.clear();
 }
@@ -71,20 +65,23 @@ export async function requirePermission(ctx: Context, permission: Permission, _b
   }
 }
 
-export async function requireSuperAdmin(ctx: Context) {
+export async function isSuperAdmin(ctx: Context) {
   const assignment = await ctx.db
     .select({ userId: userRoles.userId })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
     .where(and(eq(userRoles.userId, userId(ctx)), eq(roles.name, ROLES.superAdministrator)))
     .limit(1);
+  return assignment.length > 0;
+}
 
-  if (assignment.length === 0) {
+export async function requireSuperAdmin(ctx: Context) {
+  if (!(await isSuperAdmin(ctx))) {
     forbidden("Administrator access required");
   }
 }
 
-export async function requireAdministrator(ctx: Context) {
+export async function isAdministrator(ctx: Context) {
   const assignments = await ctx.db
     .select({ roleName: roles.name })
     .from(userRoles)
@@ -96,7 +93,11 @@ export async function requireAdministrator(ctx: Context) {
       ),
     )
     .limit(1);
-  if (assignments.length === 0) forbidden("Administrator access required");
+  return assignments.length > 0;
+}
+
+export async function requireAdministrator(ctx: Context) {
+  if (!(await isAdministrator(ctx))) forbidden("Administrator access required");
 }
 
 export function requireSessionUser(ctx: Context) {

@@ -5,6 +5,7 @@ import { user } from "@UnifiedAttendance/db/schema/auth";
 
 import { badRequest, notFound } from "../../errors";
 import { withTransaction } from "../../context";
+import { assertAttendanceDayEditable } from "../../attendance/edit-lock";
 import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { employeeBranchOrThrow, requirePermission, requireSessionUser } from "../shared/guards";
 
@@ -36,6 +37,7 @@ export async function listCorrections(ctx: Context, input: ListCorrectionsInput)
 export async function createCorrection(ctx: Context, input: CreateCorrectionInput) {
   const branchId = await employeeBranchOrThrow(ctx, input.employeeId);
   await requirePermission(ctx, "corrections.create", branchId);
+  await assertAttendanceDayEditable(ctx, { branchId, attendanceDate: input.attendanceDate });
   if (input.disputedEventId) {
     const [event] = await ctx.db
       .select()
@@ -71,11 +73,20 @@ export async function updateCorrection(ctx: Context, input: UpdateCorrectionInpu
     .where(eq(attendanceCorrections.id, input.id))
     .limit(1);
   if (!current) notFound("Correction");
-  await requirePermission(
-    ctx,
-    "corrections.update",
-    await employeeBranchOrThrow(ctx, current.employeeId),
-  );
+  const branchId = await employeeBranchOrThrow(ctx, current.employeeId);
+  await requirePermission(ctx, "corrections.update", branchId);
+  await assertAttendanceDayEditable(ctx, { branchId, attendanceDate: current.attendanceDate });
+
+  const nextEmployeeId = input.values.employeeId ?? current.employeeId;
+  const nextAttendanceDate = input.values.attendanceDate ?? current.attendanceDate;
+  if (nextEmployeeId !== current.employeeId || nextAttendanceDate !== current.attendanceDate) {
+    const nextBranchId = await employeeBranchOrThrow(ctx, nextEmployeeId);
+    await assertAttendanceDayEditable(ctx, {
+      branchId: nextBranchId,
+      attendanceDate: nextAttendanceDate,
+    });
+  }
+
   return withTransaction(ctx, async (ctx) => {
     const [correction] = await ctx.db
       .update(attendanceCorrections)
@@ -108,11 +119,9 @@ export async function deleteCorrection(ctx: Context, input: DeleteCorrectionInpu
     .where(eq(attendanceCorrections.id, input.id))
     .limit(1);
   if (!current) notFound("Correction");
-  await requirePermission(
-    ctx,
-    "corrections.delete",
-    await employeeBranchOrThrow(ctx, current.employeeId),
-  );
+  const branchId = await employeeBranchOrThrow(ctx, current.employeeId);
+  await requirePermission(ctx, "corrections.delete", branchId);
+  await assertAttendanceDayEditable(ctx, { branchId, attendanceDate: current.attendanceDate });
   await withTransaction(ctx, async (ctx) => {
     await ctx.db.delete(attendanceCorrections).where(eq(attendanceCorrections.id, input.id));
     await deriveAttendanceDay(ctx, {
