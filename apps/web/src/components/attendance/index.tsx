@@ -55,8 +55,10 @@ export function AttendanceWorkspace({ section }: { section: AttendanceSection })
           branchId={register.branchId}
           date={register.date}
           showDate={showsRegister || showsRecord}
+          refreshing={register.refreshing}
           onBranchChange={register.changeBranch}
           onDateChange={register.changeDate}
+          onRefresh={register.refresh}
         />
       </header>
 

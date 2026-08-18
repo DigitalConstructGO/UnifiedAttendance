@@ -1,3 +1,5 @@
+import { RefreshCw } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import type { Branch } from "@/lib/api";
 
@@ -9,15 +11,19 @@ export function RegisterControls({
   branchId,
   date,
   showDate,
+  refreshing,
   onBranchChange,
   onDateChange,
+  onRefresh,
 }: {
   branches: Branch[];
   branchId: string;
   date: string;
   showDate: boolean;
+  refreshing: boolean;
   onBranchChange: (branchId: string) => void;
   onDateChange: (date: string) => void;
+  onRefresh: () => void;
 }) {
   return (
     <section className="flex flex-wrap items-end justify-end gap-3" aria-label="Register controls">
@@ -46,6 +52,15 @@ export function RegisterControls({
           />
         </label>
       ) : null}
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={refreshing}
+        className="flex h-10 items-center gap-1.5 rounded-[11px] border border-input bg-background px-3 text-xs font-bold text-primary hover:bg-primary/8 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
+        {refreshing ? "Refreshing…" : "Refresh"}
+      </button>
     </section>
   );
 }

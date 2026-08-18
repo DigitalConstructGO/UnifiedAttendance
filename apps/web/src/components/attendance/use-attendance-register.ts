@@ -188,6 +188,7 @@ export function useAttendanceRegister({ registerActive = true } = {}) {
     loading:
       branchesQuery.isPending || (registerActive && branchId !== "" && registerQuery.isPending),
     refreshing: registerQuery.isFetching && !registerQuery.isPending,
+    refresh: () => void registerQuery.refetch(),
     busy: manualEntry.isPending,
     quickEmployeeId,
     counts,
