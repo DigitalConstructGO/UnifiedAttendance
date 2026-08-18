@@ -196,12 +196,20 @@ export const attendanceQueries = {
     }),
 };
 
+
+function overviewRefetchInterval() {
+  const now = new Date();
+  const minuteOfDay = now.getHours() * 60 + now.getMinutes();
+  const inMorningWindow = minuteOfDay >= 8 * 60 + 30 && minuteOfDay < 10 * 60 + 30;
+  return inMorningWindow ? 15_000 : 300_000;
+}
+
 export const overviewQueries = {
   operations: (query: Parameters<typeof overviewApi.operations>[0]) =>
     queryOptions({
       queryKey: overviewKeys.operations(query),
       queryFn: ({ signal }) => overviewApi.operations(query, signal),
-      refetchInterval: 30_000,
+      refetchInterval: overviewRefetchInterval,
     }),
 };
 

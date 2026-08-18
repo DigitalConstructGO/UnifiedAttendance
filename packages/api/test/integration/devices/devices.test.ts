@@ -119,19 +119,17 @@ describe("device health", () => {
   const now = new Date("2026-02-09T12:00:00.000Z");
 
   it("reads a reader by when it last reported, not by its status field", () => {
-    expect(deviceHealth({ status: "active", lastSeenAt: "2026-02-09T11:55:00.000Z" }, now)).toBe(
+    expect(deviceHealth({ status: "active", lastSeenAt: "2026-02-09T11:59:30.000Z" }, now)).toBe(
       "online",
     );
-    expect(deviceHealth({ status: "active", lastSeenAt: "2026-02-09T11:30:00.000Z" }, now)).toBe(
+    expect(deviceHealth({ status: "active", lastSeenAt: "2026-02-09T11:58:00.000Z" }, now)).toBe(
       "warning",
     );
     expect(deviceHealth({ status: "active", lastSeenAt: "2026-02-09T10:00:00.000Z" }, now)).toBe(
       "offline",
     );
-    // A reader that has never reported is offline, not unknown — there is
-    // nothing to wait for and the operator needs to see it.
+
     expect(deviceHealth({ status: "active", lastSeenAt: null }, now)).toBe("offline");
-    // Retiring one on purpose reads the same way, whatever it last said.
     expect(deviceHealth({ status: "inactive", lastSeenAt: "2026-02-09T11:59:00.000Z" }, now)).toBe(
       "offline",
     );
