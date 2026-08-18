@@ -128,7 +128,13 @@ export function OperationsOverview({ name }: { name: string }) {
         />
       </div>
 
-      <LiveFeed feed={overview.feed} timeZone={timeZone} loading={loading} />
+      <LiveFeed
+        feed={overview.feed}
+        timeZone={timeZone}
+        loading={loading}
+        refreshing={query.isRefetching}
+        onRefresh={() => void query.refetch()}
+      />
     </div>
   );
 }

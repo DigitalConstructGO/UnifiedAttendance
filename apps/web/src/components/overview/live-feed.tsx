@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, HelpCircle, Waves } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, HelpCircle, RefreshCw, Waves } from "lucide-react";
 import Link from "next/link";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,10 +16,14 @@ export function LiveFeed({
   feed,
   timeZone,
   loading,
+  refreshing,
+  onRefresh,
 }: {
   feed: OperationsOverview["feed"];
   timeZone: string;
   loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
 }) {
   return (
     <section className="overflow-hidden rounded-[18px] bg-card shadow-[var(--shadow-card)] ring-1 ring-border/80">
@@ -31,12 +35,26 @@ export function LiveFeed({
             Live
           </span>
         </h2>
-        <Link
-          href="/dashboard/attendance"
-          className="text-xs font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          Open register
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 rounded-[7px] px-2 py-1 text-xs font-bold text-primary hover:bg-primary/8 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <RefreshCw
+              className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <Link
+            href="/dashboard/attendance"
+            className="text-xs font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            Open register
+          </Link>
+        </div>
       </header>
 
       {loading ? (

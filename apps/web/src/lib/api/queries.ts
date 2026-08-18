@@ -201,7 +201,7 @@ export const overviewQueries = {
     queryOptions({
       queryKey: overviewKeys.operations(query),
       queryFn: ({ signal }) => overviewApi.operations(query, signal),
-      refetchInterval: 60_000,
+      refetchInterval: 30_000,
     }),
 };
 
