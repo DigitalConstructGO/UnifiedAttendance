@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Router } from "lucide-react";
+import { Pencil, RefreshCw, Router } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,23 +9,23 @@ import { relativeTime } from "@/lib/format-date";
 
 import { DEVICE_HEALTH_META, deviceHealth } from "./device-presentation";
 
-/**
- * Sorted by health, worst first. A list ordered by name buries the one reader
- * that stopped reporting among nine that are fine, which is precisely the row
- * somebody opened this page to find.
- */
+
 const ORDER = { offline: 0, warning: 1, online: 2 } as const;
 
 export function ReaderList({
   devices,
   manageable,
   loading,
+  refreshing,
+  onRefresh,
   editingId,
   onEdit,
 }: {
   devices: Device[];
   manageable: boolean;
   loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
   editingId: string | null;
   onEdit: (device: Device) => void;
 }) {
@@ -39,9 +39,23 @@ export function ReaderList({
     <section className="overflow-hidden rounded-[18px] bg-card shadow-[var(--shadow-card)] ring-1 ring-border">
       <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <h2 className="text-strong font-heading text-base font-bold">Readers</h2>
-        <span className="font-heading text-xs font-semibold text-muted-foreground tabular-nums">
-          {devices.length}
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 rounded-[7px] px-2 py-1 text-xs font-bold text-primary hover:bg-primary/8 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <RefreshCw
+              className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <span className="font-heading text-xs font-semibold text-muted-foreground tabular-nums">
+            {devices.length}
+          </span>
+        </div>
       </header>
 
       {loading ? (

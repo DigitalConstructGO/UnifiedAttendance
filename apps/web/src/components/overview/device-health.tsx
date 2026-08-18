@@ -1,4 +1,4 @@
-import { Radio } from "lucide-react";
+import { Radio, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,10 +15,14 @@ export function DeviceHealth({
   devices,
   unmatchedPunches,
   loading,
+  refreshing,
+  onRefresh,
 }: {
   devices: OperationsOverview["devices"];
   unmatchedPunches: number;
   loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
 }) {
   const needsAttention = devices.rows.filter((device) => device.health !== "online");
 
@@ -26,12 +30,26 @@ export function DeviceHealth({
     <section className="rounded-[18px] bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border/80">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-strong font-heading text-base font-bold">Device health</h2>
-        <Link
-          href="/dashboard/devices"
-          className="text-xs font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          View all
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 rounded-[7px] px-2 py-1 text-xs font-bold text-primary hover:bg-primary/8 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <RefreshCw
+              className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <Link
+            href="/dashboard/devices"
+            className="text-xs font-bold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            View all
+          </Link>
+        </div>
       </div>
 
       {loading ? (

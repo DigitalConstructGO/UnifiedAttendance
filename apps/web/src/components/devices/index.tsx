@@ -148,6 +148,8 @@ export function DevicesWorkspace({ section }: { section: DeviceSection }) {
             devices={devices}
             manageable={manageable}
             loading={branchesQuery.isPending || (branchId !== "" && devicesQuery.isPending)}
+            refreshing={devicesQuery.isRefetching}
+            onRefresh={() => void devicesQuery.refetch()}
             editingId={editing?.id ?? null}
             onEdit={(device) => {
               setNotice(null);

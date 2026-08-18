@@ -125,6 +125,8 @@ export function OperationsOverview({ name }: { name: string }) {
           devices={overview.devices}
           unmatchedPunches={overview.unmatchedPunches}
           loading={loading}
+          refreshing={query.isRefetching}
+          onRefresh={() => void query.refetch()}
         />
       </div>
 
