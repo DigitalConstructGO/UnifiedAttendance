@@ -24,6 +24,7 @@ export const PERMISSION_GROUPS = {
   client_catalogs: ["manage"],
   reports: ["read"],
   dashboard: ["read"],
+  notifications: ["manage"],
 } as const;
 
 type Groups = typeof PERMISSION_GROUPS;
@@ -95,6 +96,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     ...codesOf("corrections"),
     "reports.read",
     "dashboard.read",
+    "notifications.manage",
   ],
   [ROLES.manager]: [
     "organization.read",
