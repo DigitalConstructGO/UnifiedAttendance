@@ -176,6 +176,20 @@
       "when": 1785847014000,
       "tag": "0024_branch_grace_minutes",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787129153959,
+      "tag": "0025_notification_tiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787131511675,
+      "tag": "0026_notification_log",
+      "breakpoints": true
     }
   ]
 }

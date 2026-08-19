@@ -1,6 +1,7 @@
 export * from "./auth";
 export * from "./rbac";
 export * from "./organization";
+export * from "./notifications";
 
 export * from "./workforce-enums";
 export * from "./people";
