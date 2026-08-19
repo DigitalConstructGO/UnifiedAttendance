@@ -75,6 +75,7 @@ result is inherently small (catalogs, per-branch schedules, etc.).
 - [Attendance](#attendance)
 - [Corrections](#corrections)
 - [Reports & dashboard](#reports--dashboard)
+- [Notifications](#notifications)
 - [Clients & CRM](#clients--crm)
 - [Health & setup](#health--setup)
 - [Device protocol (`/iclock/*`)](#device-protocol-iclock)
@@ -217,6 +218,22 @@ Modules: `packages/api/src/modules/reports/service.ts`, `packages/api/src/module
 |---|---|---|---|---|
 | GET | `/overview` | `dashboard.read` | `date`, `feed?` (max 20, default 6) | Operations dashboard: headcount, today's attendance, 7-day trend, device health, live event feed, correction/unmatched-punch counts |
 | GET | `/reports/attendance-summary` | `reports.read` | `from`, `to` (≤92-day span), `branchId?`, `departmentId?`, `search?`, `sort?`, `limit`, `offset` | Per-employee attendance summary with totals and day-by-day breakdown |
+
+## Notifications
+
+Module: `packages/api/src/modules/notifications/service.ts` · Validations: `notifications.ts`.
+Company-wide, admin/HR-configurable escalation tiers for the late-arrival and absence scans
+(`packages/api/src/modules/notifications/late-arrival-scan.ts`,
+`absence-scan.ts`) that `apps/web/src/instrumentation.ts` schedules via `node-cron`. Each tier
+pairs a weekly-occurrence threshold with a subject/body email template; see the module source
+for the placeholder syntax.
+
+| Method | Path | Permission | Body / query | Description |
+|---|---|---|---|---|
+| GET | `/notifications/tiers` | `notifications.manage` | `condition?` | List tiers, optionally filtered by `late`/`absent` |
+| POST | `/notifications/tiers` | `notifications.manage` | `condition`, `threshold`, `subjectTemplate`, `bodyTemplate` | Create a tier |
+| PATCH | `/notifications/tiers/[id]` | `notifications.manage` | partial of create | Update a tier |
+| DELETE | `/notifications/tiers/[id]` | `notifications.manage` | — | Delete a tier |
 
 ## Clients & CRM
 

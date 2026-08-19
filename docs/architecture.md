@@ -258,14 +258,25 @@ that only attendance devices can reach, never exposed the way `/api/v1` is.
   `client-document-versions`, and `workforce-documents` endpoints hand back a signed upload URL
   alongside the metadata row they create, and finalize only after checking the stored file
   matches what was declared.
-- **Email** — Resend, wrapped in `apps/web/src/lib/email.ts`.
+- **Email** — Nodemailer against the operator's own SMTP server, wrapped in
+  `packages/api/src/mailer.ts` and injected on `Context` (`packages/api/src/context.ts`) the
+  same way `db` is, so tests can swap in a fake mailer. Configured via `SMTP_HOST`/`SMTP_PORT`/
+  `SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`.
 - **Logging** — pino, `apps/web/src/lib/logger.ts`, JSON in production, pretty-printed in
   development unless `PINO_PRETTY=false`.
 - **Metrics** — `prom-client`, `apps/web/src/lib/metrics.ts`, served for Grafana/Prometheus to
   scrape.
-- **Redis / job queue** — `ioredis` is present in `apps/web/package.json` and BullMQ is part of
-  the intended stack (see [CLAUDE.md](../CLAUDE.md)), but as of this writing neither is wired
-  into any application code. Nothing currently depends on Redis being available.
+- **Scheduled/background work** — `node-cron`, registered once per server instance from
+  `apps/web/src/instrumentation.ts`'s `register()` hook (guarded against Next re-invoking it,
+  and against non-Node runtimes). Jobs build a session-less `Context` directly and call a
+  service function, bypassing the RBAC/HTTP layer entirely — appropriate only for trusted
+  background code with no user session to check. Currently used for the notifications
+  late-arrival/absence scans, `packages/api/src/modules/notifications/`. `ioredis` is present in
+  `apps/web/package.json` and BullMQ is part of the intended stack (see
+  [CLAUDE.md](../CLAUDE.md)) for heavier background-job needs (retries, persistence, multiple
+  workers), but as of this writing neither is wired into any application code — node-cron was
+  chosen for the notifications feature instead, since its needs (a handful of fixed-interval
+  scans, single web-server instance) didn't warrant standing up a queue.
 
 
 
