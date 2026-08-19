@@ -4,6 +4,7 @@ import { attendanceApi, attendanceKeys } from "./attendance";
 import { clientKeys, clientsApi } from "./clients";
 import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
+import { notificationKeys, notificationsApi } from "./notifications";
 import { organizationApi, organizationKeys } from "./organization";
 import { overviewApi, overviewKeys } from "./overview";
 import { reportKeys, reportsApi } from "./reports";
@@ -15,6 +16,7 @@ export * from "./attendance";
 export * from "./clients";
 export * from "./corrections";
 export * from "./devices";
+export * from "./notifications";
 export * from "./organization";
 export * from "./overview";
 export * from "./reports";
@@ -32,6 +34,7 @@ export const api = {
   corrections: correctionsApi,
   overview: overviewApi,
   reports: reportsApi,
+  notifications: notificationsApi,
 };
 
 export const queryKeys = {
@@ -44,4 +47,5 @@ export const queryKeys = {
   corrections: correctionsKeys,
   overview: overviewKeys,
   reports: reportKeys,
+  notifications: notificationKeys,
 };

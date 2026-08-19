@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BellRing,
   Building2,
   CalendarCheck2,
   ChartColumnBig,
@@ -62,6 +63,11 @@ const moduleMeta: Record<NavLabel, { icon: typeof Building2; description: string
       icon: CalendarCheck2,
       description: "Issued amounts, payments and outstanding balances.",
       tone: "text-success bg-success/10",
+    },
+    Notifications: {
+      icon: BellRing,
+      description: "Escalation tiers for late-arrival and absence emails.",
+      tone: "text-warning bg-warning/12",
     },
     "Users & access": {
       icon: ShieldCheck,
