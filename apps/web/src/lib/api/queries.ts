@@ -5,6 +5,7 @@ import { attendanceApi, attendanceKeys } from "./attendance";
 import { clientKeys, clientsApi } from "./clients";
 import { correctionsApi, correctionsKeys } from "./corrections";
 import { devicesApi, devicesKeys } from "./devices";
+import { notificationKeys, notificationsApi } from "./notifications";
 import { organizationApi, organizationKeys } from "./organization";
 import { overviewApi, overviewKeys } from "./overview";
 import { reportKeys, reportsApi } from "./reports";
@@ -361,6 +362,14 @@ export const clientQueries = {
     }),
 };
 
+export const notificationQueries = {
+  tiers: (condition?: Parameters<typeof notificationsApi.tiers>[0]) =>
+    queryOptions({
+      queryKey: notificationKeys.tiers(condition),
+      queryFn: ({ signal }) => notificationsApi.tiers(condition, signal),
+    }),
+};
+
 export const queries = {
   access: accessQueries,
   organization: organizationQueries,
@@ -370,4 +379,5 @@ export const queries = {
   corrections: correctionsQueries,
   overview: overviewQueries,
   clients: clientQueries,
+  notifications: notificationQueries,
 };

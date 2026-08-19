@@ -6,7 +6,12 @@
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
     "CORS_ORIGIN",
-    "NODE_ENV"
+    "NODE_ENV",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM"
   ],
   "tasks": {
     "build": {

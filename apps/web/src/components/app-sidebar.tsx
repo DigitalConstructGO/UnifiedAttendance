@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellRing,
   BookOpen,
   Building,
   Building2,
@@ -51,6 +52,7 @@ const moduleIcons = {
   Contracts: FileSignature,
   Invoices: ReceiptText,
   "Users & access": ShieldCheck,
+  Notifications: BellRing,
 } satisfies Record<NavLabel, LucideIcon>;
 
 const groupLabelClass =

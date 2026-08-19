@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 
 import { seedRbac } from "../scripts/seed";
 import { createInnerContext, type Context } from "../src/context";
+import { seedDefaultNotificationTiers } from "../src/modules/notifications/service";
 import { forgetBranches } from "../src/modules/reports/expected-days";
 import { forgetGrantedPermissions } from "../src/modules/shared/guards";
 
@@ -15,6 +16,7 @@ export function testContext(userId?: string): Context {
 export async function resetDatabase() {
   await db.execute(sql.raw(`truncate table ${await tableList()} restart identity cascade`));
   await seedRbac();
+  await seedDefaultNotificationTiers();
   forgetGrantedPermissions();
   forgetBranches();
 }

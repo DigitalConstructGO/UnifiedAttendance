@@ -37,6 +37,11 @@ export const DASHBOARD_NAV = [
   { href: "/dashboard/clients/invoices", label: "Invoices", permission: "clients.read" },
   { href: "/dashboard/devices", label: "Devices", permission: "devices.read" },
   { href: "/dashboard/organization", label: "Organization", permission: "organization.update" },
+  {
+    href: "/dashboard/notifications",
+    label: "Notifications",
+    permission: "notifications.manage",
+  },
   { href: "/dashboard/access", label: "Users & access", permission: "organization.update" },
 ] as const satisfies readonly { href: string; label: string; permission: Permission }[];
 
@@ -49,7 +54,7 @@ export const NAV_SECTIONS = [
     label: "Clients",
     items: ["Dashboard", "All clients", "Leads & pipeline", "Contracts", "Invoices"],
   },
-  { label: "Platform", items: ["Devices", "Organization", "Users & access"] },
+  { label: "Platform", items: ["Devices", "Organization", "Notifications", "Users & access"] },
 ] as const satisfies readonly { label: string; items: readonly NavLabel[] }[];
 
 export function visibleNavItems(access: Access) {
