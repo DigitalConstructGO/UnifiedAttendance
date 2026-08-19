@@ -21,11 +21,13 @@
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.2",
     "next": "catalog:",
+    "nodemailer": "^9.0.5",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@UnifiedAttendance/config": "workspace:*",
     "@playwright/test": "catalog:",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",

@@ -1,4 +1,5 @@
 export { createContext, createInnerContext, withTransaction, type Context } from "./context";
+export { createMailer, type Mailer, type SendEmailInput } from "./mailer";
 export {
   ApiError,
   isApiError,
