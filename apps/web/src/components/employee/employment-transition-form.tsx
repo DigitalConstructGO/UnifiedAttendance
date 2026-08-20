@@ -10,6 +10,7 @@ import {
   compactSelectClass,
   DepartmentOptions,
   EmploymentTypeOptions,
+  Field,
   PositionOptions,
 } from "./fields";
 import type { EmployeeCatalogs } from "./workspace-model";
@@ -37,7 +38,7 @@ export function EmploymentTransitionForm({
       <CardHeader>
         <CardTitle className="font-bold">Employment transition</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="grid gap-4">
         <form
           className="grid gap-3"
           onSubmit={(event) => {
@@ -45,70 +46,75 @@ export function EmploymentTransitionForm({
             onSubmit(event.currentTarget);
           }}
         >
-          <Input
-            required
-            type="date"
-            name="effectiveFrom"
-            aria-label="Effective from"
-            className="h-9 rounded-[9px]"
-          />
-          <select
-            name="branchId"
-            defaultValue={selected.employee.branchId}
-            aria-label="Branch"
-            className={compactSelectClass}
-          >
-            <BranchOptions branches={catalogs.branches} />
-          </select>
-          <select
-            name="departmentId"
-            value={departmentId}
-            onChange={(event) => setDepartmentId(event.target.value)}
-            aria-label="Department"
-            className={compactSelectClass}
-          >
-            <DepartmentOptions departments={catalogs.departments} />
-          </select>
-          <select
-            key={departmentId}
-            name="positionId"
-            aria-label="Position"
-            className={compactSelectClass}
-          >
-            <PositionOptions positions={catalogs.positions} departmentId={departmentId} />
-          </select>
-          <select
-            name="employmentType"
-            defaultValue={selected.employee.employmentType}
-            aria-label="Employment type"
-            className={compactSelectClass}
-          >
-            <EmploymentTypeOptions />
-          </select>
-          <select
-            name="status"
-            defaultValue={EMPLOYEE_STATUSES[0]}
-            aria-label="Employment status"
-            className={compactSelectClass}
-          >
-            {EMPLOYEE_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {EMPLOYMENT_TRANSITION_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
+          <Field label="Effective from">
+            <Input required type="date" name="effectiveFrom" className="h-9 rounded-[9px]" />
+          </Field>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Branch">
+              <select
+                name="branchId"
+                defaultValue={selected.employee.branchId}
+                className={compactSelectClass}
+              >
+                <BranchOptions branches={catalogs.branches} />
+              </select>
+            </Field>
+            <Field label="Department">
+              <select
+                name="departmentId"
+                value={departmentId}
+                onChange={(event) => setDepartmentId(event.target.value)}
+                className={compactSelectClass}
+              >
+                <DepartmentOptions departments={catalogs.departments} />
+              </select>
+            </Field>
+            <Field label="Position">
+              <select key={departmentId} name="positionId" className={compactSelectClass}>
+                <PositionOptions positions={catalogs.positions} departmentId={departmentId} />
+              </select>
+            </Field>
+            <Field label="Employment type">
+              <select
+                name="employmentType"
+                defaultValue={selected.employee.employmentType}
+                className={compactSelectClass}
+              >
+                <EmploymentTypeOptions />
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Employment status">
+            <select
+              name="status"
+              defaultValue={EMPLOYEE_STATUSES[0]}
+              className={compactSelectClass}
+            >
+              {EMPLOYEE_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {EMPLOYMENT_TRANSITION_STATUS_LABELS[status]}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <Button disabled={busy} className="h-9 rounded-[9px] font-bold">
             Save dated transition
           </Button>
         </form>
-        <Button
-          variant="destructive"
-          disabled={busy}
-          className="h-9 w-full rounded-[9px] font-bold"
-          onClick={onDelete}
-        >
-          Move to archive
-        </Button>
+
+        <div className="border-t border-border pt-4">
+          <Button
+            variant="destructive"
+            disabled={busy}
+            className="h-9 w-full rounded-[9px] font-bold"
+            onClick={onDelete}
+          >
+            Move to archive
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
