@@ -15,6 +15,64 @@ function rateTone(percent: number) {
   return "text-destructive";
 }
 
+function SummaryCard({ row, days }: { row: AttendanceSummaryRow; days: boolean }) {
+  const fullName = `${row.person.firstName} ${row.person.lastName}`;
+  const present = row.presentDays + row.partialDays;
+  return (
+    <li className="border-b border-border px-5 py-4 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-3">
+          <span
+            className={`grid size-9 shrink-0 place-items-center rounded-[9px] text-xs font-bold ${avatarTone(fullName)}`}
+            aria-hidden="true"
+          >
+            {row.person.firstName[0]}
+            {row.person.lastName[0]}
+          </span>
+          <span className="min-w-0">
+            <span className="text-strong block truncate font-bold">{fullName}</span>
+            <span className="block truncate text-[0.6875rem] text-muted-foreground">
+              {row.employee.employeeCode} · {row.branch.name}
+              {row.department?.name ? ` · ${row.department.name}` : ""}
+            </span>
+          </span>
+        </span>
+        <span
+          className={`shrink-0 font-numeric text-sm font-bold ${rateTone(row.attendanceRatePercent)}`}
+        >
+          {row.attendanceRatePercent}%
+        </span>
+      </div>
+      <dl className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
+        <div>
+          <dt className="text-muted-foreground">Present</dt>
+          <dd className="mt-0.5 font-numeric font-bold text-success">{present}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{days ? "Late days" : "Late"}</dt>
+          <dd
+            className={`mt-0.5 font-numeric font-bold ${row.lateDays > 0 ? "text-amber-700 dark:text-warning" : "text-strong"}`}
+          >
+            {row.lateDays}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Absent</dt>
+          <dd
+            className={`mt-0.5 font-numeric font-bold ${row.absentDays > 0 ? "text-destructive" : "text-strong"}`}
+          >
+            {row.absentDays}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-2 font-numeric text-[0.6875rem] text-muted-foreground">
+        {days ? "Expected" : "Scheduled"} {row.expectedDays} · Late min {row.lateMinutes} ·
+        Unrecorded {row.unrecordedDays}
+      </p>
+    </li>
+  );
+}
+
 export function SummaryTable({
   preset,
   range,
@@ -63,7 +121,12 @@ export function SummaryTable({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <ul className="sm:hidden">
+          {rows.map((row) => (
+            <SummaryCard key={row.employee.id} row={row} days={days} />
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[980px] border-collapse text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
               <tr>
