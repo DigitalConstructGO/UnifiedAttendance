@@ -3,12 +3,19 @@ import { and, asc, count, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
 import {
   branches,
   clientAuditEntries,
+  clientContacts,
+  clientDocuments,
+  clientNotes,
   clientOwnerAssignments,
   clientTypes,
   clients,
+  commercialContracts,
+  crmActivities,
   employees,
   industries,
+  invoices,
   people,
+  projects,
 } from "@UnifiedAttendance/db/schema/index";
 
 import { badRequest, conflict } from "../../errors";
@@ -416,4 +423,111 @@ export async function archiveClient(ctx: Context, input: ClientResourceIdInput) 
   });
   if (!archived) throw new Error("Client archive failed");
   return archived;
+}
+
+export async function restoreClient(ctx: Context, input: ClientResourceIdInput) {
+  const current = await clientOrThrow(ctx, input.id);
+  await requirePermission(ctx, "clients.restore", current.branchId);
+  if (current.status !== "archived") return current;
+  const actorUserId = requireSessionUser(ctx);
+  const [restored] = await withTransaction(ctx, async (ctx) => {
+    const result = await ctx.db
+      .update(clients)
+      .set({ status: "active", archivedAt: null })
+      .where(eq(clients.id, current.id))
+      .returning();
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: current.id,
+      actorUserId,
+      action: "client.restored",
+      entityType: "client",
+      entityId: current.id,
+      changeSummary: { from: current.status, to: "active" },
+    });
+    return result;
+  });
+  if (!restored) throw new Error("Client restore failed");
+  return restored;
+}
+
+export async function deleteClient(ctx: Context, input: ClientResourceIdInput) {
+  const current = await clientOrThrow(ctx, input.id);
+  await requirePermission(ctx, "clients.delete", current.branchId);
+  if (current.status !== "archived") {
+    badRequest("Archive this Client first — deletion is only allowed from the archive");
+  }
+
+  const [[contact], [contract], [project], [invoice], [document], [note], [activity]] =
+    await Promise.all([
+      ctx.db
+        .select({ id: clientContacts.id })
+        .from(clientContacts)
+        .where(eq(clientContacts.clientId, current.id))
+        .limit(1),
+      ctx.db
+        .select({ id: commercialContracts.id })
+        .from(commercialContracts)
+        .where(eq(commercialContracts.clientId, current.id))
+        .limit(1),
+      ctx.db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.clientId, current.id))
+        .limit(1),
+      ctx.db
+        .select({ id: invoices.id })
+        .from(invoices)
+        .where(eq(invoices.clientId, current.id))
+        .limit(1),
+      ctx.db
+        .select({ id: clientDocuments.id })
+        .from(clientDocuments)
+        .where(eq(clientDocuments.clientId, current.id))
+        .limit(1),
+      ctx.db
+        .select({ id: clientNotes.id })
+        .from(clientNotes)
+        .where(eq(clientNotes.clientId, current.id))
+        .limit(1),
+      ctx.db
+        .select({ id: crmActivities.id })
+        .from(crmActivities)
+        .where(eq(crmActivities.clientId, current.id))
+        .limit(1),
+    ]);
+  if (contact) {
+    conflict("This Client has contacts on file, so it cannot be deleted. Keep it archived instead.");
+  }
+  if (contract) {
+    conflict(
+      "This Client has commercial contracts, so it cannot be deleted. Keep it archived instead.",
+    );
+  }
+  if (project) {
+    conflict("This Client has projects, so it cannot be deleted. Keep it archived instead.");
+  }
+  if (invoice) {
+    conflict("This Client has invoices, so it cannot be deleted. Keep it archived instead.");
+  }
+  if (document) {
+    conflict("This Client has documents, so it cannot be deleted. Keep it archived instead.");
+  }
+  if (note) {
+    conflict("This Client has notes on file, so it cannot be deleted. Keep it archived instead.");
+  }
+  if (activity) {
+    conflict(
+      "This Client has logged activities, so it cannot be deleted. Keep it archived instead.",
+    );
+  }
+
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(clientAuditEntries).where(eq(clientAuditEntries.clientId, current.id));
+    await ctx.db
+      .delete(clientOwnerAssignments)
+      .where(eq(clientOwnerAssignments.clientId, current.id));
+    await ctx.db.delete(clients).where(eq(clients.id, current.id));
+  });
+  return { id: current.id };
 }
