@@ -33,6 +33,16 @@ export const EMPLOYMENT_TYPE_META: Record<
   intern: { label: "Intern", scheduleLabel: "Intern schedule" },
 };
 
+/**
+ * Part-time and intern hires are, by default, only expected on the days
+ * they actually come in rather than a fixed weekly calendar — a sensible
+ * starting point for the "Schedule" field, not a hard rule: the form still
+ * lets someone override it per employee.
+ */
+export function defaultScheduleFor(employmentType: EmploymentType): "fixed" | "flexible" {
+  return employmentType === "part_time" || employmentType === "intern" ? "flexible" : "fixed";
+}
+
 export const EMPLOYEE_STATUS_META: Record<EmployeeStatus, { label: string; badgeClass: string }> = {
   active: {
     label: "Active",

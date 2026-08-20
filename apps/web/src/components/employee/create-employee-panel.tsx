@@ -5,7 +5,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { EMPLOYMENT_TYPES } from "@/lib/workforce-presentation";
+import {
+  defaultScheduleFor,
+  EMPLOYMENT_TYPES,
+  type EmploymentType,
+} from "@/lib/workforce-presentation";
 
 import {
   BranchOptions,
@@ -32,6 +36,9 @@ export function CreateEmployeePanel({
 }) {
   const inputClass = "h-10 rounded-[11px] px-3 font-normal";
   const [departmentId, setDepartmentId] = useState("");
+  const [employmentType, setEmploymentType] = useState<EmploymentType>(EMPLOYMENT_TYPES[0]);
+  const [schedule, setSchedule] = useState(defaultScheduleFor(EMPLOYMENT_TYPES[0]));
+  const [scheduleTouched, setScheduleTouched] = useState(false);
 
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
@@ -121,14 +128,27 @@ export function CreateEmployeePanel({
           <Field label="Employment type">
             <select
               name="employmentType"
-              defaultValue={EMPLOYMENT_TYPES[0]}
+              value={employmentType}
+              onChange={(event) => {
+                const nextType = event.target.value as EmploymentType;
+                setEmploymentType(nextType);
+                if (!scheduleTouched) setSchedule(defaultScheduleFor(nextType));
+              }}
               className={selectClass}
             >
               <EmploymentTypeOptions />
             </select>
           </Field>
           <Field label="Schedule">
-            <select name="schedule" defaultValue="fixed" className={selectClass}>
+            <select
+              name="schedule"
+              value={schedule}
+              onChange={(event) => {
+                setScheduleTouched(true);
+                setSchedule(event.target.value as typeof schedule);
+              }}
+              className={selectClass}
+            >
               <option value="fixed">Fixed working days</option>
               <option value="flexible">Comes as needed — never counted absent</option>
             </select>
