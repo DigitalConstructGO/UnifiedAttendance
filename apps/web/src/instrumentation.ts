@@ -1,16 +1,28 @@
 import { runAbsenceScan, runLateArrivalScan } from "@UnifiedAttendance/api";
 import { createInnerContext } from "@UnifiedAttendance/api/context";
 
-
 let registered = false;
 
-/**
- * Schedules the late-arrival notification scan (`runLateArrivalScan`) every
- * 5 minutes. There is no incoming HTTP request here to build a `Context`
- */
+const RETRY_DELAY_MS = 5_000;
+
+
+async function runWithRetry(label: string, run: () => Promise<unknown>) {
+  try {
+    console.log(`[${label}]`, await run());
+  } catch (error) {
+    console.error(`[${label}] run failed, retrying once:`, error);
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    try {
+      console.log(`[${label}]`, await run());
+    } catch (retryError) {
+      console.error(`[${label}] retry failed:`, retryError);
+    }
+  }
+}
+
+
 export async function register() {
-  // instrumentation.ts loads under every runtime Next.js supports,
-  // including edge — node-cron (and the timers it relies on) only works
+
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (registered) return;
   registered = true;
@@ -19,29 +31,16 @@ export async function register() {
 
   schedule(
     "*/5 * * * *",
-    async () => {
-      try {
-        const ctx = createInnerContext({ session: null });
-        const summary = await runLateArrivalScan(ctx);
-        console.log("[late-arrival-scan]", summary);
-      } catch (error) {
-        console.error("[late-arrival-scan] run failed:", error);
-      }
-    },
+    () =>
+      runWithRetry("late-arrival-scan", () =>
+        runLateArrivalScan(createInnerContext({ session: null })),
+      ),
     { name: "late-arrival-scan", noOverlap: true },
   );
 
   schedule(
     "*/15 * * * *",
-    async () => {
-      try {
-        const ctx = createInnerContext({ session: null });
-        const summary = await runAbsenceScan(ctx);
-        console.log("[absence-scan]", summary);
-      } catch (error) {
-        console.error("[absence-scan] run failed:", error);
-      }
-    },
+    () => runWithRetry("absence-scan", () => runAbsenceScan(createInnerContext({ session: null }))),
     { name: "absence-scan", noOverlap: true },
   );
 }
