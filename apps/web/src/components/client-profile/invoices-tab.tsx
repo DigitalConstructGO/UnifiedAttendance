@@ -1,9 +1,17 @@
-import { FileDown, ReceiptText } from "lucide-react";
-import Link from "next/link";
+"use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileDown, ReceiptText, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
+import { useAccess } from "@/components/access-provider";
+import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
-import type { InvoiceRow } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { clientKeys, clientsApi, type InvoiceRow } from "@/lib/api";
 import { money } from "@/lib/client-presentation";
+import { presentRequestError } from "@/lib/errors";
 import { formatDate } from "@/lib/format-date";
 
 import { EmptyState, TabPanel } from "./tab-shell";
@@ -16,7 +24,30 @@ const INVOICE_STATUS_META: Record<string, { label: string; className: string }> 
   void: { label: "Void", className: "bg-muted text-muted-foreground" },
 };
 
-export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; timeZone: string }) {
+export function InvoicesTab({
+  clientId,
+  invoices,
+  timeZone,
+}: {
+  clientId: string;
+  invoices: InvoiceRow[];
+  timeZone: string;
+}) {
+  const { can } = useAccess();
+  const queryClient = useQueryClient();
+  const deletable = can("invoices.delete");
+  const [deleting, setDeleting] = useState<InvoiceRow | null>(null);
+
+  const deleteInvoice = useMutation({
+    mutationFn: (id: string) => clientsApi.deleteInvoice(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: clientKeys.invoicesAll }),
+        queryClient.invalidateQueries({ queryKey: clientKeys.detail(clientId) }),
+      ]);
+    },
+  });
+
   if (invoices.length === 0) {
     return (
       <TabPanel>
@@ -31,6 +62,14 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
 
   return (
     <TabPanel className="overflow-hidden">
+      {deleteInvoice.error ? (
+        <div className="p-4 pb-0">
+          <RequestErrorAlert
+            error={presentRequestError(deleteInvoice.error, "Could not delete this invoice.")}
+          />
+        </div>
+      ) : null}
+
       <div className="divide-y divide-border sm:hidden">
         {invoices.map((row) => {
           const status =
@@ -47,17 +86,30 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
                       : "Not issued"}
                   </p>
                 </div>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Open invoice ${row.invoice.invoiceNumber} as a document`}
-                  className="shrink-0"
-                >
-                  <Link href={`/dashboard/clients/invoices/${row.invoice.id}`} prefetch={false}>
-                    <FileDown aria-hidden="true" />
-                  </Link>
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Open invoice ${row.invoice.invoiceNumber} as a document`}
+                  >
+                    <Link href={`/dashboard/clients/invoices/${row.invoice.id}`} prefetch={false}>
+                      <FileDown aria-hidden="true" />
+                    </Link>
+                  </Button>
+                  {deletable ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Delete invoice ${row.invoice.invoiceNumber}`}
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleting(row)}
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
@@ -113,8 +165,8 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
               <th scope="col" className="px-4 py-3.5">
                 Status
               </th>
-              <th scope="col" className="w-14 px-4 py-3.5">
-                <span className="sr-only">Document</span>
+              <th scope="col" className="w-24 px-4 py-3.5">
+                <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
@@ -148,16 +200,33 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Open invoice ${row.invoice.invoiceNumber} as a document`}
-                    >
-                      <Link href={`/dashboard/clients/invoices/${row.invoice.id}`} prefetch={false}>
-                        <FileDown aria-hidden="true" />
-                      </Link>
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Open invoice ${row.invoice.invoiceNumber} as a document`}
+                      >
+                        <Link
+                          href={`/dashboard/clients/invoices/${row.invoice.id}`}
+                          prefetch={false}
+                        >
+                          <FileDown aria-hidden="true" />
+                        </Link>
+                      </Button>
+                      {deletable ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Delete invoice ${row.invoice.invoiceNumber}`}
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleting(row)}
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               );
@@ -165,6 +234,19 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
           </tbody>
         </table>
       </div>
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete invoice ${deleting.invoice.invoiceNumber} forever?`}
+          description="This permanently erases the invoice and cannot be undone. An invoice with payments recorded, or documents linked to it, will refuse to go — payments are permanent, so remove any linked documents first."
+          confirmLabel="Delete forever"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            deleteInvoice.mutate(deleting.invoice.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
     </TabPanel>
   );
 }
