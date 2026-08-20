@@ -103,7 +103,7 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
       ) : null}
       {downloadError ? (
         <RequestErrorAlert error={presentRequestError(downloadError, "Could not build the PDF.")} />
-      ) : null}cl
+      ) : null}
 
       {data ? (
         <Card className="rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
