@@ -201,6 +201,10 @@ export const clientsApi = {
       method: "PATCH",
       body: values,
     }),
+  deleteCommercialContract: (id: string) =>
+    apiFetch<Returned<typeof service.deleteCommercialContract>>(`/commercial-contracts/${id}`, {
+      method: "DELETE",
+    }),
 
   invoices: (query: ListInvoicesQuery = {}, signal?: AbortSignal) =>
     apiFetch<InvoiceRow[]>("/invoices", { query: query as QueryParams, signal }),

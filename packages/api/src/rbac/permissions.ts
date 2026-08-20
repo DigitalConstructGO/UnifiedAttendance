@@ -16,7 +16,7 @@ export const PERMISSION_GROUPS = {
   client_contacts: ["create", "update", "archive"],
   opportunities: ["create", "update", "move_stage", "convert"],
   projects: ["create", "update", "archive", "restore", "delete"],
-  commercial_contracts: ["create", "update"],
+  commercial_contracts: ["create", "update", "delete"],
   invoices: ["create", "update", "issue", "void"],
   payments: ["record"],
   client_documents: ["upload", "delete"],

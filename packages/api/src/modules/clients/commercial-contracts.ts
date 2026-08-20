@@ -2,12 +2,15 @@ import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
 
 import {
   clientAuditEntries,
+  clientDocuments,
   clients,
   commercialContracts,
+  invoices,
   opportunities,
+  projects,
 } from "@UnifiedAttendance/db/schema/index";
 
-import { badRequest, notFound } from "../../errors";
+import { badRequest, conflict, notFound } from "../../errors";
 import { withTransaction } from "../../context";
 import { requirePermission, requireSessionUser } from "../shared/guards";
 import { clientOrThrow, currentOrganizationOrThrow } from "./shared";
@@ -205,4 +208,58 @@ export async function updateCommercialContract(ctx: Context, input: UpdateCommer
     });
   });
   return getCommercialContract(ctx, { id: contractId });
+}
+
+export async function deleteCommercialContract(ctx: Context, input: ClientResourceIdInput) {
+  const current = await commercialContractOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
+  await requirePermission(ctx, "commercial_contracts.delete", client.branchId);
+
+  const [[project], [invoice], [document]] = await Promise.all([
+    ctx.db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.commercialContractId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(eq(invoices.commercialContractId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: clientDocuments.id })
+      .from(clientDocuments)
+      .where(eq(clientDocuments.commercialContractId, current.id))
+      .limit(1),
+  ]);
+  if (project) {
+    conflict(
+      "This Commercial Contract has projects linked to it, so it cannot be deleted. Cancel it instead.",
+    );
+  }
+  if (invoice) {
+    conflict(
+      "This Commercial Contract has invoices linked to it, so it cannot be deleted. Cancel it instead.",
+    );
+  }
+  if (document) {
+    conflict(
+      "This Commercial Contract has documents linked to it, so it cannot be deleted. Cancel it instead.",
+    );
+  }
+
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(commercialContracts).where(eq(commercialContracts.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: current.clientId,
+      actorUserId,
+      action: "commercial_contract.deleted",
+      entityType: "commercial_contract",
+      entityId: current.id,
+      changeSummary: { contractCode: current.contractCode, status: current.status },
+    });
+  });
+  return { id: current.id };
 }

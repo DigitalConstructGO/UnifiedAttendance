@@ -1,4 +1,8 @@
-import { getCommercialContract, updateCommercialContract } from "@UnifiedAttendance/api";
+import {
+  deleteCommercialContract,
+  getCommercialContract,
+  updateCommercialContract,
+} from "@UnifiedAttendance/api";
 import {
   clientResourceIdInput,
   updateCommercialContractInput,
@@ -13,4 +17,9 @@ export const GET = route({
 export const PATCH = route({
   input: updateCommercialContractInput,
   handler: ({ ctx, input }) => updateCommercialContract(ctx, input),
+});
+
+export const DELETE = route({
+  input: clientResourceIdInput,
+  handler: ({ ctx, input }) => deleteCommercialContract(ctx, input),
 });

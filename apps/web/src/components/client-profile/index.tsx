@@ -165,7 +165,7 @@ export function ClientProfile({
             />
           ) : null}
           {!profile.tabLoading && tab === "contracts" ? (
-            <ContractsTab contracts={profile.contracts} timeZone={timeZone} />
+            <ContractsTab clientId={clientId} contracts={profile.contracts} timeZone={timeZone} />
           ) : null}
           {!profile.tabLoading && tab === "invoices" ? (
             <InvoicesTab invoices={profile.invoices} timeZone={timeZone} />
