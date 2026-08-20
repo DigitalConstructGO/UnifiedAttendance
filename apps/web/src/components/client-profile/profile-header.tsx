@@ -1,10 +1,13 @@
 import {
+  Archive,
+  ArchiveRestore,
   Banknote,
   Briefcase,
   CalendarDays,
   MapPin,
   MoreHorizontal,
   Pencil,
+  Trash2,
   UserPlus,
   UserRound,
 } from "lucide-react";
@@ -35,8 +38,15 @@ export function ProfileHeader({
   health,
   timeZone,
   manageable,
+  canArchive,
+  canRestore,
+  canDelete,
+  restoreBusy,
   onAddContact,
   onEdit,
+  onArchive,
+  onRestore,
+  onDeleteForever,
 }: {
   client: ClientRow;
   projectStatuses: ProjectStatus[];
@@ -44,9 +54,17 @@ export function ProfileHeader({
   health: ClientProfileProjection["health"] | null;
   timeZone: string;
   manageable: boolean;
+  canArchive: boolean;
+  canRestore: boolean;
+  canDelete: boolean;
+  restoreBusy: boolean;
   onAddContact: () => void;
   onEdit: () => void;
+  onArchive: () => void;
+  onRestore: () => void;
+  onDeleteForever: () => void;
 }) {
+  const archived = client.client.status === "archived";
   const headline = opportunity?.pipelineStage.name ?? directoryStatus(projectStatuses);
   const headlineTone =
     opportunity?.pipelineStage.outcome === "lost"
@@ -78,7 +96,11 @@ export function ProfileHeader({
               <h1 className="text-strong truncate font-heading text-xl font-bold tracking-[-0.03em]">
                 {clientName(client.client)}
               </h1>
-              {headline ? (
+              {archived ? (
+                <span className="rounded-md bg-destructive/10 px-2.5 py-1 text-[0.6875rem] font-bold text-destructive">
+                  Archived
+                </span>
+              ) : headline ? (
                 <span
                   className={`rounded-md px-2.5 py-1 text-[0.6875rem] font-bold ${headlineTone}`}
                 >
@@ -162,6 +184,45 @@ export function ProfileHeader({
                 <MoreHorizontal aria-hidden="true" />
               </Link>
             </Button>
+            {archived ? (
+              <>
+                {canRestore ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-[11px] px-4 font-bold"
+                    disabled={restoreBusy}
+                    onClick={onRestore}
+                  >
+                    <ArchiveRestore aria-hidden="true" />
+                    Restore
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="size-10 rounded-[11px] text-destructive hover:text-destructive"
+                    aria-label={`Delete ${clientName(client.client)} forever`}
+                    onClick={onDeleteForever}
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                ) : null}
+              </>
+            ) : canArchive ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-10 rounded-[11px] text-destructive hover:text-destructive"
+                aria-label={`Archive ${clientName(client.client)}`}
+                onClick={onArchive}
+              >
+                <Archive aria-hidden="true" />
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>

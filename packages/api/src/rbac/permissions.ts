@@ -12,7 +12,7 @@ export const PERMISSION_GROUPS = {
   devices: ["read", "create", "update", "manage_identities"],
   attendance: ["read", "record", "recompute"],
   corrections: ["read", "create", "update", "delete"],
-  clients: ["read", "create", "update", "archive"],
+  clients: ["read", "create", "update", "archive", "restore", "delete"],
   client_contacts: ["create", "update", "archive"],
   opportunities: ["create", "update", "move_stage", "convert"],
   projects: ["create", "update", "archive", "restore", "delete"],

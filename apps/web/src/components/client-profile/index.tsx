@@ -1,13 +1,17 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
-import type { ProjectRow } from "@/lib/api";
-import { personName, type ProjectStatus } from "@/lib/client-presentation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { clientKeys, clientsApi, type ProjectRow } from "@/lib/api";
+import { clientName, personName, type ProjectStatus } from "@/lib/client-presentation";
+import { presentRequestError } from "@/lib/errors";
 import { DEFAULT_TIME_ZONE } from "@/lib/timezone";
 
 import { ActivitiesTab } from "./activities-tab";
@@ -43,12 +47,38 @@ export function ClientProfile({
   tab: ClientTab;
 }) {
   const { can } = useAccess();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectRow | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const profile = useClientProfile(clientId, tab, opportunityId);
   const manageable = can("clients.update");
+
+  const archiveClient = useMutation({
+    mutationFn: clientsApi.archive,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: clientKeys.all });
+    },
+  });
+  const restoreClient = useMutation({
+    mutationFn: clientsApi.restore,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: clientKeys.all });
+    },
+  });
+  const deleteClient = useMutation({
+    mutationFn: clientsApi.deleteForever,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: clientKeys.all });
+      router.push("/dashboard/clients");
+    },
+  });
+  const lifecycleError =
+    archiveClient.error ?? restoreClient.error ?? deleteClient.error ?? null;
   const projectStatuses = (profile.client?.currentProjects ?? []).map(
     (row) => row.project.status,
   ) as ProjectStatus[];
@@ -68,6 +98,11 @@ export function ClientProfile({
       {profile.error ? (
         <RequestErrorAlert error={profile.error} onRetry={profile.retry} focusOnError />
       ) : null}
+      {lifecycleError ? (
+        <RequestErrorAlert
+          error={presentRequestError(lifecycleError, "Could not change this client.")}
+        />
+      ) : null}
 
       {profile.loading ? (
         <div className="grid min-h-64 place-items-center">
@@ -85,8 +120,15 @@ export function ClientProfile({
               health={profile.health}
               timeZone={timeZone}
               manageable={manageable}
+              canArchive={can("clients.archive")}
+              canRestore={can("clients.restore")}
+              canDelete={can("clients.delete")}
+              restoreBusy={restoreClient.isPending}
               onAddContact={() => setContactDialogOpen(true)}
               onEdit={() => setEditDialogOpen(true)}
+              onArchive={() => setArchiving(true)}
+              onRestore={() => restoreClient.mutate(clientId)}
+              onDeleteForever={() => setDeleting(true)}
             />
             <ProfileTabs clientId={clientId} opportunityId={opportunityId} active={tab} />
           </div>
@@ -197,6 +239,30 @@ export function ClientProfile({
               row={editingProject}
               branchId={profile.client.branch.id}
               onClose={() => setEditingProject(null)}
+            />
+          ) : null}
+          {archiving ? (
+            <ConfirmDialog
+              title={`Archive ${clientName(profile.client.client)}?`}
+              description="It moves out of the active directory into the archive. You can restore it at any time."
+              confirmLabel="Archive client"
+              onCancel={() => setArchiving(false)}
+              onConfirm={() => {
+                archiveClient.mutate(clientId);
+                setArchiving(false);
+              }}
+            />
+          ) : null}
+          {deleting ? (
+            <ConfirmDialog
+              title={`Delete ${clientName(profile.client.client)} forever?`}
+              description="This permanently erases the client and cannot be undone. A client with contacts, contracts, projects, invoices, documents, notes, or activities attached will refuse to go."
+              confirmLabel="Delete forever"
+              onCancel={() => setDeleting(false)}
+              onConfirm={() => {
+                deleteClient.mutate(clientId);
+                setDeleting(false);
+              }}
             />
           ) : null}
         </>

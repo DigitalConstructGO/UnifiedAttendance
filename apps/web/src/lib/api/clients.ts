@@ -95,6 +95,14 @@ export const clientsApi = {
     }),
   archive: (id: string) =>
     apiFetch<Returned<typeof service.archiveClient>>(`/clients/${id}`, { method: "DELETE" }),
+  restore: (id: string) =>
+    apiFetch<Returned<typeof service.restoreClient>>(`/clients/${id}/restore`, {
+      method: "POST",
+    }),
+  deleteForever: (id: string) =>
+    apiFetch<Returned<typeof service.deleteClient>>(`/clients/${id}/permanent`, {
+      method: "DELETE",
+    }),
   ownerAssignments: (id: string, signal?: AbortSignal) =>
     apiFetch<ClientOwnerAssignment[]>(`/clients/${id}/owner-assignments`, { signal }),
   overview: (query: ClientOverviewQuery = {}, signal?: AbortSignal) =>
