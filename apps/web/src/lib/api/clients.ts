@@ -265,6 +265,10 @@ export const clientsApi = {
     apiFetch<ClientDocumentRow & { downloadUrl: string }>(`/client-documents/${id}`, {
       signal,
     }),
+  deleteDocument: (id: string) =>
+    apiFetch<Returned<typeof service.deleteClientDocument>>(`/client-documents/${id}`, {
+      method: "DELETE",
+    }),
   uploadDocument: async (metadata: ClientDocumentMetadata, file: File) => {
     const contentType = CLIENT_DOCUMENT_CONTENT_TYPES.find((value) => value === file.type);
     if (!contentType) {
@@ -285,7 +289,7 @@ export const clientsApi = {
       await uploadToStorage(prepared.uploadUrl, prepared.uploadFields, file);
     } catch (cause) {
       try {
-        await apiFetch(`/client-documents/${prepared.document.id}`, { method: "DELETE" });
+        await clientsApi.deleteDocument(prepared.document.id);
       } catch (cleanupCause) {
         throw new AggregateError(
           [cause, cleanupCause],

@@ -1,12 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, LockKeyhole, ShieldCheck, Upload } from "lucide-react";
+import { Download, FileText, LockKeyhole, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { clientKeys, clientsApi, workforceQueries, type ClientDocumentRow } from "@/lib/api";
 import {
@@ -46,6 +47,7 @@ export function DocumentsTab({
   const { can } = useAccess();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState<ClientDocumentRow["document"] | null>(null);
   const employeesQuery = useQuery({
     ...workforceQueries.employees(branchId),
     enabled: dialogOpen && branchId.length > 0,
@@ -75,9 +77,16 @@ export function DocumentsTab({
       window.location.assign(downloadUrl);
     },
   });
+  const deleteDocument = useMutation({
+    mutationFn: clientsApi.deleteDocument,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: clientKeys.documents(clientId) });
+    },
+  });
 
   const employees = employeesQuery.data ?? [];
   const canManage = can("client_documents.upload");
+  const canDelete = can("client_documents.delete");
   const latestDocuments = documents.filter(
     ({ document }, index, rows) =>
       rows.findIndex(
@@ -109,6 +118,11 @@ export function DocumentsTab({
           error={presentRequestError(download.error, "Could not prepare this document download.")}
         />
       ) : null}
+      {deleteDocument.error ? (
+        <RequestErrorAlert
+          error={presentRequestError(deleteDocument.error, "Could not delete this document.")}
+        />
+      ) : null}
 
       {latestDocuments.length === 0 ? (
         <TabPanel>
@@ -123,35 +137,54 @@ export function DocumentsTab({
           {latestDocuments.map(({ document }) => {
             const Icon = DOCUMENT_KIND_ICONS[document.kind];
             return (
-              <button
+              <div
                 key={document.id}
-                type="button"
-                className="rounded-[14px] bg-card p-4 text-left shadow-[var(--shadow-card)] ring-1 ring-border transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                onClick={() => download.mutate(document.id)}
-                disabled={download.isPending}
+                className="relative rounded-[14px] bg-card p-4 shadow-[var(--shadow-card)] ring-1 ring-border"
               >
-                <span className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-info/10 text-info"
+                <button
+                  type="button"
+                  className="block w-full text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  onClick={() => download.mutate(document.id)}
+                  disabled={download.isPending}
+                >
+                  <span className="flex items-start gap-3 pr-8">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-info/10 text-info"
+                    >
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="text-strong block truncate text-xs font-bold">
+                        {document.fileName}
+                      </span>
+                      <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
+                        {DOCUMENT_KIND_LABELS[document.kind]} · v{document.version}
+                      </span>
+                    </span>
+                    <Download
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="mt-4 flex justify-between gap-3 text-[0.6875rem] text-muted-foreground">
+                    <span>{formatDate(document.uploadedAt, timeZone)}</span>
+                    <span>{fileSize(document.contentLength)}</span>
+                  </span>
+                </button>
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute top-3 right-3 text-destructive hover:text-destructive"
+                    aria-label={`Delete ${document.fileName}`}
+                    onClick={() => setDeleting(document)}
                   >
-                    <Icon className="size-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="text-strong block truncate text-xs font-bold">
-                      {document.fileName}
-                    </span>
-                    <span className="mt-0.5 block text-[0.6875rem] text-muted-foreground">
-                      {DOCUMENT_KIND_LABELS[document.kind]} · v{document.version}
-                    </span>
-                  </span>
-                  <Download className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                </span>
-                <span className="mt-4 flex justify-between gap-3 text-[0.6875rem] text-muted-foreground">
-                  <span>{formatDate(document.uploadedAt, timeZone)}</span>
-                  <span>{fileSize(document.contentLength)}</span>
-                </span>
-              </button>
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                ) : null}
+              </div>
             );
           })}
         </div>
@@ -222,6 +255,19 @@ export function DocumentsTab({
             />
           ) : null}
         </RecordDialog>
+      ) : null}
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete ${deleting.fileName}?`}
+          description="This permanently removes the file and every version of it. This cannot be undone."
+          confirmLabel="Delete document"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            deleteDocument.mutate(deleting.id);
+            setDeleting(null);
+          }}
+        />
       ) : null}
     </div>
   );

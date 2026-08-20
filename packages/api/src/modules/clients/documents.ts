@@ -254,6 +254,11 @@ export async function createClientDocumentVersion(
   return getClientDocument(ctx, { id: documentId });
 }
 
+/**
+ * Deletes every version stored under the document's logicalDocumentId, not
+ * just the one row passed in — the UI shows one card per logical document,
+ * so "delete this document" means every version, not just the latest.
+ */
 export async function deleteClientDocument(ctx: Context, input: ClientResourceIdInput) {
   const document = await documentOrThrow(ctx, input.id);
   const client = await clientOrThrow(ctx, document.clientId);
@@ -261,21 +266,22 @@ export async function deleteClientDocument(ctx: Context, input: ClientResourceId
   const actorUserId = requireSessionUser(ctx);
 
   return withTransaction(ctx, async (ctx) => {
-    const [deleted] = await ctx.db
+    const deleted = await ctx.db
       .delete(clientDocuments)
-      .where(eq(clientDocuments.id, document.id))
+      .where(eq(clientDocuments.logicalDocumentId, document.logicalDocumentId))
       .returning();
-    if (!deleted) throw new Error("Client Document deletion failed");
+    if (deleted.length === 0) throw new Error("Client Document deletion failed");
     await ctx.db.insert(clientAuditEntries).values({
       organizationId: client.organizationId,
       clientId: client.id,
       actorUserId,
-      action: "client_document.upload_cancelled",
+      action: "client_document.deleted",
       entityType: "client_document",
       entityId: document.id,
       changeSummary: {
         logicalDocumentId: document.logicalDocumentId,
-        version: document.version,
+        fileName: document.fileName,
+        versionsDeleted: deleted.map((version) => version.version),
       },
     });
     return deleted;
