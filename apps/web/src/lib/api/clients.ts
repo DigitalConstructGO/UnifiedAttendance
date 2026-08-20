@@ -217,6 +217,8 @@ export const clientsApi = {
   issueInvoice: ({ id, ...values }: z.input<typeof validations.issueInvoiceInput>) =>
     apiFetch<InvoiceRow>(`/invoices/${id}/issue`, { method: "POST", body: values }),
   voidInvoice: (id: string) => apiFetch<InvoiceRow>(`/invoices/${id}/void`, { method: "POST" }),
+  deleteInvoice: (id: string) =>
+    apiFetch<Returned<typeof service.deleteInvoice>>(`/invoices/${id}`, { method: "DELETE" }),
   recordInvoicePayment: (input: z.input<typeof validations.recordInvoicePaymentInput>) =>
     apiFetch<Returned<typeof service.recordInvoicePayment>>("/invoice-payments", {
       method: "POST",

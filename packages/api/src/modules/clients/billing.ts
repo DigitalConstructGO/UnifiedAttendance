@@ -3,6 +3,7 @@ import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
 import {
   branches,
   clientAuditEntries,
+  clientDocuments,
   clients,
   commercialContracts,
   employees,
@@ -309,6 +310,46 @@ export async function voidInvoice(ctx: Context, input: ClientResourceIdInput) {
     });
   });
   return invoiceDetails(ctx, current.id);
+}
+
+export async function deleteInvoice(ctx: Context, input: ClientResourceIdInput) {
+  const current = await invoiceOrThrow(ctx, input.id);
+  const client = await clientOrThrow(ctx, current.clientId);
+  await requirePermission(ctx, "invoices.delete", client.branchId);
+
+  const [[payment], [document]] = await Promise.all([
+    ctx.db
+      .select({ id: invoicePayments.id })
+      .from(invoicePayments)
+      .where(eq(invoicePayments.invoiceId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: clientDocuments.id })
+      .from(clientDocuments)
+      .where(eq(clientDocuments.invoiceId, current.id))
+      .limit(1),
+  ]);
+  if (payment) {
+    conflict("This Invoice has payments recorded, so it cannot be deleted.");
+  }
+  if (document) {
+    conflict("This Invoice has documents linked to it, so it cannot be deleted. Remove them first.");
+  }
+
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(invoices).where(eq(invoices.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: current.organizationId,
+      clientId: current.clientId,
+      actorUserId,
+      action: "invoice.deleted",
+      entityType: "invoice",
+      entityId: current.id,
+      changeSummary: { invoiceNumber: current.invoiceNumber, lifecycleStatus: current.lifecycleStatus },
+    });
+  });
+  return { id: current.id };
 }
 
 export async function recordInvoicePayment(ctx: Context, input: RecordInvoicePaymentInput) {

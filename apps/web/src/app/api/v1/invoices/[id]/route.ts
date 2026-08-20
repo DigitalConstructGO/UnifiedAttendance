@@ -1,4 +1,4 @@
-import { getInvoice, updateInvoice } from "@UnifiedAttendance/api";
+import { deleteInvoice, getInvoice, updateInvoice } from "@UnifiedAttendance/api";
 import {
   clientResourceIdInput,
   updateInvoiceInput,
@@ -14,4 +14,9 @@ export const GET = route({
 export const PATCH = route({
   input: updateInvoiceInput,
   handler: ({ ctx, input }) => updateInvoice(ctx, input),
+});
+
+export const DELETE = route({
+  input: clientResourceIdInput,
+  handler: ({ ctx, input }) => deleteInvoice(ctx, input),
 });

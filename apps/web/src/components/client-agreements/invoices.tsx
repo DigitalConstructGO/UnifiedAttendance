@@ -36,6 +36,7 @@ export function ClientInvoices() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [issuing, setIssuing] = useState<{ id: string; invoiceNumber: string } | null>(null);
   const [voiding, setVoiding] = useState<{ id: string; invoiceNumber: string } | null>(null);
+  const [deleting, setDeleting] = useState<{ id: string; invoiceNumber: string } | null>(null);
 
   const invoicesQuery = useQuery(clientQueries.invoices());
   const clientsQuery = useQuery(clientQueries.list({ pageSize: 100 }));
@@ -58,6 +59,13 @@ export function ClientInvoices() {
 
   const voidInvoice = useMutation({
     mutationFn: clientsApi.voidInvoice,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: clientKeys.invoicesAll });
+    },
+  });
+
+  const deleteInvoice = useMutation({
+    mutationFn: clientsApi.deleteInvoice,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: clientKeys.invoicesAll });
     },
@@ -120,6 +128,11 @@ export function ClientInvoices() {
       {voidInvoice.error ? (
         <RequestErrorAlert
           error={presentRequestError(voidInvoice.error, "Could not void the invoice.")}
+        />
+      ) : null}
+      {deleteInvoice.error ? (
+        <RequestErrorAlert
+          error={presentRequestError(deleteInvoice.error, "Could not delete the invoice.")}
         />
       ) : null}
 
@@ -226,6 +239,19 @@ export function ClientInvoices() {
                               Void
                             </Button>
                           ) : null}
+                          {invoice.lifecycleStatus === "draft" && can("invoices.delete") ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-[9px] px-3 font-bold text-destructive hover:text-destructive"
+                              onClick={() =>
+                                setDeleting({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                              }
+                            >
+                              Delete
+                            </Button>
+                          ) : null}
                           <Button
                             asChild
                             variant="ghost"
@@ -329,6 +355,19 @@ export function ClientInvoices() {
                         }
                       >
                         Void
+                      </Button>
+                    ) : null}
+                    {invoice.lifecycleStatus === "draft" && can("invoices.delete") ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-[9px] px-3 font-bold text-destructive hover:text-destructive"
+                        onClick={() =>
+                          setDeleting({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                        }
+                      >
+                        Delete
                       </Button>
                     ) : null}
                     <Button
@@ -453,6 +492,19 @@ export function ClientInvoices() {
           onConfirm={() => {
             voidInvoice.mutate(voiding.id);
             setVoiding(null);
+          }}
+        />
+      ) : null}
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete ${deleting.invoiceNumber} forever?`}
+          description="This permanently erases the draft invoice and cannot be undone. An invoice with payments recorded, or documents linked to it, will refuse to go."
+          confirmLabel="Delete forever"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            deleteInvoice.mutate(deleting.id);
+            setDeleting(null);
           }}
         />
       ) : null}
