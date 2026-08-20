@@ -1,27 +1,46 @@
 "use client";
 
-import { FileSignature, Pencil } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileSignature, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { useAccess } from "@/components/access-provider";
+import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
-import type { CommercialContractRow } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { clientKeys, clientsApi, type CommercialContractRow } from "@/lib/api";
 import { CONTRACT_STATUS_META, RENEWAL_MODE_LABELS } from "@/lib/client-presentation";
+import { presentRequestError } from "@/lib/errors";
 import { formatDate } from "@/lib/format-date";
 
 import { EditContractDialog } from "../client-agreements/edit-contract-dialog";
 import { EmptyState, TabPanel } from "./tab-shell";
 
 export function ContractsTab({
+  clientId,
   contracts,
   timeZone,
 }: {
+  clientId: string;
   contracts: CommercialContractRow[];
   timeZone: string;
 }) {
   const { can } = useAccess();
+  const queryClient = useQueryClient();
   const editable = can("commercial_contracts.update");
+  const deletable = can("commercial_contracts.delete");
   const [editing, setEditing] = useState<CommercialContractRow | null>(null);
+  const [deleting, setDeleting] = useState<CommercialContractRow | null>(null);
+
+  const deleteContract = useMutation({
+    mutationFn: (id: string) => clientsApi.deleteCommercialContract(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: clientKeys.commercialContractsAll }),
+        queryClient.invalidateQueries({ queryKey: clientKeys.detail(clientId) }),
+      ]);
+    },
+  });
 
   if (contracts.length === 0) {
     return (
@@ -37,6 +56,14 @@ export function ContractsTab({
 
   return (
     <TabPanel className="overflow-hidden">
+      {deleteContract.error ? (
+        <div className="p-4 pb-0">
+          <RequestErrorAlert
+            error={presentRequestError(deleteContract.error, "Could not delete this contract.")}
+          />
+        </div>
+      ) : null}
+
       <div className="divide-y divide-border sm:hidden">
         {contracts.map((row) => {
           const { commercialContract: contract } = row;
@@ -76,17 +103,33 @@ export function ContractsTab({
                 </div>
               </dl>
 
-              {editable ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="mt-3 h-8 rounded-[9px] font-bold"
-                  onClick={() => setEditing(row)}
-                >
-                  <Pencil aria-hidden="true" />
-                  Edit
-                </Button>
+              {editable || deletable ? (
+                <div className="mt-3 flex items-center gap-1.5">
+                  {editable ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-[9px] font-bold"
+                      onClick={() => setEditing(row)}
+                    >
+                      <Pencil aria-hidden="true" />
+                      Edit
+                    </Button>
+                  ) : null}
+                  {deletable ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-[9px] font-bold text-destructive hover:text-destructive"
+                      onClick={() => setDeleting(row)}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      Delete
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           );
@@ -110,7 +153,7 @@ export function ContractsTab({
               <th scope="col" className="px-4 py-3.5">
                 Status
               </th>
-              {editable ? (
+              {editable || deletable ? (
                 <th scope="col" className="px-4 py-3.5">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -146,18 +189,34 @@ export function ContractsTab({
                       {status.label}
                     </span>
                   </td>
-                  {editable ? (
+                  {editable || deletable ? (
                     <td className="px-4 py-4">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 rounded-[9px] font-bold"
-                        onClick={() => setEditing(row)}
-                      >
-                        <Pencil aria-hidden="true" />
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        {editable ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-[9px] font-bold"
+                            onClick={() => setEditing(row)}
+                          >
+                            <Pencil aria-hidden="true" />
+                            Edit
+                          </Button>
+                        ) : null}
+                        {deletable ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-[9px] font-bold text-destructive hover:text-destructive"
+                            onClick={() => setDeleting(row)}
+                          >
+                            <Trash2 aria-hidden="true" />
+                            Delete
+                          </Button>
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                 </tr>
@@ -168,6 +227,19 @@ export function ContractsTab({
       </div>
 
       {editing ? <EditContractDialog row={editing} onClose={() => setEditing(null)} /> : null}
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete ${deleting.commercialContract.contractCode} forever?`}
+          description="This permanently erases the contract and cannot be undone. A contract with projects, invoices, or documents linked to it will refuse to go — cancel it instead."
+          confirmLabel="Delete forever"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            deleteContract.mutate(deleting.commercialContract.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
     </TabPanel>
   );
 }
