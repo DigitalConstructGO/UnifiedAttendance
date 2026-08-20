@@ -32,7 +32,62 @@ export function RolesCard({
           </p>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <ul className="sm:hidden">
+        {roles.map((role) => (
+          <li key={role.id} className="border-b border-border py-4 last:border-b-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-strong block truncate font-semibold">{role.name}</span>
+                {role.code ? (
+                  <span className="block truncate font-mono text-[0.6875rem] text-muted-foreground">
+                    {role.code}
+                  </span>
+                ) : null}
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-bold ${
+                  role.isSystem ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+                }`}
+              >
+                {role.isSystem ? "System" : "Custom"}
+              </span>
+            </div>
+            {role.description ? (
+              <p className="mt-2 text-xs text-muted-foreground">{role.description}</p>
+            ) : null}
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
+              <div>
+                <dt className="text-muted-foreground">Permissions</dt>
+                <dd className="text-strong mt-0.5 font-numeric font-semibold">
+                  {role.permissionCount}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Users</dt>
+                <dd className="text-strong mt-0.5 font-numeric font-semibold">{role.userCount}</dd>
+              </div>
+            </dl>
+            {!role.isSystem ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy || role.userCount > 0}
+                title={
+                  role.userCount > 0
+                    ? "Move its people to another role first"
+                    : "Archive this role"
+                }
+                className="mt-2 h-8 rounded-[9px] px-0 text-destructive hover:text-destructive"
+                onClick={() => onArchive(role)}
+              >
+                <Trash2 aria-hidden="true" />
+                Archive
+              </Button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="bg-muted/40">

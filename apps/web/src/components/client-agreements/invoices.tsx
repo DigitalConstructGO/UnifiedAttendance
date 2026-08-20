@@ -133,7 +133,7 @@ export function ClientInvoices() {
         </TabPanel>
       ) : (
         <TabPanel className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto sm:block">
             <table
               className="w-full border-collapse text-left text-xs"
               style={{ minWidth: "980px" }}
@@ -247,6 +247,107 @@ export function ClientInvoices() {
               </tbody>
             </table>
           </div>
+
+          <div className="divide-y divide-border sm:hidden">
+            {rows.map((row) => {
+              const invoice = row.invoice;
+              const tone =
+                PRESENTATION_TONES[row.paymentSummary.presentationStatus] ??
+                PRESENTATION_TONES.draft!;
+              return (
+                <div key={invoice.id} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-strong text-sm font-bold">{invoice.invoiceNumber}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {row.client ? clientName(row.client) : "—"}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-block shrink-0 rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${tone.className}`}
+                    >
+                      {tone.label}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex items-baseline justify-between gap-3">
+                    <div>
+                      <p className="text-[0.625rem] font-bold tracking-[0.07em] text-muted-foreground uppercase">
+                        Amount
+                      </p>
+                      <p className="text-strong text-sm font-bold">
+                        {money(invoice.totalAmount, invoice.currency)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[0.625rem] font-bold tracking-[0.07em] text-muted-foreground uppercase">
+                        Outstanding
+                      </p>
+                      <p className="text-strong text-sm font-bold">
+                        {money(row.paymentSummary.outstandingAmount, invoice.currency)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Issued</dt>
+                      <dd className="text-strong font-semibold">
+                        {invoice.issuedOn ? formatDate(invoice.issuedOn) : "Not issued"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Due</dt>
+                      <dd className="text-strong font-semibold">
+                        {invoice.dueOn ? formatDate(invoice.dueOn) : "—"}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {invoice.lifecycleStatus === "draft" && can("invoices.issue") ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-[9px] px-3 font-bold"
+                        onClick={() =>
+                          setIssuing({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                        }
+                      >
+                        Issue
+                      </Button>
+                    ) : null}
+                    {invoice.lifecycleStatus === "issued" && can("invoices.void") ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-[9px] px-3 font-bold text-destructive hover:text-destructive"
+                        onClick={() =>
+                          setVoiding({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                        }
+                      >
+                        Void
+                      </Button>
+                    ) : null}
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 rounded-[9px] px-3 font-bold"
+                    >
+                      <Link href={`/dashboard/clients/invoices/${invoice.id}`} prefetch={false}>
+                        <FileDown aria-hidden="true" className="size-3.5" />
+                        Document
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <footer className="flex min-h-14 items-center border-t border-border px-5 py-3">
             <p className="text-xs text-muted-foreground">
               {rows.length} of {allInvoices.length} invoices

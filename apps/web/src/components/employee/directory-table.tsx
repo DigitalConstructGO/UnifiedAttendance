@@ -32,10 +32,64 @@ function EmployeeCell({ row }: { row: DirectoryEmployeeRow }) {
   );
 }
 
+function DirectoryCard({ row }: { row: DirectoryEmployeeRow }) {
+  const status = EMPLOYEE_STATUS_META[row.employee.status];
+
+  return (
+    <li className="border-b border-border px-5 py-4 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <EmployeeCell row={row} />
+        <Button
+          asChild
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
+          aria-label={`View ${row.person.firstName} ${row.person.lastName}`}
+        >
+          <Link href={`/dashboard/employees/${row.employee.id}`} prefetch={false}>
+            <MoreVertical aria-hidden="true" />
+          </Link>
+        </Button>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
+        <div>
+          <dt className="text-muted-foreground">Department</dt>
+          <dd className="text-strong mt-0.5 truncate font-semibold">
+            {row.department?.name ?? "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Position</dt>
+          <dd className="text-strong mt-0.5 truncate font-semibold">
+            {row.position?.title ?? "—"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Employment</dt>
+          <dd className="text-strong mt-0.5 truncate font-semibold">
+            {employmentLabel(row.employee.employmentType)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Status</dt>
+          <dd className="mt-0.5">
+            <span className={status.badgeClass}>{status.label}</span>
+          </dd>
+        </div>
+      </dl>
+    </li>
+  );
+}
+
 export function DirectoryTable({ employees }: { employees: DirectoryEmployeeRow[] }) {
   return (
     <>
-      <div className="overflow-x-auto">
+      <ul className="sm:hidden">
+        {employees.map((row) => (
+          <DirectoryCard key={row.employee.id} row={row} />
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[900px] border-collapse text-left text-xs">
           <thead className="bg-[var(--surface-subtle)] text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
             <tr>

@@ -41,8 +41,6 @@ const STAGE_DOT_TONES = [
   "bg-destructive",
 ] as const;
 
-const HIDDEN_SCROLLBAR = "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
-
 const DRAG_MIME = "application/x-opportunity-id";
 
 function OpportunityCard({
@@ -264,8 +262,9 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
 
       {error ? <RequestErrorAlert error={error} onRetry={loadFailure?.retry} /> : null}
 
-      <div className={`overflow-x-auto pb-2 ${HIDDEN_SCROLLBAR}`}>
-        <div className="flex min-w-max items-start gap-4">
+      <div className="relative">
+        <div className="overflow-x-auto pb-2">
+          <div className="flex min-w-max items-start gap-4">
           {stages.map((stage, stageIndex) => {
             const cards = opportunities.filter(
               (row) => row.opportunity.pipelineStageId === stage.id,
@@ -337,7 +336,12 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
           {stages.length === 0 && !stagesQuery.isPending ? (
             <p className="text-sm text-muted-foreground">No pipeline stages configured yet.</p>
           ) : null}
+          </div>
         </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
+        />
       </div>
 
       {dialogOpen ? (

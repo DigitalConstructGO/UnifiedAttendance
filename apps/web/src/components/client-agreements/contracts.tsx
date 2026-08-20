@@ -102,7 +102,7 @@ export function ClientContracts() {
         </TabPanel>
       ) : (
         <TabPanel className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto sm:block">
             <table
               className="w-full border-collapse text-left text-xs"
               style={{ minWidth: "940px" }}
@@ -196,6 +196,81 @@ export function ClientContracts() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="divide-y divide-border sm:hidden">
+            {contracts.map((row) => {
+              const contract = row.commercialContract;
+              const tone = contractTone(contract.status, contract.endsOn);
+              return (
+                <div key={contract.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-success/10 text-success"
+                    >
+                      <FileSignature className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-strong font-bold">{contract.contractCode}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {contract.serviceName}
+                            {contract.billingCadence ? ` · ${contract.billingCadence}` : ""}
+                            {` · ${PAYMENT_STRUCTURE_LABELS[contract.paymentStructure]}`}
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-block shrink-0 rounded-full px-2.5 py-1 text-[0.6875rem] font-bold ${tone.className}`}
+                        >
+                          {tone.label}
+                        </span>
+                      </div>
+
+                      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                        <div>
+                          <dt className="text-muted-foreground">Client</dt>
+                          <dd className="text-strong font-semibold">
+                            {row.client ? clientName(row.client) : "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Renewal</dt>
+                          <dd className="text-strong font-semibold">
+                            {RENEWAL_MODE_LABELS[contract.renewalMode]}
+                          </dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-muted-foreground">Term</dt>
+                          <dd className="text-strong font-semibold">
+                            {formatDate(contract.startsOn)}
+                            <span aria-hidden="true"> → </span>
+                            <span className="sr-only">to </span>
+                            {formatDate(contract.endsOn)}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      {editable ? (
+                        <div className="mt-3">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-[9px] font-bold"
+                            onClick={() => setEditing(row)}
+                          >
+                            <Pencil aria-hidden="true" />
+                            Edit
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </TabPanel>
       )}

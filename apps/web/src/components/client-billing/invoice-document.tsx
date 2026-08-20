@@ -103,11 +103,11 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
       ) : null}
       {downloadError ? (
         <RequestErrorAlert error={presentRequestError(downloadError, "Could not build the PDF.")} />
-      ) : null}
+      ) : null}cl
 
       {data ? (
         <Card className="rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
-          <CardContent className="p-8 sm:p-10">
+          <CardContent className="p-5 sm:p-10">
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="font-heading text-3xl font-bold tracking-[-0.02em] text-[oklch(0.72_0.13_115)]">
@@ -150,38 +150,42 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
               </div>
             </div>
 
-            <table className="mt-8 w-full border-collapse text-center text-sm">
-              <thead>
-                <tr className="bg-[oklch(0.42_0.09_265)] text-xs font-bold text-white">
-                  <th className="border border-foreground/60 px-3 py-3">Name</th>
-                  <th className="border border-foreground/60 px-3 py-3">Description</th>
-                  <th className="border border-foreground/60 px-3 py-3">Amount</th>
-                  <th className="border border-foreground/60 px-3 py-3">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.invoice.rows.map((line, index) => (
-                  <tr key={index}>
-                    <td className="border border-foreground/60 px-3 py-4">{line.name}</td>
-                    <td className="border border-foreground/60 px-3 py-4">{line.description}</td>
-                    <td className="border border-foreground/60 px-3 py-4 font-numeric font-bold">
-                      {line.amount}
-                    </td>
-                    <td className="border border-foreground/60 px-3 py-4">{line.note}</td>
+            <div className="mt-8 overflow-x-auto">
+              <table className="w-full min-w-[520px] border-collapse text-center text-sm">
+                <thead>
+                  <tr className="bg-[oklch(0.42_0.09_265)] text-xs font-bold text-white">
+                    <th className="border border-foreground/60 px-3 py-3">Name</th>
+                    <th className="border border-foreground/60 px-3 py-3">Description</th>
+                    <th className="border border-foreground/60 px-3 py-3">Amount</th>
+                    <th className="border border-foreground/60 px-3 py-3">Note</th>
                   </tr>
-                ))}
-                {Array.from({ length: Math.max(0, 3 - data.invoice.rows.length) }).map(
-                  (_, index) => (
-                    <tr key={`blank-${index}`}>
-                      <td className="border border-foreground/60 px-3 py-5">&nbsp;</td>
-                      <td className="border border-foreground/60 px-3 py-5" />
-                      <td className="border border-foreground/60 px-3 py-5" />
-                      <td className="border border-foreground/60 px-3 py-5" />
+                </thead>
+                <tbody>
+                  {data.invoice.rows.map((line, index) => (
+                    <tr key={index}>
+                      <td className="border border-foreground/60 px-3 py-4">{line.name}</td>
+                      <td className="border border-foreground/60 px-3 py-4">
+                        {line.description}
+                      </td>
+                      <td className="border border-foreground/60 px-3 py-4 font-numeric font-bold">
+                        {line.amount}
+                      </td>
+                      <td className="border border-foreground/60 px-3 py-4">{line.note}</td>
                     </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
+                  ))}
+                  {Array.from({ length: Math.max(0, 3 - data.invoice.rows.length) }).map(
+                    (_, index) => (
+                      <tr key={`blank-${index}`}>
+                        <td className="border border-foreground/60 px-3 py-5">&nbsp;</td>
+                        <td className="border border-foreground/60 px-3 py-5" />
+                        <td className="border border-foreground/60 px-3 py-5" />
+                        <td className="border border-foreground/60 px-3 py-5" />
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             <p className="mt-6 text-right text-base font-bold">
               Subtotal:{" "}

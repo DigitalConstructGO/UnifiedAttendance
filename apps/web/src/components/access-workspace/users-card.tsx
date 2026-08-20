@@ -35,7 +35,60 @@ export function UsersCard({
           </p>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <ul className="sm:hidden">
+        {users.map((account) => (
+          <li key={account.id} className="border-b border-border py-4 last:border-b-0">
+            <div className="min-w-0">
+              <span className="text-strong block truncate font-semibold">
+                {account.name}
+                {account.id === currentUserId ? (
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[0.625rem] font-bold text-primary">
+                    You
+                  </span>
+                ) : null}
+              </span>
+              <span className="block truncate text-[0.6875rem] text-muted-foreground">
+                {account.email}
+              </span>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
+              <div>
+                <dt className="text-muted-foreground">Role</dt>
+                <dd className="mt-0.5">
+                  <select
+                    value={account.roleId ?? ""}
+                    disabled={busy || account.id === currentUserId}
+                    onChange={(event) => onRoleChange(account.id, event.target.value)}
+                    aria-label={`Role for ${account.name}`}
+                    className={compactSelectClass}
+                  >
+                    {account.roleId ? null : (
+                      <option value="" disabled>
+                        No role yet
+                      </option>
+                    )}
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Added</dt>
+                <dd className="text-strong mt-0.5 font-semibold">
+                  {new Date(account.createdAt).toLocaleDateString()}
+                </dd>
+              </div>
+            </dl>
+          </li>
+        ))}
+        {users.length === 0 ? (
+          <li className="px-3 py-8 text-center text-muted-foreground">No users yet.</li>
+        ) : null}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[540px] border-separate border-spacing-0 text-sm">
           <thead>
             <tr className="bg-muted/40">

@@ -13,35 +13,83 @@ export function DataTable<T>({
   minWidth: string;
   cellClassName?: string;
 }) {
+  const firstHeaderGroup = table.getHeaderGroups()[0];
+  const detailValueClassName = cellClassName || "text-strong font-semibold";
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-xs" style={{ minWidth }}>
-        <thead className="bg-[var(--surface-subtle)] text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th key={header.id} className="px-4 py-3 first:pl-5">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border-t border-border hover:bg-muted/40">
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className={`px-4 py-3 first:pl-5 ${cellClassName}`}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <ul className="sm:hidden">
+        {table.getRowModel().rows.map((row) => {
+          const cells = row.getVisibleCells();
+          const titleCell = cells[0];
+          const actionsCell = cells.find((cell) => cell.column.id === "actions");
+          const detailCells = cells.filter(
+            (cell) => cell !== titleCell && cell !== actionsCell,
+          );
+          return (
+            <li key={row.id} className="border-b border-border px-5 py-4 last:border-b-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className={`min-w-0 flex-1 text-sm ${cellClassName}`}>
+                  {flexRender(titleCell.column.columnDef.cell, titleCell.getContext())}
+                </div>
+                {actionsCell ? (
+                  <div className="shrink-0">
+                    {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
+                  </div>
+                ) : null}
+              </div>
+              {detailCells.length > 0 ? (
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
+                  {detailCells.map((cell) => {
+                    const header = firstHeaderGroup?.headers.find((h) => h.id === cell.column.id);
+                    return (
+                      <div key={cell.id} className="min-w-0">
+                        <dt className="text-muted-foreground">
+                          {header && !header.isPlaceholder
+                            ? flexRender(header.column.columnDef.header, header.getContext())
+                            : null}
+                        </dt>
+                        <dd className={`mt-0.5 truncate ${detailValueClassName}`}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full border-collapse text-left text-xs" style={{ minWidth }}>
+          <thead className="bg-[var(--surface-subtle)] text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} className="px-4 py-3 first:pl-5">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id} className="border-t border-border hover:bg-muted/40">
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className={`px-4 py-3 first:pl-5 ${cellClassName}`}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

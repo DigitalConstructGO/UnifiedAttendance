@@ -44,7 +44,7 @@ const DIRECTORY_STATUSES = [
 type DirectoryStatusFilter = (typeof DIRECTORY_STATUSES)[number]["value"];
 
 const selectClass =
-  "h-10 rounded-[11px] border border-input bg-card px-3 text-xs font-normal outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50";
+  "h-10 w-full rounded-[11px] border border-input bg-card px-3 text-xs font-normal outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 sm:w-auto";
 
 const headerCellClass = "px-4 py-3.5 font-bold";
 
@@ -98,8 +98,8 @@ export function ClientDirectory() {
 
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="relative min-w-56 flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <label className="relative w-full sm:min-w-56 sm:flex-1">
           <span className="sr-only">Search clients</span>
           <Search
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -113,59 +113,61 @@ export function ClientDirectory() {
           />
         </label>
 
-        <label>
-          <span className="sr-only">Filter by status</span>
-          <select
-            value={directoryStatus}
-            onChange={(event) =>
-              changeFilter(() =>
-                setDirectoryStatus(event.target.value as DirectoryStatusFilter | ""),
-              )
-            }
-            className={selectClass}
-          >
-            <option value="">All statuses</option>
-            {DIRECTORY_STATUSES.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid grid-cols-2 gap-2 sm:contents">
+          <label>
+            <span className="sr-only">Filter by status</span>
+            <select
+              value={directoryStatus}
+              onChange={(event) =>
+                changeFilter(() =>
+                  setDirectoryStatus(event.target.value as DirectoryStatusFilter | ""),
+                )
+              }
+              className={selectClass}
+            >
+              <option value="">All statuses</option>
+              {DIRECTORY_STATUSES.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          <span className="sr-only">Filter by industry</span>
-          <select
-            value={industryId}
-            onChange={(event) => changeFilter(() => setIndustryId(event.target.value))}
-            className={selectClass}
-          >
-            <option value="">All industries</option>
-            {(industriesQuery.data ?? []).map((industry) => (
-              <option key={industry.id} value={industry.id}>
-                {industry.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label>
+            <span className="sr-only">Filter by industry</span>
+            <select
+              value={industryId}
+              onChange={(event) => changeFilter(() => setIndustryId(event.target.value))}
+              className={selectClass}
+            >
+              <option value="">All industries</option>
+              {(industriesQuery.data ?? []).map((industry) => (
+                <option key={industry.id} value={industry.id}>
+                  {industry.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          <span className="sr-only">Filter by account owner</span>
-          <select
-            value={ownerEmployeeId}
-            onChange={(event) => changeFilter(() => setOwnerEmployeeId(event.target.value))}
-            className={selectClass}
-          >
-            <option value="">All owners</option>
-            {[...owners].map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="col-span-2">
+            <span className="sr-only">Filter by account owner</span>
+            <select
+              value={ownerEmployeeId}
+              onChange={(event) => changeFilter(() => setOwnerEmployeeId(event.target.value))}
+              className={selectClass}
+            >
+              <option value="">All owners</option>
+              {[...owners].map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="flex items-center justify-end gap-2 sm:ml-auto sm:gap-3">
           <Button variant="outline" className="h-10 rounded-[11px] px-4 font-semibold">
             <SlidersHorizontal aria-hidden="true" />
             Columns
@@ -193,7 +195,125 @@ export function ClientDirectory() {
         </TabPanel>
       ) : (
         <TabPanel className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="sm:hidden">
+            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+              <input
+                type="checkbox"
+                aria-label="Select all clients on this page"
+                checked={allOnPageSelected}
+                onChange={() =>
+                  setSelected(
+                    allOnPageSelected ? new Set() : new Set(rows.map((row) => row.client.id)),
+                  )
+                }
+                className="size-4 accent-primary"
+              />
+              <span className="text-xs font-semibold text-muted-foreground">
+                Select all on this page
+              </span>
+            </div>
+            <ul className="divide-y divide-border">
+              {rows.map((row) => {
+                const status = directoryStatusTone(
+                  row.directoryStatus?.kind ?? row.client.status,
+                  row.directoryStatus?.label,
+                );
+                const name = clientName(row.client);
+                return (
+                  <li key={row.client.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${name}`}
+                        checked={selected.has(row.client.id)}
+                        onChange={() => toggleRow(row.client.id)}
+                        className="mt-1 size-4 shrink-0 accent-primary"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-workflow/90 text-[0.6875rem] font-bold text-white"
+                      >
+                        {initials(name)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <Link
+                              href={`/dashboard/clients/${row.client.id}`}
+                              className="text-strong block truncate text-xs font-bold hover:underline"
+                            >
+                              {name}
+                            </Link>
+                            <p className="text-muted-foreground">{row.client.clientCode}</p>
+                          </div>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon-sm"
+                            aria-label={`Open ${name}`}
+                            className="shrink-0 rounded-[9px]"
+                          >
+                            <Link href={`/dashboard/clients/${row.client.id}`}>
+                              <PanelLeftOpen aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        </div>
+
+                        <dl className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.6875rem]">
+                          <div>
+                            <dt className="text-muted-foreground">Status</dt>
+                            <dd className="mt-0.5">
+                              <span
+                                className={`inline-block rounded-full px-2.5 py-1 font-bold ${status.className}`}
+                              >
+                                {status.label}
+                              </span>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Industry</dt>
+                            <dd className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                              <span
+                                aria-hidden="true"
+                                className={`size-1.5 shrink-0 rounded-full ${industryTone(row.industry.name)}`}
+                              />
+                              <span className="truncate">{row.industry.name}</span>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Owner</dt>
+                            <dd className="text-strong mt-1 truncate font-semibold">
+                              {personName(row.owner.person)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Branch</dt>
+                            <dd className="mt-1 truncate text-muted-foreground">
+                              {row.branch.name}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Projects</dt>
+                            <dd className="text-strong mt-1 font-semibold">
+                              {row.projectCount ?? 0}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted-foreground">Last activity</dt>
+                            <dd className="mt-1 truncate text-muted-foreground">
+                              {relativeTime(row.lastActivityAt, row.branch.timezone)}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="hidden overflow-x-auto sm:block">
             <table
               className="w-full border-collapse text-left text-xs"
               style={{ minWidth: "1040px" }}

@@ -31,7 +31,66 @@ export function InvoicesTab({ invoices, timeZone }: { invoices: InvoiceRow[]; ti
 
   return (
     <TabPanel className="overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="divide-y divide-border sm:hidden">
+        {invoices.map((row) => {
+          const status =
+            INVOICE_STATUS_META[row.paymentSummary.presentationStatus] ??
+            INVOICE_STATUS_META.draft!;
+          return (
+            <div key={row.invoice.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-strong font-bold">{row.invoice.invoiceNumber}</p>
+                  <p className="mt-0.5 text-muted-foreground">
+                    {row.invoice.issuedOn
+                      ? `Issued ${formatDate(row.invoice.issuedOn, timeZone)}`
+                      : "Not issued"}
+                  </p>
+                </div>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Open invoice ${row.invoice.invoiceNumber} as a document`}
+                  className="shrink-0"
+                >
+                  <Link href={`/dashboard/clients/invoices/${row.invoice.id}`} prefetch={false}>
+                    <FileDown aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span
+                  className={`inline-flex rounded-md px-2.5 py-1 text-[0.6875rem] font-bold ${status.className}`}
+                >
+                  {status.label}
+                </span>
+                <p className="text-strong text-right font-bold">
+                  {money(row.invoice.totalAmount, row.invoice.currency)}
+                </p>
+              </div>
+
+              <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.6875rem]">
+                <div>
+                  <dt className="text-muted-foreground">Due</dt>
+                  <dd className="mt-0.5 text-muted-foreground">
+                    {formatDate(row.invoice.dueOn, timeZone)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Outstanding</dt>
+                  <dd className="text-strong mt-0.5 font-semibold">
+                    {money(row.paymentSummary.outstandingAmount, row.invoice.currency)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full border-collapse text-left text-xs" style={{ minWidth: "900px" }}>
           <caption className="sr-only">Invoices for this client</caption>
           <thead className="bg-[var(--surface-subtle)] text-[0.6875rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
