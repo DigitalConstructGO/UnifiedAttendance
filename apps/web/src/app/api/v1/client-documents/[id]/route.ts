@@ -21,8 +21,8 @@ export const GET = route({
 export const DELETE = route({
   input: clientResourceIdInput,
   handler: async ({ ctx, input }) => {
-    const document = await getClientDocument(ctx, input);
-    await deleteFile(document.document.storageKey);
-    return deleteClientDocument(ctx, input);
+    const deletedVersions = await deleteClientDocument(ctx, input);
+    await Promise.all(deletedVersions.map((version) => deleteFile(version.storageKey)));
+    return deletedVersions;
   },
 });

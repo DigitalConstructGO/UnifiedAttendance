@@ -458,47 +458,28 @@ export async function deleteClient(ctx: Context, input: ClientResourceIdInput) {
     badRequest("Archive this Client first — deletion is only allowed from the archive");
   }
 
-  const [[contact], [contract], [project], [invoice], [document], [note], [activity]] =
-    await Promise.all([
-      ctx.db
-        .select({ id: clientContacts.id })
-        .from(clientContacts)
-        .where(eq(clientContacts.clientId, current.id))
-        .limit(1),
-      ctx.db
-        .select({ id: commercialContracts.id })
-        .from(commercialContracts)
-        .where(eq(commercialContracts.clientId, current.id))
-        .limit(1),
-      ctx.db
-        .select({ id: projects.id })
-        .from(projects)
-        .where(eq(projects.clientId, current.id))
-        .limit(1),
-      ctx.db
-        .select({ id: invoices.id })
-        .from(invoices)
-        .where(eq(invoices.clientId, current.id))
-        .limit(1),
-      ctx.db
-        .select({ id: clientDocuments.id })
-        .from(clientDocuments)
-        .where(eq(clientDocuments.clientId, current.id))
-        .limit(1),
-      ctx.db
-        .select({ id: clientNotes.id })
-        .from(clientNotes)
-        .where(eq(clientNotes.clientId, current.id))
-        .limit(1),
-      ctx.db
-        .select({ id: crmActivities.id })
-        .from(crmActivities)
-        .where(eq(crmActivities.clientId, current.id))
-        .limit(1),
-    ]);
-  if (contact) {
-    conflict("This Client has contacts on file, so it cannot be deleted. Keep it archived instead.");
-  }
+  const [[contract], [project], [invoice], [document]] = await Promise.all([
+    ctx.db
+      .select({ id: commercialContracts.id })
+      .from(commercialContracts)
+      .where(eq(commercialContracts.clientId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.clientId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(eq(invoices.clientId, current.id))
+      .limit(1),
+    ctx.db
+      .select({ id: clientDocuments.id })
+      .from(clientDocuments)
+      .where(eq(clientDocuments.clientId, current.id))
+      .limit(1),
+  ]);
   if (contract) {
     conflict(
       "This Client has commercial contracts, so it cannot be deleted. Keep it archived instead.",
@@ -513,16 +494,14 @@ export async function deleteClient(ctx: Context, input: ClientResourceIdInput) {
   if (document) {
     conflict("This Client has documents, so it cannot be deleted. Keep it archived instead.");
   }
-  if (note) {
-    conflict("This Client has notes on file, so it cannot be deleted. Keep it archived instead.");
-  }
-  if (activity) {
-    conflict(
-      "This Client has logged activities, so it cannot be deleted. Keep it archived instead.",
-    );
-  }
 
   await withTransaction(ctx, async (ctx) => {
+    // Contacts, notes, and CRM activities are lightweight relationship data
+    // with no permanent-delete path of their own — "permanently erases the
+    // Client" already covers them, unlike the committed records blocked above.
+    await ctx.db.delete(crmActivities).where(eq(crmActivities.clientId, current.id));
+    await ctx.db.delete(clientNotes).where(eq(clientNotes.clientId, current.id));
+    await ctx.db.delete(clientContacts).where(eq(clientContacts.clientId, current.id));
     await ctx.db.delete(clientAuditEntries).where(eq(clientAuditEntries.clientId, current.id));
     await ctx.db
       .delete(clientOwnerAssignments)
