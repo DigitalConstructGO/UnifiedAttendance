@@ -77,8 +77,7 @@ export function ClientProfile({
       router.push("/dashboard/clients");
     },
   });
-  const lifecycleError =
-    archiveClient.error ?? restoreClient.error ?? deleteClient.error ?? null;
+  const lifecycleError = archiveClient.error ?? restoreClient.error ?? deleteClient.error ?? null;
   const projectStatuses = (profile.client?.currentProjects ?? []).map(
     (row) => row.project.status,
   ) as ProjectStatus[];
@@ -256,7 +255,7 @@ export function ClientProfile({
           {deleting ? (
             <ConfirmDialog
               title={`Delete ${clientName(profile.client.client)} forever?`}
-              description="This permanently erases the client and cannot be undone. A client with contacts, contracts, projects, invoices, documents, notes, or activities attached will refuse to go."
+              description="This permanently erases the client — including its contacts, notes, and activities — and cannot be undone. A client with commercial contracts, projects, invoices, or documents attached will refuse to go."
               confirmLabel="Delete forever"
               onCancel={() => setDeleting(false)}
               onConfirm={() => {
