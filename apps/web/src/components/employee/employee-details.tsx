@@ -25,22 +25,37 @@ export function EmployeeDetails({
   onTransition: (form: HTMLFormElement) => void;
   onDelete: () => void;
 }) {
-  return (
-    <section className="grid gap-5 lg:grid-cols-[0.8fr_1fr_1fr]" aria-label="Employee details">
+  const reference = (
+    <div className="grid gap-5">
       <EmploymentHistory selected={selected} periods={periods} />
-      {manageable ? (
-        <>
-          <EmployeeDetailForm selected={selected} busy={busy} onSubmit={onUpdate} />
-          <EmploymentTransitionForm
-            selected={selected}
-            catalogs={catalogs}
-            busy={busy}
-            onSubmit={onTransition}
-            onDelete={onDelete}
-          />
-        </>
-      ) : null}
       <PersonAssetsCard personId={selected.person.id} assets={selected.personAssets} />
+    </div>
+  );
+
+  if (!manageable) {
+    return (
+      <section className="max-w-md" aria-label="Employee details">
+        {reference}
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className="grid items-start gap-5 lg:grid-cols-[340px_minmax(0,1fr)]"
+      aria-label="Employee details"
+    >
+      {reference}
+      <div className="grid gap-5">
+        <EmployeeDetailForm selected={selected} busy={busy} onSubmit={onUpdate} />
+        <EmploymentTransitionForm
+          selected={selected}
+          catalogs={catalogs}
+          busy={busy}
+          onSubmit={onTransition}
+          onDelete={onDelete}
+        />
+      </div>
     </section>
   );
 }
