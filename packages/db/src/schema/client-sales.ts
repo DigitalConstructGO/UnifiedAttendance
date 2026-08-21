@@ -46,6 +46,7 @@ export const opportunities = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
     uniqueIndex("opportunities_organization_id_idx").on(table.organizationId, table.id),
