@@ -1,10 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { RequestErrorAlert } from "@/components/request-error-alert";
@@ -21,8 +28,52 @@ import { compactSelectClass } from "./fields";
 
 export function PositionManager() {
   const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Position | null>(null);
   const [deleting, setDeleting] = useState<Position | null>(null);
+  const formOpen = adding || editing !== null;
+
+  const titleRef = useRef<HTMLInputElement>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const shouldRestoreRef = useRef(false);
+
+  useEffect(() => {
+    if (formOpen) {
+      titleRef.current?.focus();
+      return;
+    }
+    if (!shouldRestoreRef.current) return;
+    shouldRestoreRef.current = false;
+    const target = restoreFocusRef.current;
+    restoreFocusRef.current = null;
+    // The row that opened the form may have re-rendered away after a save.
+    if (target?.isConnected) target.focus();
+    else addButtonRef.current?.focus();
+  }, [formOpen, editing?.id]);
+
+  function rememberTrigger() {
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+
+  function openAdd() {
+    rememberTrigger();
+    setEditing(null);
+    setAdding(true);
+  }
+
+  function openEdit(item: Position) {
+    rememberTrigger();
+    setAdding(false);
+    setEditing(item);
+  }
+
+  function closeForm() {
+    shouldRestoreRef.current = true;
+    setAdding(false);
+    setEditing(null);
+  }
 
   const positionsQuery = useQuery(workforceQueries.positions());
   const positions = positionsQuery.data ?? [];
@@ -46,7 +97,7 @@ export function PositionManager() {
         ? workforceApi.updatePosition({ ...values, id: values.id })
         : workforceApi.createPosition(values),
     onSuccess: async () => {
-      setEditing(null);
+      closeForm();
       await invalidatePositions();
     },
   });
@@ -54,7 +105,7 @@ export function PositionManager() {
   const deletePosition = useMutation({
     mutationFn: workforceApi.deletePosition,
     onSuccess: async (removed) => {
-      if (editing?.id === removed.id) setEditing(null);
+      if (editing?.id === removed.id) closeForm();
       await invalidatePositions();
     },
   });
@@ -94,69 +145,99 @@ export function PositionManager() {
   return (
     <Card className="rounded-[18px] shadow-[var(--shadow-card)] ring-border">
       <CardHeader className="border-b border-border pb-4">
-        <CardTitle className="font-bold">{editing ? "Edit position" : "Positions"}</CardTitle>
+        <CardTitle className="font-bold">
+          {editing ? "Edit position" : adding ? "New position" : "Positions"}
+        </CardTitle>
         <p className="text-xs text-muted-foreground">
           Job titles available when assigning employees.
         </p>
+        <CardAction>
+          {formOpen ? (
+            <span
+              role="status"
+              className="rounded-md bg-primary/10 px-2.5 py-1 text-[0.6875rem] font-bold text-primary"
+            >
+              {editing ? "Editing" : "Adding"}
+            </span>
+          ) : (
+            <Button
+              ref={addButtonRef}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-[9px] font-bold"
+              aria-controls="position-form"
+              onClick={openAdd}
+            >
+              <Plus aria-hidden="true" />
+              Add position
+            </Button>
+          )}
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form
-          className="grid gap-3 sm:grid-cols-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            save(event.currentTarget);
-          }}
-        >
-          <Input
-            required
-            name="title"
-            placeholder="Position title"
-            defaultValue={editing?.title}
-            key={editing?.id ?? "new-title"}
-            className="h-9 rounded-[9px]"
-          />
-          <Input
-            name="description"
-            placeholder="Description"
-            defaultValue={editing?.description ?? ""}
-            key={`${editing?.id ?? "new"}-description`}
-            className="h-9 rounded-[9px]"
-          />
-          <select
-            name="departmentId"
-            defaultValue={editing?.departmentId ?? ""}
-            key={`${editing?.id ?? "new"}-department`}
-            aria-label="Department"
-            className={compactSelectClass}
+        {formOpen ? (
+          <form
+            id="position-form"
+            className="grid gap-3 border-b border-border pb-4 sm:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              save(event.currentTarget);
+            }}
           >
-            <option value="">Any department</option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name}
-              </option>
-            ))}
-          </select>
-          <select
-            name="status"
-            defaultValue={editing?.status ?? ACTIVE_STATUSES[0]}
-            key={`${editing?.id ?? "new"}-status`}
-            className={compactSelectClass}
-          >
-            {ACTIVE_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {ACTIVE_STATUS_META[status].label}
-              </option>
-            ))}
-          </select>
-          <Button className="h-9 rounded-[9px] font-bold" disabled={busy}>
-            {editing ? "Save changes" : "Add position"}
-          </Button>
-          {editing ? (
-            <Button type="button" variant="ghost" disabled={busy} onClick={() => setEditing(null)}>
-              Cancel edit
+            <Input
+              ref={titleRef}
+              required
+              name="title"
+              placeholder="Position title"
+              aria-label="Position title"
+              defaultValue={editing?.title}
+              key={editing?.id ?? "new-title"}
+              className="h-9 rounded-[9px]"
+            />
+            <Input
+              name="description"
+              placeholder="Description"
+              aria-label="Description"
+              defaultValue={editing?.description ?? ""}
+              key={`${editing?.id ?? "new"}-description`}
+              className="h-9 rounded-[9px]"
+            />
+            <select
+              name="departmentId"
+              defaultValue={editing?.departmentId ?? ""}
+              key={`${editing?.id ?? "new"}-department`}
+              aria-label="Department"
+              className={compactSelectClass}
+            >
+              <option value="">Any department</option>
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </select>
+            <select
+              name="status"
+              defaultValue={editing?.status ?? ACTIVE_STATUSES[0]}
+              key={`${editing?.id ?? "new"}-status`}
+              aria-label="Status"
+              className={compactSelectClass}
+            >
+              {ACTIVE_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {ACTIVE_STATUS_META[status].label}
+                </option>
+              ))}
+            </select>
+            <Button className="h-9 rounded-[9px] font-bold" disabled={busy}>
+              {editing ? "Save changes" : "Add position"}
             </Button>
-          ) : null}
-        </form>
+            <Button type="button" variant="ghost" disabled={busy} onClick={closeForm}>
+              Cancel
+            </Button>
+          </form>
+        ) : null}
         {error ? (
           <RequestErrorAlert error={error} onRetry={loadFailure?.retry} focusOnError />
         ) : null}
@@ -176,13 +257,19 @@ export function PositionManager() {
                 </span>
               </span>
               <span className="flex gap-1">
-                <Button size="xs" variant="ghost" onClick={() => setEditing(position)}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  aria-label={`Edit ${position.title}`}
+                  onClick={() => openEdit(position)}
+                >
                   Edit
                 </Button>
                 <Button
                   size="xs"
                   variant="destructive"
                   disabled={busy}
+                  aria-label={`Delete ${position.title}`}
                   onClick={() => remove(position)}
                 >
                   Delete
@@ -193,7 +280,7 @@ export function PositionManager() {
         </ul>
         {positions.length === 0 ? (
           <p className="py-5 text-center text-xs text-muted-foreground">
-            No positions have been created yet.
+            No positions yet. Use “Add position” to create the first one.
           </p>
         ) : null}
       </CardContent>
