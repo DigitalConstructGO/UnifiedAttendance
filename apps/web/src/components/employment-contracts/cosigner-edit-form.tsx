@@ -1,10 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
 import { DocumentUploadField } from "@/components/document-upload-field";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { workforceQueries, type Cosigner } from "@/lib/api";
 
@@ -33,6 +34,13 @@ export function CosignerEditForm({
   onCancel: () => void;
 }) {
   const documents = useQuery(workforceQueries.documents({ cosignerId: editing.id }));
+  const fullNameRef = useRef<HTMLInputElement>(null);
+
+  // The form mounts above the table when a row's Edit is pressed; moving focus
+  // into it is what tells keyboard and screen-reader users where they landed.
+  useEffect(() => {
+    fullNameRef.current?.focus();
+  }, [editing.id]);
 
   return (
     <Card className="gap-0 rounded-[18px] py-0 shadow-[var(--shadow-card)] ring-border">
@@ -41,6 +49,14 @@ export function CosignerEditForm({
         <p className="text-xs text-muted-foreground">
           Update the directory record or upload replacement private identity files.
         </p>
+        <CardAction>
+          <span
+            role="status"
+            className="rounded-md bg-primary/10 px-2.5 py-1 text-[0.6875rem] font-bold text-primary"
+          >
+            Editing
+          </span>
+        </CardAction>
       </CardHeader>
       <CardContent className="p-5">
         <form
@@ -52,17 +68,26 @@ export function CosignerEditForm({
         >
           <div className="grid gap-4 md:grid-cols-3">
             <Input
+              ref={fullNameRef}
               required
               name="fullName"
               defaultValue={editing.fullName}
               aria-label="Full name"
+              key={`${editing.id}-fullName`}
             />
-            <Input required name="phone" defaultValue={editing.phone ?? ""} aria-label="Phone" />
+            <Input
+              required
+              name="phone"
+              defaultValue={editing.phone ?? ""}
+              aria-label="Phone"
+              key={`${editing.id}-phone`}
+            />
             <Input
               required
               name="workplace"
               defaultValue={editing.workplace ?? ""}
               aria-label="Workplace"
+              key={`${editing.id}-workplace`}
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

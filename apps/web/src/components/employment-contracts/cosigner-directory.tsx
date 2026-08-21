@@ -6,7 +6,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Search, UsersRound } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -34,6 +34,29 @@ export function CosignerDirectory({
   const [deleting, setDeleting] = useState<Cosigner | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadStates, setUploadStates] = useState<UploadStatusMap>({});
+
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const shouldRestoreRef = useRef(false);
+
+  useEffect(() => {
+    if (editing || !shouldRestoreRef.current) return;
+    shouldRestoreRef.current = false;
+    const target = restoreFocusRef.current;
+    restoreFocusRef.current = null;
+    // The row that opened the form may have re-rendered away after a save.
+    if (target?.isConnected) target.focus();
+  }, [editing]);
+
+  function openEdit(item: Cosigner) {
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setEditing(item);
+  }
+
+  function closeEdit() {
+    shouldRestoreRef.current = true;
+    setEditing(null);
+  }
 
   function noteUpload(field: string, status: UploadFieldStatus) {
     setUploadStates((previous) => ({ ...previous, [field]: status }));
@@ -64,14 +87,14 @@ export function CosignerDirectory({
         return;
       }
       setNotice("Cosigner details and selected documents saved.");
-      setEditing(null);
+      closeEdit();
     },
   });
 
   const deleteCosigner = useMutation({
     mutationFn: workforceApi.deleteCosigner,
     onSuccess: async (removed) => {
-      if (editing?.id === removed.id) setEditing(null);
+      if (editing?.id === removed.id) closeEdit();
       await invalidateCosigners();
       setNotice("Cosigner deleted.");
     },
@@ -113,7 +136,7 @@ export function CosignerDirectory({
       cosignerColumns({
         manageable,
         busy,
-        onEdit: setEditing,
+        onEdit: openEdit,
         onDelete: remove,
       }),
     [busy, manageable],
@@ -140,7 +163,7 @@ export function CosignerDirectory({
           uploadProgress={uploadProgress}
           uploadStates={uploadStates}
           onSubmit={save}
-          onCancel={() => setEditing(null)}
+          onCancel={closeEdit}
         />
       ) : null}
 
