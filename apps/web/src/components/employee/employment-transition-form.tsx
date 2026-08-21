@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { EmployeeRow } from "@/lib/api";
 
@@ -32,11 +32,14 @@ export function EmploymentTransitionForm({
   onSubmit: (form: HTMLFormElement) => void;
   onDelete: () => void;
 }) {
-  const [departmentId, setDepartmentId] = useState("");
+  const [departmentId, setDepartmentId] = useState(selected.department?.id ?? "");
   return (
     <Card className="rounded-[18px] shadow-[var(--shadow-card)] ring-border">
       <CardHeader>
-        <CardTitle className="font-bold">Employment transition</CardTitle>
+        <CardTitle className="font-bold">Record employment change</CardTitle>
+        <CardDescription>
+          Create a dated employment record without overwriting earlier history.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <form
@@ -46,10 +49,16 @@ export function EmploymentTransitionForm({
             onSubmit(event.currentTarget);
           }}
         >
-          <Field label="Effective from">
-            <Input required type="date" name="effectiveFrom" className="h-9 rounded-[9px]" />
+          <Field label="Change takes effect">
+            <span className="grid gap-1.5">
+              <Input required type="date" name="effectiveFrom" className="h-9 rounded-[9px]" />
+              <span className="font-normal text-muted-foreground">
+                Choose the first day the new employment details apply.
+              </span>
+            </span>
           </Field>
 
+          <p className="text-strong text-xs font-bold">New employment details</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Branch">
               <select
@@ -71,7 +80,12 @@ export function EmploymentTransitionForm({
               </select>
             </Field>
             <Field label="Position">
-              <select key={departmentId} name="positionId" className={compactSelectClass}>
+              <select
+                key={departmentId}
+                name="positionId"
+                defaultValue={selected.position?.id ?? ""}
+                className={compactSelectClass}
+              >
                 <PositionOptions positions={catalogs.positions} departmentId={departmentId} />
               </select>
             </Field>
@@ -89,7 +103,7 @@ export function EmploymentTransitionForm({
           <Field label="Employment status">
             <select
               name="status"
-              defaultValue={EMPLOYEE_STATUSES[0]}
+              defaultValue={selected.employee.status}
               className={compactSelectClass}
             >
               {EMPLOYEE_STATUSES.map((status) => (
@@ -101,18 +115,22 @@ export function EmploymentTransitionForm({
           </Field>
 
           <Button disabled={busy} className="h-9 rounded-[9px] font-bold">
-            Save dated transition
+            Record employment change
           </Button>
         </form>
 
         <div className="border-t border-border pt-4">
+          <p className="text-strong text-xs font-bold">Archive employee</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Remove this employee from active workflows while keeping their profile and history.
+          </p>
           <Button
             variant="destructive"
             disabled={busy}
-            className="h-9 w-full rounded-[9px] font-bold"
+            className="mt-3 h-9 w-full rounded-[9px] font-bold"
             onClick={onDelete}
           >
-            Move to archive
+            Archive employee
           </Button>
         </div>
       </CardContent>

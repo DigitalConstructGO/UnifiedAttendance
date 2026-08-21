@@ -7,7 +7,7 @@ import { useRef, useState } from "react";
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { workforceApi, workforceKeys, type PersonAssetUrls } from "@/lib/api";
 import { presentRequestError } from "@/lib/errors";
 
@@ -38,10 +38,10 @@ export function PersonAssetsCard({
     <Card className="rounded-[18px] shadow-[var(--shadow-card)] ring-border">
       <CardHeader>
         <CardTitle className="font-bold">Profile photo</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Stored privately; the link opens a time-limited copy. National IDs live on the employment
-          contract.
-        </p>
+        <CardDescription>
+          This photo is private. View photo opens a temporary secure link. National ID documents are
+          stored with the employment contract.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {localError ? (
@@ -68,7 +68,7 @@ export function PersonAssetsCard({
               </span>
             )}
             <p className="text-xs text-muted-foreground">
-              {url ? "On file" : "JPG, PNG, or WebP up to 5 MB"}
+              {url ? "Profile photo on file" : "JPG, PNG, or WebP up to 5 MB"}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -76,7 +76,7 @@ export function PersonAssetsCard({
               <Button asChild variant="ghost" size="sm" className="h-8 rounded-[9px] font-bold">
                 <a href={url} target="_blank" rel="noreferrer">
                   <ExternalLink aria-hidden="true" />
-                  View
+                  View photo
                 </a>
               </Button>
             ) : null}
@@ -102,7 +102,7 @@ export function PersonAssetsCard({
                   onClick={() => fileInput.current?.click()}
                 >
                   <Upload aria-hidden="true" />
-                  {upload.isPending ? "Uploading…" : url ? "Replace" : "Upload"}
+                  {upload.isPending ? "Uploading photo…" : url ? "Replace photo" : "Upload photo"}
                 </Button>
               </>
             ) : null}

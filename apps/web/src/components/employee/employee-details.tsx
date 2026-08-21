@@ -12,6 +12,7 @@ export function EmployeeDetails({
   catalogs,
   manageable,
   busy,
+  updating,
   onUpdate,
   onTransition,
   onDelete,
@@ -21,7 +22,8 @@ export function EmployeeDetails({
   catalogs: EmployeeCatalogs;
   manageable: boolean;
   busy: boolean;
-  onUpdate: (form: HTMLFormElement) => void;
+  updating: boolean;
+  onUpdate: (form: HTMLFormElement) => Promise<void>;
   onTransition: (form: HTMLFormElement) => void;
   onDelete: () => void;
 }) {
@@ -47,7 +49,12 @@ export function EmployeeDetails({
     >
       {reference}
       <div className="grid gap-5">
-        <EmployeeDetailForm selected={selected} busy={busy} onSubmit={onUpdate} />
+        <EmployeeDetailForm
+          selected={selected}
+          busy={busy}
+          updating={updating}
+          onSubmit={onUpdate}
+        />
         <EmploymentTransitionForm
           selected={selected}
           catalogs={catalogs}

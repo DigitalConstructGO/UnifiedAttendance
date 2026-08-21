@@ -36,7 +36,7 @@ export function useEmployeeProfile(employeeId: string) {
   const transitionEmployee = useMutation({
     mutationFn: workforceApi.transitionEmployment,
     onSuccess: async () => {
-      setNotice("Employment transition saved.");
+      setNotice("Employment change recorded.");
       await invalidate();
     },
   });
@@ -49,7 +49,13 @@ export function useEmployeeProfile(employeeId: string) {
     },
   });
 
-  const writeError = updateEmployee.error ?? transitionEmployee.error ?? archiveEmployee.error;
+  const writeError = updateEmployee.error
+    ? presentRequestError(updateEmployee.error, "Could not update the employee record.")
+    : transitionEmployee.error
+      ? presentRequestError(transitionEmployee.error, "Could not record the employment change.")
+      : archiveEmployee.error
+        ? presentRequestError(archiveEmployee.error, "Could not archive the employee.")
+        : null;
   const loadFailure = firstQueryFailure([
     [employeeQuery, "Could not load this employee."],
     [periodsQuery, "Could not load employment history."],
@@ -57,9 +63,7 @@ export function useEmployeeProfile(employeeId: string) {
     [departmentsQuery, "Could not load departments."],
     [positionsQuery, "Could not load positions."],
   ]);
-  const error = writeError
-    ? presentRequestError(writeError, "Could not complete the employee action.")
-    : (loadFailure?.error ?? null);
+  const error = writeError ?? loadFailure?.error ?? null;
 
   function clearFeedback() {
     setNotice(null);
@@ -82,9 +86,10 @@ export function useEmployeeProfile(employeeId: string) {
     notice,
     error,
     busy: updateEmployee.isPending || transitionEmployee.isPending || archiveEmployee.isPending,
-    updateEmployee: (form: HTMLFormElement) => {
+    updating: updateEmployee.isPending,
+    updateEmployee: async (form: HTMLFormElement) => {
       clearFeedback();
-      updateEmployee.mutate(updateEmployeePayload(new FormData(form), employeeId));
+      await updateEmployee.mutateAsync(updateEmployeePayload(new FormData(form), employeeId));
     },
     transitionEmployee: (form: HTMLFormElement) => {
       clearFeedback();
