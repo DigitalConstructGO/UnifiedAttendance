@@ -32,7 +32,13 @@ export function EmploymentContractsWorkspace({
 
   return (
     <div className="space-y-5">
-      <ContractNavigation view={activeView} manageable={manageable} />
+      <ContractNavigation
+        view={activeView}
+        manageable={manageable}
+        editingContractId={
+          activeView === "create" && workspace.editing ? workspace.editing.contract.id : undefined
+        }
+      />
       {workspace.notice ? (
         <p role="status" className="text-sm text-success">
           {workspace.notice}
