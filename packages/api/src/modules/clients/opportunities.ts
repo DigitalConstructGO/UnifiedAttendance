@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import {
   branches,
@@ -147,6 +147,9 @@ export async function listOpportunities(ctx: Context, input: ListOpportunitiesIn
   if (input.ownerEmployeeId) filters.push(eq(opportunities.ownerEmployeeId, input.ownerEmployeeId));
   if (input.pipelineStageId) filters.push(eq(opportunities.pipelineStageId, input.pipelineStageId));
   if (!input.includeClosed) filters.push(isNull(opportunities.closedAt));
+  filters.push(
+    input.archived ? isNotNull(opportunities.archivedAt) : isNull(opportunities.archivedAt),
+  );
   const rows = await opportunityQuery(ctx)
     .where(and(...filters))
     .orderBy(asc(pipelineStages.position), asc(opportunities.createdAt));
@@ -242,6 +245,7 @@ export async function transitionOpportunityStage(
 ) {
   const current = await opportunityOrThrow(ctx, input.id);
   await requirePermission(ctx, "opportunities.move_stage", current.branchId);
+  if (current.archivedAt) conflict("This Lead is archived — restore it before moving it");
   if (current.pipelineStageId === input.toPipelineStageId) {
     badRequest("Opportunity is already in that Pipeline Stage");
   }
@@ -283,6 +287,7 @@ export async function transitionOpportunityStage(
 export async function convertOpportunity(ctx: Context, input: ConvertOpportunityInput) {
   const current = await opportunityOrThrow(ctx, input.id);
   await requirePermission(ctx, "opportunities.convert", current.branchId);
+  if (current.archivedAt) conflict("This Lead is archived — restore it before converting it");
   if (current.convertedAt) conflict("Opportunity has already been converted");
   const client = await clientOrThrow(ctx, input.clientId);
   await requirePermission(ctx, "opportunities.convert", client.branchId);
@@ -333,6 +338,84 @@ export async function convertOpportunity(ctx: Context, input: ConvertOpportunity
     });
   });
   return getOpportunity(ctx, { id: current.id });
+}
+
+export async function archiveOpportunity(ctx: Context, input: ClientResourceIdInput) {
+  const current = await opportunityOrThrow(ctx, input.id);
+  await requirePermission(ctx, "opportunities.archive", current.branchId);
+  if (current.archivedAt) return getOpportunity(ctx, { id: current.id });
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .update(opportunities)
+      .set({ archivedAt: new Date() })
+      .where(eq(opportunities.id, current.id));
+    if (current.clientId) {
+      await ctx.db.insert(clientAuditEntries).values({
+        organizationId: current.organizationId,
+        clientId: current.clientId,
+        actorUserId,
+        action: "opportunity.archived",
+        entityType: "opportunity",
+        entityId: current.id,
+      });
+    }
+  });
+  return getOpportunity(ctx, { id: current.id });
+}
+
+export async function restoreOpportunity(ctx: Context, input: ClientResourceIdInput) {
+  const current = await opportunityOrThrow(ctx, input.id);
+  await requirePermission(ctx, "opportunities.restore", current.branchId);
+  if (!current.archivedAt) return getOpportunity(ctx, { id: current.id });
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .update(opportunities)
+      .set({ archivedAt: null })
+      .where(eq(opportunities.id, current.id));
+    if (current.clientId) {
+      await ctx.db.insert(clientAuditEntries).values({
+        organizationId: current.organizationId,
+        clientId: current.clientId,
+        actorUserId,
+        action: "opportunity.restored",
+        entityType: "opportunity",
+        entityId: current.id,
+      });
+    }
+  });
+  return getOpportunity(ctx, { id: current.id });
+}
+
+export async function deleteOpportunity(ctx: Context, input: ClientResourceIdInput) {
+  const current = await opportunityOrThrow(ctx, input.id);
+  await requirePermission(ctx, "opportunities.delete", current.branchId);
+  if (!current.archivedAt) {
+    badRequest("Archive this Lead first — deletion is only allowed from the archive");
+  }
+  if (current.convertedAt) {
+    conflict("A converted Lead cannot be deleted — it is part of the Client's history");
+  }
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .delete(opportunityStageTransitions)
+      .where(eq(opportunityStageTransitions.opportunityId, current.id));
+    await ctx.db.delete(opportunities).where(eq(opportunities.id, current.id));
+    if (current.clientId) {
+      await ctx.db.insert(clientAuditEntries).values({
+        organizationId: current.organizationId,
+        clientId: current.clientId,
+        actorUserId,
+        action: "opportunity.deleted",
+        entityType: "opportunity",
+        entityId: current.id,
+        changeSummary: { name: current.name },
+      });
+    }
+  });
+  return current;
 }
 
 export async function listOpportunityStageTransitions(

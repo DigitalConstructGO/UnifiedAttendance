@@ -92,6 +92,7 @@ export async function getClientDirectoryMetrics(ctx: Context, clientRows: Client
         and(
           inArray(opportunities.clientId, clientIds),
           isNull(opportunities.closedAt),
+          isNull(opportunities.archivedAt),
           eq(pipelineStages.outcome, "open"),
         ),
       ),

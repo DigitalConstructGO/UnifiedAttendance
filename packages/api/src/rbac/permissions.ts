@@ -14,7 +14,7 @@ export const PERMISSION_GROUPS = {
   corrections: ["read", "create", "update", "delete"],
   clients: ["read", "create", "update", "archive", "restore", "delete"],
   client_contacts: ["create", "update", "archive"],
-  opportunities: ["create", "update", "move_stage", "convert"],
+  opportunities: ["create", "update", "move_stage", "convert", "archive", "restore", "delete"],
   projects: ["create", "update", "archive", "restore", "delete"],
   commercial_contracts: ["create", "update", "delete"],
   invoices: ["create", "update", "issue", "void", "delete"],

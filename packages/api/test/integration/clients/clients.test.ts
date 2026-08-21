@@ -35,6 +35,11 @@ import {
   createOpportunity,
   createProject,
   convertOpportunity,
+  archiveOpportunity,
+  restoreOpportunity,
+  deleteOpportunity,
+  getOpportunity,
+  listOpportunities,
   getClient,
   getClientProfile,
   getClientTimeline,
@@ -323,6 +328,44 @@ describe("clients", () => {
         lastName: "Channel",
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("archives a lead off the pipeline, restores it, and deletes only from the archive", async () => {
+    const industry = await createIndustry(context, { name: "Technology" });
+    const stage = await createPipelineStage(context, { name: "Lead", position: 1, outcome: "open" });
+    const created = await createOpportunity(context, {
+      branchId,
+      name: "Sunrise Farms",
+      industryId: industry.id,
+      ownerEmployeeId,
+      pipelineStageId: stage.id,
+      priority: "medium",
+    });
+    const id = created.opportunity.id;
+
+    // Deleting a live lead is refused: the archive is the only door out.
+    await expect(deleteOpportunity(context, { id })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+
+    await archiveOpportunity(context, { id });
+    await expect(listOpportunities(context, {})).resolves.toHaveLength(0);
+    const shelf = await listOpportunities(context, { archived: true });
+    expect(shelf.map((row) => row.opportunity.id)).toEqual([id]);
+
+    // An archived lead cannot be moved along the pipeline.
+    await expect(
+      transitionOpportunityStage(context, { id, toPipelineStageId: stage.id }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    await restoreOpportunity(context, { id });
+    await expect(listOpportunities(context, {})).resolves.toHaveLength(1);
+    await expect(listOpportunities(context, { archived: true })).resolves.toHaveLength(0);
+
+    await archiveOpportunity(context, { id });
+    await deleteOpportunity(context, { id });
+    await expect(listOpportunities(context, { archived: true })).resolves.toHaveLength(0);
+    await expect(getOpportunity(context, { id })).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("moves one opportunity through editable stages and converts it without replacing it", async () => {

@@ -154,6 +154,7 @@ export const listOpportunitiesInput = z.object({
   ownerEmployeeId: id.optional(),
   pipelineStageId: id.optional(),
   includeClosed: z.stringbool().optional(),
+  archived: z.stringbool().optional(),
 });
 export const transitionOpportunityStageInput = z.object({
   id,
