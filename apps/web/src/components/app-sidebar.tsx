@@ -122,13 +122,6 @@ export function AppSidebar({ brand }: { brand: Brand }) {
             </span>
           </span>
         </Link>
-        <div className="rounded-xl border border-sidebar-border bg-white/5 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
-          <p className="truncate text-xs font-semibold text-white">Organizations</p>
-          <p className="mt-1 flex items-center gap-1.5 text-[0.6875rem] text-sidebar-foreground/55">
-            <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
-            Permission-based access
-          </p>
-        </div>
       </SidebarHeader>
 
       <SidebarContent className="gap-4 px-2 py-3">
