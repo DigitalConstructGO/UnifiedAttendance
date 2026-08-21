@@ -1,4 +1,4 @@
-import { getOpportunity, updateOpportunity } from "@UnifiedAttendance/api";
+import { deleteOpportunity, getOpportunity, updateOpportunity } from "@UnifiedAttendance/api";
 import {
   clientResourceIdInput,
   updateOpportunityInput,
@@ -13,4 +13,9 @@ export const GET = route({
 export const PATCH = route({
   input: updateOpportunityInput,
   handler: ({ ctx, input }) => updateOpportunity(ctx, input),
+});
+
+export const DELETE = route({
+  input: clientResourceIdInput,
+  handler: ({ ctx, input }) => deleteOpportunity(ctx, input),
 });

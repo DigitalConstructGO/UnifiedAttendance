@@ -153,6 +153,14 @@ export const clientsApi = {
       method: "POST",
       body: values,
     }),
+  archiveOpportunity: (id: string) =>
+    apiFetch<OpportunityRow>(`/opportunities/${id}/archive`, { method: "POST" }),
+  restoreOpportunity: (id: string) =>
+    apiFetch<OpportunityRow>(`/opportunities/${id}/restore`, { method: "POST" }),
+  deleteOpportunity: (id: string) =>
+    apiFetch<Returned<typeof service.deleteOpportunity>>(`/opportunities/${id}`, {
+      method: "DELETE",
+    }),
   stageTransitions: (opportunityId: string, signal?: AbortSignal) =>
     apiFetch<OpportunityStageTransition[]>("/opportunity-stage-transitions", {
       query: { opportunityId },

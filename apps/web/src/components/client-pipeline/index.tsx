@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, Columns3, GripVertical, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, Clock3, Columns3, GripVertical, Plus, Trash2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useAccess } from "@/components/access-provider";
 import { RequestErrorAlert } from "@/components/request-error-alert";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   clientKeys,
   clientQueries,
@@ -47,18 +48,22 @@ function OpportunityCard({
   row,
   stages,
   movable,
+  archivable,
   dragging,
   onDragStart,
   onDragEnd,
   onMove,
+  onArchive,
 }: {
   row: OpportunityRow;
   stages: PipelineStage[];
   movable: boolean;
+  archivable: boolean;
   dragging: boolean;
   onDragStart: () => void;
   onDragEnd: () => void;
   onMove: (toPipelineStageId: string) => void;
+  onArchive: () => void;
 }) {
   const priority = OPPORTUNITY_PRIORITY_META[row.opportunity.priority];
   const name = row.client ? clientName(row.client) : row.opportunity.name;
@@ -97,6 +102,17 @@ function OpportunityCard({
             {row.industry?.name ?? "No industry"}
           </p>
         </div>
+        {archivable ? (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Remove ${name} from the pipeline`}
+            className="-mt-1 -mr-1 shrink-0 text-muted-foreground"
+            onClick={onArchive}
+          >
+            <Archive aria-hidden="true" />
+          </Button>
+        ) : null}
         {movable ? (
           <GripVertical className="size-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
         ) : null}
@@ -150,12 +166,18 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
 
   const [dialogOpen, setDialogOpen] = useState(createOpen && can("opportunities.create"));
   const [stagesOpen, setStagesOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [deleting, setDeleting] = useState<OpportunityRow | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overStageId, setOverStageId] = useState<string | null>(null);
 
   const opportunitiesOptions = clientQueries.opportunities({ includeClosed: "true" });
   const stagesQuery = useQuery(clientQueries.pipelineStages());
   const opportunitiesQuery = useQuery(opportunitiesOptions);
+  const archivedQuery = useQuery({
+    ...clientQueries.opportunities({ includeClosed: "true", archived: "true" }),
+    enabled: showArchived,
+  });
   const branchesQuery = useQuery(organizationQueries.branches());
   const industriesQuery = useQuery(clientQueries.industries());
   const clientsQuery = useQuery(clientQueries.list({ pageSize: 100 }));
@@ -164,6 +186,9 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
 
   const creatable = can("opportunities.create");
   const manageable = can("opportunities.move_stage");
+  const archivable = can("opportunities.archive");
+  const restorable = can("opportunities.restore");
+  const deletable = can("opportunities.delete");
   const allStages = stagesQuery.data ?? [];
   // Inactive stages stay in history but leave the board.
   const stages = allStages.filter((stage) => stage.status === "active");
@@ -201,6 +226,23 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
     onSettled: () => queryClient.invalidateQueries({ queryKey: clientKeys.opportunitiesAll }),
   });
 
+  async function invalidateLeads() {
+    await queryClient.invalidateQueries({ queryKey: clientKeys.opportunitiesAll });
+  }
+
+  const archiveLead = useMutation({
+    mutationFn: clientsApi.archiveOpportunity,
+    onSuccess: invalidateLeads,
+  });
+  const restoreLead = useMutation({
+    mutationFn: clientsApi.restoreOpportunity,
+    onSuccess: invalidateLeads,
+  });
+  const deleteLead = useMutation({
+    mutationFn: clientsApi.deleteOpportunity,
+    onSuccess: invalidateLeads,
+  });
+
   function moveTo(opportunityId: string, toPipelineStageId: string) {
     if (!manageable) return;
     const current = opportunities.find((row) => row.opportunity.id === opportunityId);
@@ -211,10 +253,18 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
   const loadFailure = firstQueryFailure([
     [stagesQuery, "Could not load pipeline stages."],
     [opportunitiesQuery, "Could not load opportunities."],
+    [archivedQuery, "Could not load archived leads."],
   ]);
-  const error = moveStage.error
+  const writeError = moveStage.error
     ? presentRequestError(moveStage.error, "Could not move this opportunity.")
-    : (loadFailure?.error ?? null);
+    : archiveLead.error
+      ? presentRequestError(archiveLead.error, "Could not remove this lead.")
+      : restoreLead.error
+        ? presentRequestError(restoreLead.error, "Could not restore this lead.")
+        : deleteLead.error
+          ? presentRequestError(deleteLead.error, "Could not delete this lead.")
+          : null;
+  const error = writeError ?? loadFailure?.error ?? null;
 
   function closeDialog() {
     createLead.reset();
@@ -235,6 +285,17 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {archivable || restorable ? (
+            <Button
+              variant="outline"
+              className="h-10 rounded-[11px] px-4 font-bold"
+              aria-pressed={showArchived}
+              onClick={() => setShowArchived((current) => !current)}
+            >
+              <Archive aria-hidden="true" />
+              {showArchived ? "Back to pipeline" : "Archived leads"}
+            </Button>
+          ) : null}
           {configurable ? (
             <Button
               variant="outline"
@@ -262,6 +323,71 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
 
       {error ? <RequestErrorAlert error={error} onRetry={loadFailure?.retry} /> : null}
 
+      {showArchived ? (
+        <section
+          aria-label="Archived leads"
+          className="rounded-[15px] bg-[var(--surface-subtle)] p-3"
+        >
+          <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {(archivedQuery.data ?? []).map((row) => {
+              const name = row.client ? clientName(row.client) : row.opportunity.name;
+              return (
+                <li
+                  key={row.opportunity.id}
+                  className="rounded-[13px] bg-card p-3.5 shadow-[var(--shadow-card)] ring-1 ring-border"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-muted text-[0.6875rem] font-bold text-muted-foreground"
+                    >
+                      {initials(name)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-strong truncate text-xs font-bold">{name}</p>
+                      <p className="truncate text-[0.6875rem] text-muted-foreground">
+                        {money(row.opportunity.estimatedValue, row.opportunity.currency ?? "ETB")}
+                        {" · removed "}
+                        {relativeTime(row.opportunity.archivedAt ?? row.opportunity.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2 border-t border-border pt-2.5">
+                    {restorable ? (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        disabled={restoreLead.isPending}
+                        onClick={() => restoreLead.mutate(row.opportunity.id)}
+                      >
+                        <ArchiveRestore aria-hidden="true" />
+                        Restore
+                      </Button>
+                    ) : null}
+                    {deletable ? (
+                      <Button
+                        size="xs"
+                        variant="destructive"
+                        disabled={deleteLead.isPending}
+                        onClick={() => setDeleting(row)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        Delete
+                      </Button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {(archivedQuery.data ?? []).length === 0 && !archivedQuery.isPending ? (
+            <p className="px-1 py-8 text-center text-sm text-muted-foreground">
+              No archived leads. Remove a lead from the board and it waits here to be restored or
+              deleted.
+            </p>
+          ) : null}
+        </section>
+      ) : (
       <div className="relative">
         <div className="overflow-x-auto pb-2">
           <div className="flex min-w-max items-start gap-4">
@@ -315,6 +441,8 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
                       row={row}
                       stages={stages}
                       movable={manageable}
+                      archivable={archivable}
+                      onArchive={() => archiveLead.mutate(row.opportunity.id)}
                       dragging={draggingId === row.opportunity.id}
                       onDragStart={() => setDraggingId(row.opportunity.id)}
                       onDragEnd={() => {
@@ -343,6 +471,20 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
           className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
         />
       </div>
+      )}
+
+      {deleting ? (
+        <ConfirmDialog
+          title={`Delete lead ${deleting.client ? clientName(deleting.client) : deleting.opportunity.name}?`}
+          description="The lead and its stage history are removed for good."
+          confirmLabel="Delete lead"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            deleteLead.mutate(deleting.opportunity.id);
+            setDeleting(null);
+          }}
+        />
+      ) : null}
 
       {dialogOpen ? (
         <AddLeadDialog
