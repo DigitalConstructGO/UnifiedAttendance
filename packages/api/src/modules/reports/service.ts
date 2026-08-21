@@ -42,6 +42,7 @@ export type AttendanceSummaryStats = {
   expectedDays: number;
   presentDays: number;
   partialDays: number;
+  onTimeDays: number;
   lateDays: number;
   latePresentDays: number;
   lateMinutes: number;
@@ -62,6 +63,8 @@ function toStats(row: Omit<SummaryAggregateRow, "employee_id">): AttendanceSumma
     expectedDays: row.expected_days,
     presentDays: row.present_days,
     partialDays: row.partial_days,
+    // A late day is always a present or partial day, so the difference is the on-time count.
+    onTimeDays: row.present_days + row.partial_days - row.late_days,
     lateDays: row.late_days,
     latePresentDays: row.late_present_days,
     lateMinutes: row.late_minutes,

@@ -43,10 +43,14 @@ function SummaryCard({ row, days }: { row: AttendanceSummaryRow; days: boolean }
           {row.attendanceRatePercent}%
         </span>
       </div>
-      <dl className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
+      <dl className="mt-3 grid grid-cols-4 gap-x-3 gap-y-2.5 rounded-[11px] bg-[var(--surface-subtle)] px-3 py-2.5 text-[0.6875rem]">
         <div>
           <dt className="text-muted-foreground">Present</dt>
           <dd className="mt-0.5 font-numeric font-bold text-success">{present}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">On time</dt>
+          <dd className="text-strong mt-0.5 font-numeric font-bold">{row.onTimeDays}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{days ? "Late days" : "Late"}</dt>
@@ -107,6 +111,7 @@ export function SummaryTable({
     { label: "Department" },
     { label: days ? "Expected" : "Scheduled", align: "right" },
     { label: "Present", align: "right" },
+    { label: "On time", align: "right" },
     { label: days ? "Late days" : "Late", sort: "lateDays", align: "right" },
     { label: "Late min", sort: "lateMinutes", align: "right" },
     { label: "Absent", sort: "absentDays", align: "right" },
@@ -127,7 +132,7 @@ export function SummaryTable({
           ))}
         </ul>
         <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full min-w-[980px] border-collapse text-left text-xs">
+          <table className="w-full min-w-[1040px] border-collapse text-left text-xs">
             <thead className="bg-[var(--surface-subtle)] text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
               <tr>
                 {columns.map((column) => (
@@ -196,6 +201,9 @@ export function SummaryTable({
                     <td className="px-4 py-3 text-right font-numeric">{row.expectedDays}</td>
                     <td className="px-4 py-3 text-right font-numeric font-bold text-success">
                       {row.presentDays + row.partialDays}
+                    </td>
+                    <td className="px-4 py-3 text-right font-numeric text-muted-foreground">
+                      {row.onTimeDays}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-numeric font-bold ${row.lateDays > 0 ? "text-amber-700 dark:text-warning" : "text-muted-foreground"}`}
