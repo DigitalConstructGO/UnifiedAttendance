@@ -133,6 +133,31 @@ describe("manual attendance entries", () => {
     });
   });
 
+  it("lets a later check-in overturn a manual mark-absent", async () => {
+    const marked = await createManualAttendanceEntry(
+      officer,
+      createManualAttendanceEntryInput.parse({
+        employeeId,
+        attendanceDate: MONDAY,
+        kind: "mark_absent",
+        reason: "Called in sick.",
+      }),
+    );
+    expect(marked.day).toMatchObject({ outcome: "absent", firstIn: null });
+
+    const arrived = await createManualAttendanceEntry(
+      officer,
+      createManualAttendanceEntryInput.parse({
+        employeeId,
+        attendanceDate: MONDAY,
+        kind: "check_in",
+        occurredAt: "2026-02-09T09:05:00+03:00",
+      }),
+    );
+    expect(arrived.day.firstIn).toEqual(new Date("2026-02-09T09:05:00+03:00"));
+    expect(arrived.day.outcome).not.toBe("absent");
+  });
+
   it("still refuses a check-in without a time", () => {
     const parsed = createManualAttendanceEntryInput.safeParse({
       employeeId,

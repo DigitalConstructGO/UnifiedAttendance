@@ -18,6 +18,7 @@ import {
   createCorrection,
   deleteCorrection,
   listCorrections,
+  updateCorrection,
 } from "../../../src/modules/corrections/service";
 import { createEmployee } from "../../../src/modules/workforce/service";
 import { resetDatabase, testContext } from "../../fixtures";
@@ -152,6 +153,120 @@ describe("corrections", () => {
 
     await expect(listCorrections(officer, { employeeId } as never)).resolves.toHaveLength(0);
     await expect(day()).resolves.toHaveLength(0);
+  });
+
+  it("re-derives the day when a correction's proposed time is edited", async () => {
+    const created = await createCorrection(officer, {
+      employeeId,
+      attendanceDate: MONDAY,
+      type: "add_check_in",
+      proposedTime: new Date("2026-02-09T08:05:00.000Z"),
+      reason: "Device was offline at the gate.",
+    } as never);
+
+    await updateCorrection(officer, {
+      id: created!.id,
+      values: { proposedTime: new Date("2026-02-09T08:45:00.000Z") },
+    } as never);
+
+    const [recomputed] = await day();
+    expect(recomputed?.firstIn).toEqual(new Date("2026-02-09T08:45:00.000Z"));
+    expect(recomputed?.hasCorrection).toBe(true);
+  });
+
+  it("moving a correction to another date puts the old day back and derives the new one", async () => {
+    const TUESDAY = "2026-02-10";
+    const created = await createCorrection(officer, {
+      employeeId,
+      attendanceDate: MONDAY,
+      type: "mark_present",
+      reason: "Worked from the client site all day.",
+    } as never);
+    await expect(day()).resolves.toMatchObject([{ outcome: "present" }]);
+
+    await updateCorrection(officer, {
+      id: created!.id,
+      values: { attendanceDate: TUESDAY },
+    } as never);
+
+    // The Monday row is gone — nothing recorded there any more.
+    await expect(day()).resolves.toHaveLength(0);
+    // Tuesday now carries the correction.
+    const [moved] = await db
+      .select()
+      .from(attendanceDays)
+      .where(
+        and(
+          eq(attendanceDays.employeeId, employeeId),
+          eq(attendanceDays.attendanceDate, TUESDAY),
+        ),
+      )
+      .limit(1);
+    expect(moved).toMatchObject({ outcome: "present", hasCorrection: true });
+  });
+
+  it("refuses to dispute an event that is missing or belongs to someone else", async () => {
+    const other = await createEmployee(officer, {
+      person: { firstName: "Mekdes", lastName: "Alemu" },
+      employee: {
+        branchId,
+        employeeCode: "EMP-501",
+        employmentType: "permanent",
+        hireDate: "2026-01-05",
+        status: "active",
+      },
+    } as never);
+    const [device] = await db
+      .insert(attendanceDevices)
+      .values({ branchId, name: "Gate reader", serialNumber: "ZK-1" })
+      .returning();
+    const [theirs] = await db
+      .insert(attendanceEvents)
+      .values({
+        deviceId: device!.id,
+        employeeId: other.employee.id,
+        deviceIdentityNumber: "1002",
+        occurredAt: new Date("2026-02-09T08:00:00.000Z"),
+        direction: "in",
+      })
+      .returning();
+
+    const dispute = (disputedEventId: string) =>
+      createCorrection(officer, {
+        employeeId,
+        attendanceDate: MONDAY,
+        type: "adjust_check_in",
+        disputedEventId,
+        proposedTime: new Date("2026-02-09T08:10:00.000Z"),
+        reason: "The reader stamped the wrong minute.",
+      } as never);
+
+    await expect(dispute(theirs!.id)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(dispute(crypto.randomUUID())).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(listCorrections(officer, { employeeId } as never)).resolves.toHaveLength(0);
+  });
+
+  it("an excused late arrival carries no late minutes", async () => {
+    await createCorrection(officer, {
+      employeeId,
+      attendanceDate: MONDAY,
+      type: "add_check_in",
+      proposedTime: new Date("2026-02-09T09:40:00.000Z"),
+      reason: "Device was offline at the gate.",
+    } as never);
+    const [late] = await day();
+    expect(late?.lateMinutes).toBeGreaterThan(0);
+
+    await createCorrection(officer, {
+      employeeId,
+      attendanceDate: MONDAY,
+      type: "excuse_lateness",
+      reason: "Sent to the bank on the way in.",
+    } as never);
+
+    const [excused] = await day();
+    expect(excused?.lateMinutes).toBe(0);
+    expect(excused?.firstIn).toEqual(new Date("2026-02-09T09:40:00.000Z"));
   });
 
   it("locks HR out of a day more than 24 hours after it closed, while Admin can still touch it", async () => {
