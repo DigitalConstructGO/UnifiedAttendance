@@ -216,7 +216,13 @@ export async function listClients(ctx: Context, input: ListClientsInput) {
   if (input.branchId) filters.push(eq(clients.branchId, input.branchId));
   if (input.industryId) filters.push(eq(clients.industryId, input.industryId));
   if (input.ownerEmployeeId) filters.push(eq(clients.ownerEmployeeId, input.ownerEmployeeId));
-  if (input.status) filters.push(eq(clients.status, input.status));
+  if (input.status) {
+    filters.push(eq(clients.status, input.status));
+  } else if (input.directoryStatus !== "archived") {
+    // Archived clients stay out of the directory unless explicitly asked for,
+    // the same way archived employees only appear in their archive panel.
+    filters.push(eq(clients.status, "active"));
+  }
   if (input.search) {
     const pattern = `%${input.search}%`;
     const search = or(

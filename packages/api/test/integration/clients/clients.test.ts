@@ -236,6 +236,47 @@ describe("clients", () => {
     expect(archived.archivedAt).toBeInstanceOf(Date);
   });
 
+  it("hides an archived client from the directory until the Archived filter asks for it", async () => {
+    const industry = await createIndustry(context, { name: "Banking" });
+    const clientType = await createClientType(context, { name: "Enterprise" });
+    const kept = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Kept Client",
+      industryId: industry.id,
+      clientTypeId: clientType.id,
+    });
+    const shelved = await createClient(context, {
+      branchId,
+      ownerEmployeeId,
+      legalName: "Shelved Client",
+      industryId: industry.id,
+      clientTypeId: clientType.id,
+    });
+    // An in-progress project must not steal the Archived label.
+    const project = await createProject(context, {
+      clientId: shelved.client.id,
+      branchId,
+      name: "Ongoing rollout",
+      managerEmployeeId: ownerEmployeeId,
+      startsOn: "2026-07-01",
+      dueOn: "2026-12-30",
+    });
+    await updateProject(context, { id: project.project.id, status: "in_progress" });
+    await archiveClient(context, { id: shelved.client.id });
+
+    const directory = await listClients(context, {});
+    expect(directory.items.map((row) => row.client.id)).toEqual([kept.client.id]);
+    expect(directory.total).toBe(1);
+
+    const archivedView = await listClients(context, { directoryStatus: "archived" });
+    expect(archivedView.items).toHaveLength(1);
+    expect(archivedView.items[0]).toMatchObject({
+      client: { id: shelved.client.id },
+      directoryStatus: { kind: "archived", label: "Archived" },
+    });
+  });
+
   it("maintains one reachable primary contact for a client", async () => {
     const industry = await createIndustry(context, { name: "Banking" });
     const clientType = await createClientType(context, { name: "Enterprise" });

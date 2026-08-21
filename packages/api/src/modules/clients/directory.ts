@@ -39,6 +39,9 @@ function selectDirectoryStatus(
   metrics: ReturnType<typeof emptyMetrics>,
   recurring: boolean,
 ): DirectoryStatus {
+
+  if (client.status === "archived") return { kind: "archived", label: "Archived" };
+
   if (metrics.projects.some((project) => project.status === "in_progress")) {
     return { kind: "active_project", label: "Active project" };
   }
@@ -58,7 +61,6 @@ function selectDirectoryStatus(
     return { kind: "completed", label: "Completed" };
   }
   if (recurring) return { kind: "recurring", label: "Recurring" };
-  if (client.status === "archived") return { kind: "archived", label: "Archived" };
   return { kind: "active", label: "Active" };
 }
 
