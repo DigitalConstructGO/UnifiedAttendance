@@ -9,9 +9,9 @@ The typed browser client that mirrors this same module split lives in
 `apps/web/src/lib/api/` — prefer it over hand-written `fetch` calls from frontend code.
 
 This doc covers *what* each endpoint accepts and returns. For *why* — the business rules,
-transactions, and edge cases behind each domain module — see [docs/modules/](./modules/),
-linked from each section below and indexed in
-[architecture.md § Domain model](./architecture.md#domain-model).
+transactions, and edge cases behind each domain module — read the service file named at the top
+of each section and its tests under `packages/api/test/`.
+[architecture.md § Domain model](./architecture.md#domain-model) indexes the module folders.
 
 ## Conventions
 
@@ -84,7 +84,7 @@ result is inherently small (catalogs, per-branch schedules, etc.).
 
 ## Access & RBAC
 
-Module: `packages/api/src/modules/access/service.ts` · Validations: `access.ts` · Internals: [modules/access.md](./modules/access.md)
+Module: `packages/api/src/modules/access/service.ts` · Validations: `access.ts`
 
 Everything except `GET /access/me` is gated by `requireSuperAdmin` rather than a granular
 permission code — role and permission management is Super Administrator territory only.
@@ -106,7 +106,7 @@ permission code — role and permission management is Super Administrator territ
 
 ## Organization & branches
 
-Module: `packages/api/src/modules/organization/service.ts` · Validations: `organization.ts` · Internals: [modules/organization.md](./modules/organization.md)
+Module: `packages/api/src/modules/organization/service.ts` · Validations: `organization.ts`
 
 | Method | Path | Permission | Body / query | Description |
 |---|---|---|---|---|
@@ -131,7 +131,7 @@ Module: `packages/api/src/modules/organization/service.ts` · Validations: `orga
 ## Workforce
 
 Departments, positions, employees, employment history, contracts, cosigners, and documents.
-Modules: `packages/api/src/modules/workforce/*` · Validations: `workforce.ts` · Internals: [modules/workforce.md](./modules/workforce.md)
+Modules: `packages/api/src/modules/workforce/*` · Validations: `workforce.ts`
 
 | Method | Path | Permission | Body / query | Description |
 |---|---|---|---|---|
@@ -170,7 +170,7 @@ Modules: `packages/api/src/modules/workforce/*` · Validations: `workforce.ts` �
 
 Attendance hardware registry and badge/identity enrollment (not to be confused with the device
 *protocol* endpoints — see [Device protocol](#device-protocol-iclock) below).
-Module: `packages/api/src/modules/devices/service.ts` · Validations: `devices.ts` · Internals: [modules/devices.md](./modules/devices.md)
+Module: `packages/api/src/modules/devices/service.ts` · Validations: `devices.ts`
 
 | Method | Path | Permission | Body / query | Description |
 |---|---|---|---|---|
@@ -200,7 +200,7 @@ and manual entries combine into a derived attendance day.
 
 ## Corrections
 
-Module: `packages/api/src/modules/corrections/service.ts` · Validations: `corrections.ts` · Internals: [modules/corrections.md](./modules/corrections.md).
+Module: `packages/api/src/modules/corrections/service.ts` · Validations: `corrections.ts`.
 Every create/update/delete here triggers a re-derivation of the affected attendance day.
 
 | Method | Path | Permission | Body / query | Description |
@@ -212,21 +212,25 @@ Every create/update/delete here triggers a re-derivation of the affected attenda
 
 ## Reports & dashboard
 
-Modules: `packages/api/src/modules/reports/service.ts`, `packages/api/src/modules/overview/service.ts` · Internals: [modules/reports.md](./modules/reports.md), [modules/overview.md](./modules/overview.md)
+Modules: `packages/api/src/modules/reports/service.ts`, `packages/api/src/modules/overview/service.ts`
 
 | Method | Path | Permission | Body / query | Description |
 |---|---|---|---|---|
 | GET | `/overview` | `dashboard.read` | `date`, `feed?` (max 20, default 6) | Operations dashboard: headcount, today's attendance, 7-day trend, device health, live event feed, correction/unmatched-punch counts |
-| GET | `/reports/attendance-summary` | `reports.read` | `from`, `to` (≤92-day span), `branchId?`, `departmentId?`, `search?`, `sort?`, `limit`, `offset` | Per-employee attendance summary with totals and day-by-day breakdown |
+| GET | `/reports/attendance-summary` | `reports.read` | `from`, `to` (≤92-day span), `branchId?`, `departmentId?`, `search?`, `sort?` (`name`\|`lateDays`\|`lateMinutes`\|`absentDays`\|`attendanceRate`), `limit` (≤500), `offset` | Per-employee attendance summary with totals and day-by-day breakdown |
 
 ## Notifications
 
 Module: `packages/api/src/modules/notifications/service.ts` · Validations: `notifications.ts`.
 Company-wide, admin/HR-configurable escalation tiers for the late-arrival and absence scans
-(`packages/api/src/modules/notifications/late-arrival-scan.ts`,
-`absence-scan.ts`) that `apps/web/src/instrumentation.ts` schedules via `node-cron`. Each tier
-pairs a weekly-occurrence threshold with a subject/body email template; see the module source
+(`packages/api/src/modules/notifications/late-arrival-scan.ts`, `absence-scan.ts`). Each tier
+pairs a weekly-occurrence threshold with a subject/body email template; see `render-template.ts`
 for the placeholder syntax.
+
+> **The scans are not scheduled and have no HTTP endpoint.** `runLateArrivalScan` and
+> `runAbsenceScan` are exported from the `packages/api` barrel and covered by tests, but nothing
+> in the app invokes them — so tiers configured here never actually send mail today. See
+> [architecture.md](./architecture.md#storage-email-and-observability).
 
 | Method | Path | Permission | Body / query | Description |
 |---|---|---|---|---|
@@ -239,15 +243,17 @@ for the placeholder syntax.
 
 Client directory, contacts, notes, activities, catalogs (industries/client types/pipeline
 stages), opportunities, projects, commercial contracts, invoices, payments, and documents.
-Modules under `packages/api/src/modules/clients/*` · Validations: `clients.ts` · Internals: [modules/clients.md](./modules/clients.md).
+Modules under `packages/api/src/modules/clients/*` · Validations: `clients.ts`.
 
 | Method | Path | Permission | Body / query | Description |
 |---|---|---|---|---|
-| GET | `/clients` | `clients.read` | `search?`, `branchId?`, `industryId?`, `ownerEmployeeId?`, `status?`, `directoryStatus?`, `pipelineStageId?`, `page?`, `pageSize?` | Paginated client directory search |
+| GET | `/clients` | `clients.read` | `search?`, `branchId?`, `industryId?`, `ownerEmployeeId?`, `status?`, `directoryStatus?`, `pipelineStageId?`, `page?` (default 1), `pageSize?` (default 25, ≤100) | Paginated client directory search. **Archived clients are excluded** unless `status` is given explicitly or `directoryStatus=archived` |
 | POST | `/clients` | `clients.create` | `branchId`, `ownerEmployeeId`, `legalName`, `tradingName?`, `industryId`/`industry`, `clientTypeId`/`clientType`, `phone?`, `email?`, `tin?`, `vatNumber?`, `registrationNumber?`, `businessLicenseNumber?`, `relationshipStartedOn?` | Create a client (auto-generates client code, resolves/creates catalog entries, records owner assignment + audit entry) |
 | GET | `/clients/[id]` | `clients.read` | — | Get one client (with owner) |
 | PATCH | `/clients/[id]` | `clients.update` | partial of create + `priority?` | Update a client, optionally reassigning owner |
-| DELETE | `/clients/[id]` | `clients.archive` | — | Archive a client |
+| DELETE | `/clients/[id]` | `clients.archive` | — | Archive a client (sets `status: "archived"` + `archivedAt`; idempotent) |
+| POST | `/clients/[id]/restore` | `clients.restore` | — | Restore an archived client back to `active` |
+| DELETE | `/clients/[id]/permanent` | `clients.delete` | — | Permanently delete a client. `400` if it isn't archived first; `409` if contracts, projects, invoices, or documents still reference it |
 | GET | `/clients/[id]/audit` | `clients.read` | — | Client's audit trail |
 | GET | `/clients/[id]/owner-assignments` | `clients.read` | — | Owner assignment history |
 | GET | `/clients/[id]/profile` | `clients.read` | `asOf?` | Aggregated profile: details + primary contact + current projects + health score |
@@ -280,6 +286,9 @@ Modules under `packages/api/src/modules/clients/*` · Validations: `clients.ts` 
 | PATCH | `/opportunities/[id]` | `opportunities.update` | partial of create | Update opportunity fields |
 | POST | `/opportunities/[id]/stage` | `opportunities.move_stage` | `toPipelineStageId`, `occurredAt?`, `note?` | Move to a different pipeline stage |
 | POST | `/opportunities/[id]/convert` | `opportunities.convert` | `clientId`, `toPipelineStageId?`, `occurredAt?` | Convert an opportunity into a client relationship |
+| POST | `/opportunities/[id]/archive` | `opportunities.archive` | — | Archive a Lead (sets `archivedAt`; idempotent) |
+| POST | `/opportunities/[id]/restore` | `opportunities.restore` | — | Restore an archived Lead |
+| DELETE | `/opportunities/[id]` | `opportunities.delete` | — | Permanently delete a Lead and its stage-transition history. `400` if not archived first; `409` if it has been converted |
 | GET | `/opportunity-stage-transitions` | `clients.read` | `opportunityId` | Stage-change history for an opportunity |
 | GET | `/projects` | `clients.read` | `clientId?`, `branchId?`, `status?`, `includeArchived?` | List projects |
 | POST | `/projects` | `projects.create` | `clientId`, `branchId`, `commercialContractId?`, `name`, `managerEmployeeId`, `status?`, `startsOn?`, `dueOn`, `completedOn?` | Create a project |
@@ -292,12 +301,14 @@ Modules under `packages/api/src/modules/clients/*` · Validations: `clients.ts` 
 | POST | `/commercial-contracts` | `commercial_contracts.create` | `clientId`, `opportunityId?`, `serviceName`, `billingCadence?`, `startsOn`, `endsOn`, `renewalMode?`, `status?`, `signedOn?`, `amount?`, `currency?`, `paymentStructure?` | Create a contract (auto-generates contract code) |
 | GET | `/commercial-contracts/[id]` | `clients.read` | — | Get one contract |
 | PATCH | `/commercial-contracts/[id]` | `commercial_contracts.update` | partial of create | Update a contract |
+| DELETE | `/commercial-contracts/[id]` | `commercial_contracts.delete` | — | Delete a contract. `409` if projects, invoices, or documents reference it — cancel it instead |
 | GET | `/invoices` | `clients.read` | `clientId?`, `branchId?`, `lifecycleStatus?`, `asOf?` | List invoices with payment summaries |
 | POST | `/invoices` | `invoices.create` | `clientId`, `projectId?`, `commercialContractId?`, `branchId`, `currency`, `totalAmount`, `description?`, `note?` | Create a draft invoice (auto-generates invoice number) |
 | GET | `/invoices/[id]` | `clients.read` | — | Get one invoice with payment summary |
 | PATCH | `/invoices/[id]` | `invoices.update` | partial of create | Update a draft invoice (only editable while draft) |
 | POST | `/invoices/[id]/issue` | `invoices.issue` | `issuedOn`, `dueOn` | Issue a draft invoice |
 | POST | `/invoices/[id]/void` | `invoices.void` | — | Void an issued invoice (blocked if it has payments) |
+| DELETE | `/invoices/[id]` | `invoices.delete` | — | Delete an invoice. `409` if it has payments recorded or documents linked to it |
 | POST | `/invoice-payments` | `payments.record` | `invoiceId`, `amount`, `currency`, `paidOn`, `method?`, `reference?`, `recordedByEmployeeId` | Record a payment (cannot exceed outstanding balance) |
 | GET | `/client-documents` | `clients.read` | `clientId`, `kind?` | List documents for a client |
 | POST | `/client-documents` | `client_documents.upload` | `clientId`, at most one of `commercialContractId`/`opportunityId`/`projectId`/`invoiceId`, `kind`, `fileName`, `contentType`, `contentLength`, `accessLevel?`, `uploadedByEmployeeId` | Create document metadata, return a signed upload URL |

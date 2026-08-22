@@ -35,6 +35,7 @@ for the app to boot at all:
 | `BETTER_AUTH_URL` | yes | Must be a valid URL, e.g. `http://localhost:3001` |
 | `CORS_ORIGIN` | yes | Must be a valid URL — better-auth's `trustedOrigins` |
 | `NODE_ENV` | no | `development` \| `production` \| `test`, defaults to `development` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | no | Optional in the schema, but **all five** must be set for email to work — `createMailer()` throws if any is missing. Port 465 turns on implicit TLS |
 
 A few more are read directly (`process.env.X`, not schema-validated) by specific features —
 missing ones won't stop the app from starting, but will break the feature that needs them:
@@ -42,9 +43,8 @@ missing ones won't stop the app from starting, but will break the feature that n
 | Variable | Used for |
 |---|---|
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Document/photo upload and signed URLs (`apps/web/src/lib/storage/`) — required for the workforce-documents and client-documents endpoints to work |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Transactional email (`apps/web/src/lib/email.ts`) |
-| `LOG_LEVEL`, `PINO_PRETTY` | Logging verbosity/formatting |
-| `METRICS_PREFIX`, `METRICS_PATH`, `METRICS_PORT` | `/metrics` endpoint for Grafana/Prometheus |
+| `LOG_LEVEL`, `PINO_PRETTY` | Logging verbosity/formatting (`apps/web/src/lib/logger.ts`) |
+| `METRICS_PREFIX`, `METRICS_PATH`, `METRICS_PORT` | Read by `apps/web/src/lib/metrics.ts` — but nothing imports that module and no `/metrics` route exists, so these have no effect today |
 | `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_LOGO_URL`, `NEXT_PUBLIC_APP_TAGLINE` | Client-visible branding overrides |
 
 A minimal local `apps/web/.env` to get the app running (without document uploads or email):
@@ -83,36 +83,49 @@ pnpm db:migrate
 
 ## 5. Seed RBAC and create your first login
 
-**currently documents `pnpm rbac:seed` and `pnpm rbac:seed-admin <email> <password>
-[name]`, but neither exists as a pnpm script today** — worth fixing (either add the scripts, or
-correct the docs). The actual scripts live in `packages/api/scripts/` and are run with `tsx`:
+First seed RBAC. `packages/api/scripts/seed.ts` is the only script in the repo, and it is wired
+up as a pnpm script:
 
 ```bash
-# Seed the permission catalog, the four fixed roles, and each role's grants
-pnpm --filter @UnifiedAttendance/api exec tsx scripts/seed.ts
-
-# Create (or update) a user and assign them a role — this is also how you create
-# your first Super Administrator login. Role must be one of the ROLES values
-# ("Super Administrator", "Admin", "Manager", "HR") — quote it, it has a space.
-pnpm --filter @UnifiedAttendance/api exec tsx scripts/assign-role.ts \
-  you@example.com "Super Administrator" your-password "Your Name"
+pnpm rbac:seed     # → turbo -F @UnifiedAttendance/api rbac:seed → tsx scripts/seed.ts
 ```
 
-`assign-role.ts` creates the user through better-auth if they don't exist yet (so the password
-hash is one better-auth can actually verify), re-seeds RBAC first, marks the email verified, and
-upserts the role assignment — safe to re-run to reset a password or change a role.
+It states each system role in full: it inserts every code in `PERMISSIONS`, deletes any
+permission row the code no longer lists, upserts the four system roles (**Super
+Administrator**, **Admin**, **Manager**, **HR**), and replaces each role's grants to match
+`ROLE_PERMISSIONS` exactly. Safe — and intended — to re-run after every permission change.
 
-Other scripts in `packages/api/scripts/` worth knowing about, all run the same way
-(`pnpm --filter @UnifiedAttendance/api exec tsx scripts/<name>.ts`):
+**Creating the first login is a manual two-step, and this is a known gap.** There is no sign-up
+screen, no `rbac:seed-admin` script, and no "first user becomes admin" bootstrap;
+`POST /api/v1/access/users` — the endpoint that would create one — is itself gated by
+`requireSuperAdmin`. So create the account through better-auth's own sign-up endpoint
+(email/password is enabled and email verification is not required), then insert the role
+assignment directly:
 
-- `seed-employees.ts` — demo organization/branches/departments/positions/employees with a
-  working week
-- `seed-clients.ts` — demo CRM data (industries, client types, pipeline stages, contracts, ...);
-  needs a user to already exist first
-- `seed-stress.ts` — load-test data generator: `seed-stress.ts [employees] [days]`, supports
-  `--teardown`
-- `sync-role-permissions.ts` — re-syncs `role_permissions` to match the code-defined grants,
-  standalone from a full `seed.ts` run
+```bash
+curl -X POST http://localhost:3001/api/auth/sign-up/email \
+  -H 'content-type: application/json' \
+  -d '{"name":"Your Name","email":"you@example.com","password":"your-password"}'
+```
+
+```sql
+-- psql "$DATABASE_URL"
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM "user" u, roles r
+WHERE u.email = 'you@example.com' AND r.name = 'Super Administrator'
+ON CONFLICT (user_id) DO UPDATE SET role_id = EXCLUDED.role_id;
+```
+
+`user_roles` is keyed on `user_id` alone — one role per user — which is why that upsert also
+works to *change* someone's role. Once you have one Super Administrator, every further user can
+be created from the UI (`/dashboard/access`, backed by `POST /api/v1/access/users`).
+
+> `requirePermission` caches a user's grants for 60 seconds, so a role change made in SQL can
+> take up to a minute to take effect in a running server.
+
+There are no demo/seed-data scripts. `seed-employees.ts`, `seed-clients.ts`, `seed-stress.ts`,
+and `sync-role-permissions.ts` were described by an earlier draft of this guide but do not
+exist.
 
 ## 6. Run the app
 

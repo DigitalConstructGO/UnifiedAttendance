@@ -26,7 +26,7 @@ Two goals shape most of the design decisions below:
                           │              apps/web                  │
                           │           (Next.js, one app)            │
                           │                                          │
-  Browser / dashboard ───▶│  App Router pages   ── zustand/TanStack  │
+  Browser / dashboard ───▶│  App Router pages   ── TanStack Query    │
                           │  /api/v1/*          ── route() wrapper   │
   ZKTeco attendance  ────▶│  /iclock/*          ── ADMS protocol     │
   devices (unauth'd)      │  /api/auth/*        ── better-auth       │
@@ -49,9 +49,8 @@ Two goals shape most of the design decisions below:
 
           packages/auth  ── better-auth, session cookies, Postgres-backed
           Cloudinary     ── document/photo storage, private delivery, signed URLs
-          Resend         ── transactional email
-          prom-client    ── /metrics for Grafana/Prometheus scraping
-          pino           ── structured JSON logging
+          Nodemailer     ── transactional email via the operator's own SMTP server
+          pino           ── structured JSON logging, wired into route()
 ```
 
 `apps/web` is the only app in the monorepo, and it owns everything HTTP: page rendering, the
@@ -139,21 +138,24 @@ Schema files under `packages/db/src/schema/` mirror this split (`employees.ts`,
 `client-contracts.ts`, `client-billing.ts`, ...), all exported through one barrel,
 `packages/db/src/schema/index.ts`.
 
-For the internal business logic behind each `packages/api/src/modules/<domain>/` folder — not
-just what an endpoint does, but the invariants, transactions, and edge cases the code actually
-enforces — see the module-by-module docs in [docs/modules/](./modules/):
+The business logic behind each domain lives in `packages/api/src/modules/<domain>/` — one folder
+per domain, each with a `service.ts` (or a set of files re-exported through one, as `clients/`
+does). There is no per-module prose documentation; the service files and their tests under
+`packages/api/test/` are the reference for invariants, transactions, and edge cases.
 
-| Module | Covers |
+| Module folder | Covers |
 |---|---|
-| [workforce](./modules/workforce.md) | Employees, employment periods, contracts, cosigners, documents |
-| [attendance](./modules/attendance.md) | Events, derived days, the daily register, manual entries, push batches |
-| [corrections](./modules/corrections.md) | Attendance corrections — applied immediately, no approval queue |
-| [devices](./modules/devices.md) | Device registry, badge enrollment, the ADMS protocol, device health |
-| [clients](./modules/clients.md) | The full CRM/sales/billing domain — clients, opportunities, projects, contracts, invoices |
-| [organization](./modules/organization.md) | Org record, branches, working-day schedules, holidays, `/setup` |
-| [access](./modules/access.md) | RBAC administration — roles, permission grants, users, assignments |
-| [overview](./modules/overview.md) | The operations dashboard aggregator |
-| [reports](./modules/reports.md) | The attendance summary report and the "expected days" algorithm |
+| `access/` | RBAC administration — roles, permission grants, users, assignments |
+| `attendance/` | Events, derived days, the daily register, manual entries, push batches |
+| `clients/` | The full CRM/sales/billing domain — clients, opportunities, projects, contracts, invoices |
+| `corrections/` | Attendance corrections — applied immediately, no approval queue |
+| `devices/` | Device registry, badge enrollment, the ADMS protocol, device health |
+| `notifications/` | Escalation tiers and the late-arrival/absence scans |
+| `organization/` | Org record, branches, working-day schedules, holidays, `/setup` |
+| `overview/` | The operations dashboard aggregator |
+| `reports/` | The attendance summary report and the "expected days" algorithm |
+| `shared/` | Guards (`requirePermission`, `requireSuperAdmin`) and the transaction helper |
+| `workforce/` | Employees, employment periods, contracts, cosigners, documents |
 
 ## Attendance derivation pipeline
 
@@ -263,20 +265,24 @@ that only attendance devices can reach, never exposed the way `/api/v1` is.
   same way `db` is, so tests can swap in a fake mailer. Configured via `SMTP_HOST`/`SMTP_PORT`/
   `SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`.
 - **Logging** — pino, `apps/web/src/lib/logger.ts`, JSON in production, pretty-printed in
-  development unless `PINO_PRETTY=false`.
-- **Metrics** — `prom-client`, `apps/web/src/lib/metrics.ts`, served for Grafana/Prometheus to
-  scrape.
-- **Scheduled/background work** — `node-cron`, registered once per server instance from
-  `apps/web/src/instrumentation.ts`'s `register()` hook (guarded against Next re-invoking it,
-  and against non-Node runtimes). Jobs build a session-less `Context` directly and call a
-  service function, bypassing the RBAC/HTTP layer entirely — appropriate only for trusted
-  background code with no user session to check. Currently used for the notifications
-  late-arrival/absence scans, `packages/api/src/modules/notifications/`. `ioredis` is present in
-  `apps/web/package.json` and BullMQ is part of the intended stack (see
-  [CLAUDE.md](../CLAUDE.md)) for heavier background-job needs (retries, persistence, multiple
-  workers), but as of this writing neither is wired into any application code — node-cron was
-  chosen for the notifications feature instead, since its needs (a handful of fixed-interval
-  scans, single web-server instance) didn't warrant standing up a queue.
+  development unless `PINO_PRETTY=false`. `route()` logs unhandled errors through
+  `createChildLogger({ requestId })`, so a 500's `x-request-id` is greppable in the logs.
+- **Metrics — not wired up.** `prom-client` is a dependency and `apps/web/src/lib/metrics.ts`
+  defines a registry and custom metrics, but nothing imports that module and there is no
+  `/metrics` route, so the `METRICS_*` env vars it reads have no effect. Treat it as
+  scaffolding waiting to be connected, not as working observability.
+- **Scheduled/background work — not wired up.** The two scans that would need it,
+  `runLateArrivalScan` and `runAbsenceScan` (`packages/api/src/modules/notifications/`), are
+  written, exported from the barrel, and covered by tests — but nothing calls them on a
+  schedule. There is no `apps/web/src/instrumentation.ts`, no `node-cron` dependency, and no
+  cron configuration; `apps/web/src/app/api/cron/late-arrival-scan/` and `.../absence-scan/`
+  exist as empty directories, placeholders for the HTTP-triggered routes an external scheduler
+  would hit. Until one of those is built, notification tiers can be configured in the UI but no
+  notification is ever sent. `ioredis` is a declared dependency and BullMQ is part of the
+  intended stack (see [CLAUDE.md](../CLAUDE.md)) for heavier background-job needs, but neither
+  appears in any application code. Note the shape the scans already assume: they build a
+  session-less `Context` and call a service function directly, bypassing the RBAC/HTTP layer
+  entirely — appropriate only for trusted background code with no user session to check.
 
 
 
