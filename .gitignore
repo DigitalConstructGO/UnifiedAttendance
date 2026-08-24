@@ -68,3 +68,16 @@ temp
 
 # Local scripts
 
+
+# Generated knowledge graph
+graphify-out/
+
+# Local SQLite database
+apps/web/data/
+*.db
+*.db-wal
+*.db-shm
+.deploy-stage/
+
+# VPS deployment kit (kept out of the repository)
+deploy/
