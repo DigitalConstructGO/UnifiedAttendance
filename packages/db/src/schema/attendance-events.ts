@@ -2,28 +2,31 @@ import { sql } from "drizzle-orm";
 import {
   index,
   jsonb,
-  pgEnum,
-  pgTable,
+  sqliteEnum,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { attendanceDevices } from "./attendance-devices";
 import { employees } from "./employees";
 
 export const ATTENDANCE_EVENT_DIRECTIONS = ["in", "out", "unknown"] as const;
 
-export const attendanceEventDirection = pgEnum(
+export const attendanceEventDirection = sqliteEnum(
   "attendance_event_direction",
   ATTENDANCE_EVENT_DIRECTIONS,
 );
 
-export const attendanceEvents = pgTable(
+export const attendanceEvents = sqliteTable(
   "attendance_events",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     deviceId: uuid("device_id")
       .notNull()
       .references(() => attendanceDevices.id, { onDelete: "restrict" }),
@@ -36,7 +39,7 @@ export const attendanceEvents = pgTable(
       .notNull()
       .default(ATTENDANCE_EVENT_DIRECTIONS[2]),
     rawPayload: jsonb("raw_payload"),
-    ingestedAt: timestamp("ingested_at", { withTimezone: true }).defaultNow().notNull(),
+    ingestedAt: timestamp("ingested_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     uniqueIndex("attendance_events_device_identity_time_idx").on(

@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, count, eq, like } from "drizzle-orm";
 
 import {
   branches,
@@ -177,7 +177,8 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
   });
   const actorUserId = requireSessionUser(ctx);
   const invoiceId = await withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+    // Serialised by the database layer: every transaction holds the process-wide
+    // SQLite write lock, so no advisory lock is needed here.
     // Numbered the way the paper invoices are: DC-INV-2026-13.
     const year = localBusinessDate(organization.timezone).slice(0, 4);
     const [row] = await ctx.db
@@ -186,7 +187,7 @@ export async function createInvoice(ctx: Context, input: CreateInvoiceInput) {
       .where(
         and(
           eq(invoices.organizationId, organization.id),
-          ilike(invoices.invoiceNumber, `${organization.code}-INV-${year}-%`),
+          like(invoices.invoiceNumber, `${organization.code}-INV-${year}-%`),
         ),
       );
     const invoiceNumber = `${organization.code}-INV-${year}-${(row?.value ?? 0) + 1}`;
@@ -333,7 +334,9 @@ export async function deleteInvoice(ctx: Context, input: ClientResourceIdInput) 
     conflict("This Invoice has payments recorded, so it cannot be deleted.");
   }
   if (document) {
-    conflict("This Invoice has documents linked to it, so it cannot be deleted. Remove them first.");
+    conflict(
+      "This Invoice has documents linked to it, so it cannot be deleted. Remove them first.",
+    );
   }
 
   const actorUserId = requireSessionUser(ctx);
@@ -346,7 +349,10 @@ export async function deleteInvoice(ctx: Context, input: ClientResourceIdInput) 
       action: "invoice.deleted",
       entityType: "invoice",
       entityId: current.id,
-      changeSummary: { invoiceNumber: current.invoiceNumber, lifecycleStatus: current.lifecycleStatus },
+      changeSummary: {
+        invoiceNumber: current.invoiceNumber,
+        lifecycleStatus: current.lifecycleStatus,
+      },
     });
   });
   return { id: current.id };

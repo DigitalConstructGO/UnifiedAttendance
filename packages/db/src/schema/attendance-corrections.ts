@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, date, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, date, index, sqliteEnum, sqliteTable, text, timestamp, uuid, now } from "./columns";
 
 import { attendanceEvents } from "./attendance-events";
 import { user } from "./auth";
@@ -14,24 +14,17 @@ export const ATTENDANCE_CORRECTION_TYPES = [
   "excuse_lateness",
 ] as const;
 
-export const attendanceCorrectionType = pgEnum(
+export const attendanceCorrectionType = sqliteEnum(
   "attendance_correction_type",
   ATTENDANCE_CORRECTION_TYPES,
 );
 
-/**
- * A correction is applied the moment it is made, so this table is a log of what
- * was changed rather than a queue of what someone is asking for. Only HR and
- * administrators can reach it, and asking them to approve each other's edits
- * bought nothing but a delay: undoing a wrong correction is a delete, and the
- * day recomputes either way.
- *
- * `applied_by` and `applied_at` are therefore never null — every row happened.
- */
-export const attendanceCorrections = pgTable(
+export const attendanceCorrections = sqliteTable(
   "attendance_corrections",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
@@ -45,7 +38,7 @@ export const attendanceCorrections = pgTable(
     appliedBy: text("applied_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
-    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     index("attendance_corrections_employee_date_idx").on(table.employeeId, table.attendanceDate),

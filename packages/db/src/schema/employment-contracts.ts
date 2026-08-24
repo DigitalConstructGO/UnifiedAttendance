@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, date, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, date, index, integer, sqliteTable, text, timestamp, uuid, now } from "./columns";
 
 import { employees, employmentPeriods } from "./employees";
 import { cosigners, people } from "./people";
@@ -9,11 +9,12 @@ import {
   workforceDocumentKind,
 } from "./workforce-enums";
 
-/** A signed or draft agreement for one employee assignment. */
-export const employmentContracts = pgTable(
+export const employmentContracts = sqliteTable(
   "employment_contracts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     contractNumber: text("contract_number").notNull().unique(),
     employeeId: uuid("employee_id")
       .notNull()
@@ -29,9 +30,9 @@ export const employmentContracts = pgTable(
     status: employmentContractStatus("status").notNull().default(EMPLOYMENT_CONTRACT_STATUSES[0]),
     signedOn: date("signed_on"),
     notes: text("notes"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -51,10 +52,12 @@ export const employmentContracts = pgTable(
 );
 
 /** Private object-storage metadata. The object key is never exposed as a public URL. */
-export const workforceDocuments = pgTable(
+export const workforceDocuments = sqliteTable(
   "workforce_documents",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
     cosignerId: uuid("cosigner_id").references(() => cosigners.id, { onDelete: "cascade" }),
     employmentContractId: uuid("employment_contract_id").references(() => employmentContracts.id, {
@@ -65,7 +68,7 @@ export const workforceDocuments = pgTable(
     contentType: text("content_type").notNull(),
     contentLength: integer("content_length").notNull(),
     finalizedAt: timestamp("finalized_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     index("workforce_documents_person_idx").on(table.personId),
@@ -73,9 +76,9 @@ export const workforceDocuments = pgTable(
     index("workforce_documents_contract_idx").on(table.employmentContractId),
     check(
       "workforce_documents_one_owner",
-      sql`(${table.personId} is not null)::integer
-        + (${table.cosignerId} is not null)::integer
-        + (${table.employmentContractId} is not null)::integer = 1`,
+      sql`(${table.personId} is not null)
+        + (${table.cosignerId} is not null)
+        + (${table.employmentContractId} is not null) = 1`,
     ),
   ],
 );

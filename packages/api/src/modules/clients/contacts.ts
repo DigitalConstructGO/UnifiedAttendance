@@ -1,4 +1,4 @@
-import { and, asc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 
 import { clientAuditEntries, clientContacts } from "@UnifiedAttendance/db/schema/index";
 
@@ -54,7 +54,6 @@ export async function createClientContact(ctx: Context, input: CreateClientConta
   }
   const actorUserId = requireSessionUser(ctx);
   return withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${client.id}))`);
     if (input.isPrimary) {
       await ctx.db
         .update(clientContacts)
@@ -103,7 +102,6 @@ export async function updateClientContact(ctx: Context, input: UpdateClientConta
   }
   const actorUserId = requireSessionUser(ctx);
   return withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${client.id}))`);
     if (input.isPrimary) {
       await ctx.db
         .update(clientContacts)

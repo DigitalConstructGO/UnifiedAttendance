@@ -5,13 +5,14 @@ import {
   foreignKey,
   index,
   numeric,
-  pgEnum,
-  pgTable,
+  sqliteEnum,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { branches, organizations } from "./organization";
 import { employees } from "./employees";
@@ -20,15 +21,17 @@ import { commercialContracts } from "./client-contracts";
 import { projects } from "./client-projects";
 
 export const INVOICE_LIFECYCLE_STATUSES = ["draft", "issued", "void"] as const;
-export const invoiceLifecycleStatus = pgEnum(
+export const invoiceLifecycleStatus = sqliteEnum(
   "invoice_lifecycle_status",
   INVOICE_LIFECYCLE_STATUSES,
 );
 
-export const invoices = pgTable(
+export const invoices = sqliteTable(
   "invoices",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -46,9 +49,9 @@ export const invoices = pgTable(
     description: text("description"),
     note: text("note"),
     lifecycleStatus: invoiceLifecycleStatus("lifecycle_status").notNull().default("draft"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -93,10 +96,12 @@ export const invoices = pgTable(
   ],
 );
 
-export const invoicePayments = pgTable(
+export const invoicePayments = sqliteTable(
   "invoice_payments",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -109,7 +114,7 @@ export const invoicePayments = pgTable(
     recordedByEmployeeId: uuid("recorded_by_employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
   },
   (table) => [
     index("invoice_payments_invoice_date_idx").on(table.invoiceId, table.paidOn),

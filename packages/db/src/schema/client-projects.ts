@@ -4,12 +4,13 @@ import {
   date,
   foreignKey,
   index,
-  pgTable,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { branches, organizations } from "./organization";
 import { employees } from "./employees";
@@ -17,10 +18,12 @@ import { clients } from "./clients";
 import { commercialContracts } from "./client-contracts";
 import { PROJECT_STATUSES, projectStatus } from "./client-enums";
 
-export const projects = pgTable(
+export const projects = sqliteTable(
   "projects",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -41,9 +44,9 @@ export const projects = pgTable(
     startsOn: date("starts_on"),
     dueOn: date("due_on").notNull(),
     completedOn: date("completed_on"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
     archivedAt: timestamp("archived_at"),

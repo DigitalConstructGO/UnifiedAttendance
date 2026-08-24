@@ -26,7 +26,6 @@ import type { Context } from "../../context";
 
 const CONDITION = "absent" as const;
 
-
 const ABSENCE_CONFIRMATION_BUFFER_MS = 15 * 60_000;
 
 type QualifyingBranch = {
@@ -56,7 +55,6 @@ export type AbsenceScanSummary = {
   skippedNoTier: number;
   failed: number;
 };
-
 
 export async function runAbsenceScan(ctx: Context): Promise<AbsenceScanSummary> {
   const qualifyingBranches = await loadQualifyingBranches(ctx);
@@ -90,7 +88,6 @@ export async function runAbsenceScan(ctx: Context): Promise<AbsenceScanSummary> 
 
   return summary;
 }
-
 
 async function loadQualifyingBranches(ctx: Context): Promise<QualifyingBranch[]> {
   const branchToday = await loadBranchToday(ctx);
@@ -143,7 +140,6 @@ async function loadQualifyingBranches(ctx: Context): Promise<QualifyingBranch[]>
 
   return qualifying;
 }
-
 
 async function findAbsenceCandidates(
   ctx: Context,
@@ -254,7 +250,6 @@ function loadAbsentTiers(ctx: Context) {
 
 type AbsentTier = Awaited<ReturnType<typeof loadAbsentTiers>>[number];
 
-
 async function countWeeklyAbsenceOccurrences(
   ctx: Context,
   candidate: AbsenceCandidate,
@@ -264,7 +259,7 @@ async function countWeeklyAbsenceOccurrences(
   const { start, end } = weekWindowFor(candidate.attendanceDate, weekStartWeekday);
 
   const [row] = await ctx.db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`count(*)` })
     .from(notificationLog)
     .where(
       and(
@@ -294,7 +289,6 @@ async function processCandidate(
   const tier = resolveNotificationTier(tiers, occurrenceCount);
 
   if (!tier) {
-
     return false;
   }
 
@@ -323,7 +317,6 @@ async function processCandidate(
       );
     }
   }
-
 
   await ctx.db.insert(notificationLog).values({
     employeeId: candidate.employeeId,

@@ -3,12 +3,13 @@ import {
   check,
   index,
   numeric,
-  pgTable,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { user } from "./auth";
 import { branches, organizations } from "./organization";
@@ -16,10 +17,12 @@ import { employees } from "./employees";
 import { clients, industries, pipelineStages } from "./clients";
 import { OPPORTUNITY_PRIORITIES, opportunityPriority } from "./client-enums";
 
-export const opportunities = pgTable(
+export const opportunities = sqliteTable(
   "opportunities",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -40,9 +43,9 @@ export const opportunities = pgTable(
     priority: opportunityPriority("priority").notNull().default(OPPORTUNITY_PRIORITIES[1]),
     lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
     convertedAt: timestamp("converted_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
@@ -71,10 +74,12 @@ export const opportunities = pgTable(
   ],
 );
 
-export const opportunityStageTransitions = pgTable(
+export const opportunityStageTransitions = sqliteTable(
   "opportunity_stage_transitions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -92,7 +97,7 @@ export const opportunityStageTransitions = pgTable(
       .references(() => user.id, { onDelete: "restrict" }),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     note: text("note"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     index("opportunity_stage_transitions_opportunity_date_idx").on(

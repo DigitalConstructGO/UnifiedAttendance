@@ -42,7 +42,6 @@ export type LateArrivalScanSummary = {
   failed: number;
 };
 
-
 export async function runLateArrivalScan(ctx: Context): Promise<LateArrivalScanSummary> {
   const branchToday = await loadBranchToday(ctx);
   const [candidates, tiers, hrEmails] = await Promise.all([
@@ -75,7 +74,6 @@ export async function runLateArrivalScan(ctx: Context): Promise<LateArrivalScanS
 
   return summary;
 }
-
 
 async function findLateArrivalCandidates(
   ctx: Context,
@@ -154,7 +152,6 @@ async function loadHrEmails(ctx: Context): Promise<string[]> {
   return rows.map((row) => row.email).filter((email): email is string => Boolean(email));
 }
 
-
 async function countWeeklyLateOccurrences(
   ctx: Context,
   candidate: LateArrivalCandidate,
@@ -168,7 +165,7 @@ async function countWeeklyLateOccurrences(
   const { start, end } = weekWindowFor(candidate.attendanceDate, weekStartWeekday);
 
   const [row] = await ctx.db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`count(*)` })
     .from(attendanceDays)
     .where(
       and(
@@ -192,7 +189,6 @@ async function processCandidate(
   const tier = resolveNotificationTier(tiers, occurrenceCount);
 
   if (!tier) {
-
     return false;
   }
 
@@ -222,7 +218,6 @@ async function processCandidate(
       );
     }
   }
-
 
   await ctx.db.insert(notificationLog).values({
     employeeId: candidate.employeeId,

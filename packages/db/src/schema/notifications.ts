@@ -2,19 +2,20 @@ import {
   check,
   date,
   integer,
-  pgEnum,
-  pgTable,
+  sqliteEnum,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 import { sql } from "drizzle-orm";
 
 import { employees } from "./employees";
 
 export const NOTIFICATION_CONDITIONS = ["late", "absent"] as const;
-export const notificationCondition = pgEnum("notification_condition", NOTIFICATION_CONDITIONS);
+export const notificationCondition = sqliteEnum("notification_condition", NOTIFICATION_CONDITIONS);
 
 /**
  * Company-wide escalation tiers for the late-arrival and absence email
@@ -33,18 +34,20 @@ export const notificationCondition = pgEnum("notification_condition", NOTIFICATI
  *   {{date}}            — the date of the occurrence
  *   {{branchName}}      — the employee's branch
  */
-export const notificationTiers = pgTable(
+export const notificationTiers = sqliteTable(
   "notification_tiers",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     condition: notificationCondition("condition").notNull(),
     /** Minimum weekly occurrence count at which this tier applies. */
     threshold: integer("threshold").notNull(),
     subjectTemplate: text("subject_template").notNull(),
     bodyTemplate: text("body_template").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -64,10 +67,12 @@ export const notificationTiers = pgTable(
  * Deliberately condition-agnostic (not "late_notification_log") — the
  * absence scan (a separate ticket) reuses this same table.
  */
-export const notificationLog = pgTable(
+export const notificationLog = sqliteTable(
   "notification_log",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "cascade" }),
@@ -77,7 +82,7 @@ export const notificationLog = pgTable(
     occurrenceCount: integer("occurrence_count").notNull(),
     /** The tier whose template was used. Kept nullable so deleting a tier later doesn't erase history. */
     tierId: uuid("tier_id").references(() => notificationTiers.id, { onDelete: "set null" }),
-    sentAt: timestamp("sent_at").defaultNow().notNull(),
+    sentAt: timestamp("sent_at").default(now).notNull(),
   },
   (table) => [
     uniqueIndex("notification_log_employee_date_condition_idx").on(

@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, isNull, ne, sql } from "drizzle-orm";
 
-import { db } from "@UnifiedAttendance/db";
+import { db, rawGet } from "@UnifiedAttendance/db";
 import {
   attendanceDevices,
   branchWorkingDays,
@@ -51,7 +51,13 @@ export async function getOrganizationLetterhead(ctx: Context) {
 }
 
 export async function getSetupStatus(ctx: Pick<Context, "db"> = { db }) {
-  const result = await ctx.db.execute(sql`
+  const row = (await rawGet<{
+    organization_exists: number;
+    branch_exists: number;
+    schedule_complete: number;
+  }>(
+    ctx.db,
+    sql`
     select
       exists (select 1 from ${organizations}) as organization_exists,
       exists (select 1 from ${branches}) as branch_exists,
@@ -61,13 +67,8 @@ export async function getSetupStatus(ctx: Pick<Context, "db"> = { db }) {
         where ${branchWorkingDays.branchId} =
           (select ${branches.id} from ${branches} order by ${branches.createdAt} limit 1)
       ) as schedule_complete
-  `);
-
-  const row = result.rows[0] as {
-    organization_exists: boolean;
-    branch_exists: boolean;
-    schedule_complete: boolean;
-  };
+  `,
+  ))!;
   const organizationExists = Boolean(row.organization_exists);
   const branchExists = Boolean(row.branch_exists);
   const scheduleComplete = Boolean(row.schedule_complete);
@@ -91,7 +92,6 @@ export async function createOrganization(ctx: Context, input: CreateOrganization
 export async function bootstrapOrganization(ctx: Context, input: BootstrapOrganizationInput) {
   await requireAdministrator(ctx);
   return withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(847291)`);
     const [existing] = await ctx.db.select({ id: organizations.id }).from(organizations).limit(1);
     if (existing) conflict("An organization already exists");
     const [organization] = await ctx.db

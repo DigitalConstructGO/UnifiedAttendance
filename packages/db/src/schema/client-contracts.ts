@@ -4,12 +4,13 @@ import {
   date,
   index,
   numeric,
-  pgTable,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { organizations } from "./organization";
 import { clients } from "./clients";
@@ -22,10 +23,12 @@ import {
   contractRenewalMode,
 } from "./client-enums";
 
-export const commercialContracts = pgTable(
+export const commercialContracts = sqliteTable(
   "commercial_contracts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -46,9 +49,9 @@ export const commercialContracts = pgTable(
     amount: numeric("amount", { precision: 14, scale: 2 }),
     currency: text("currency"),
     paymentStructure: contractPaymentStructure("payment_structure").notNull().default("full"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },

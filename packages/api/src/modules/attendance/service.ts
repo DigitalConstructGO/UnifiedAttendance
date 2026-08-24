@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { rawAll } from "@UnifiedAttendance/db";
 
 import {
   attendanceDays,
@@ -102,7 +103,7 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     branchId: input.branchId,
     departmentId: input.departmentId,
   });
-  const [periods, { rows: statusRows }] = await Promise.all([
+  const [periods, statusRows] = await Promise.all([
     ctx.db
       .select({ period: employmentPeriods, employee: employees, person: people })
       .from(employmentPeriods)
@@ -119,10 +120,12 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
         ),
       )
       .orderBy(asc(people.firstName), asc(people.lastName)),
-    ctx.db.execute<{
+    rawAll<{
       employee_id: string;
       status: RegisterStatus;
-    }>(sql`
+    }>(
+      ctx.db,
+      sql`
     ${cte}
     select ep.employee_id,
            case
@@ -149,7 +152,8 @@ export async function listDailyRegister(ctx: Context, input: ListDailyRegisterIn
     left join attendance_days ad
       on ad.employee_id = ep.employee_id
      and ad.attendance_date = ${input.date}
-  `),
+  `,
+    ),
   ]);
   const statusOf = new Map(statusRows.map((row) => [row.employee_id, row.status]));
 

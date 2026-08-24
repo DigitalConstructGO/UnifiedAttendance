@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import {
   clientAuditEntries,
@@ -210,7 +210,6 @@ export async function createClientDocumentVersion(
   await validateUploader(ctx, input.uploadedByEmployeeId);
   const actorUserId = requireSessionUser(ctx);
   const documentId = await withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${input.logicalDocumentId}))`);
     const [current] = await ctx.db
       .select()
       .from(clientDocuments)

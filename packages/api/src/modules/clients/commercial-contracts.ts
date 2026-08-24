@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, count, eq, like } from "drizzle-orm";
 
 import {
   clientAuditEntries,
@@ -127,7 +127,6 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
   });
   const actorUserId = requireSessionUser(ctx);
   const contractId = await withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
     const year = input.startsOn.slice(0, 4);
     const [row] = await ctx.db
       .select({ value: count() })
@@ -135,7 +134,7 @@ export async function createCommercialContract(ctx: Context, input: CreateCommer
       .where(
         and(
           eq(commercialContracts.organizationId, organization.id),
-          ilike(commercialContracts.contractCode, `CTR-${year}-%`),
+          like(commercialContracts.contractCode, `CTR-${year}-%`),
         ),
       );
     const contractCode = `CTR-${year}-${String((row?.value ?? 0) + 1).padStart(6, "0")}`;

@@ -1,4 +1,5 @@
 import { and, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
+import { rawAll } from "@UnifiedAttendance/db";
 
 import {
   branches,
@@ -120,51 +121,57 @@ export async function getAttendanceSummary(ctx: Context, input: AttendanceSummar
   if (branchToday.size === 0) return empty;
 
   const cte = expectedDaysCte({ ...input, branchToday });
-  const [{ rows: aggregates }, { rows: dayRows }, labelRows] = await Promise.all([
-    ctx.db.execute<SummaryAggregateRow>(sql`
+  const [aggregates, dayRows, labelRows] = await Promise.all([
+    rawAll<SummaryAggregateRow>(
+      ctx.db,
+      sql`
       ${cte}
       select e.employee_id,
-             count(*)::int as expected_days,
-             count(*) filter (where ad.outcome = 'present')::int as present_days,
-             count(*) filter (where ad.outcome = 'partial')::int as partial_days,
-             count(*) filter (where coalesce(ad.late_minutes, 0) > 0)::int as late_days,
+             count(*) as expected_days,
+             count(*) filter (where ad.outcome = 'present') as present_days,
+             count(*) filter (where ad.outcome = 'partial') as partial_days,
+             count(*) filter (where coalesce(ad.late_minutes, 0) > 0) as late_days,
              count(*) filter (where ad.outcome = 'present'
-                          and coalesce(ad.late_minutes, 0) > 0)::int as late_present_days,
-             coalesce(sum(ad.late_minutes), 0)::int as late_minutes,
+                          and coalesce(ad.late_minutes, 0) > 0) as late_present_days,
+             coalesce(sum(ad.late_minutes), 0) as late_minutes,
              count(*) filter (where ad.outcome = 'absent'
-                           or (ad.id is null and e.is_before_today))::int as absent_days,
+                           or (ad.id is null and e.is_before_today)) as absent_days,
              count(*) filter (where ad.outcome = 'unknown'
-                           or (ad.id is null and not e.is_before_today))::int as unrecorded_days,
-             coalesce(sum(ad.worked_minutes), 0)::int as worked_minutes,
-             count(*) filter (where ad.outcome in ('partial', 'unknown'))::int as missing_punch_days,
-             count(*) filter (where ad.has_correction)::int as corrected_days
+                           or (ad.id is null and not e.is_before_today)) as unrecorded_days,
+             coalesce(sum(ad.worked_minutes), 0) as worked_minutes,
+             count(*) filter (where ad.outcome in ('partial', 'unknown')) as missing_punch_days,
+             count(*) filter (where ad.has_correction) as corrected_days
       from expected e
       left join attendance_days ad
         on ad.employee_id = e.employee_id
        and ad.attendance_date = e.day
       group by e.employee_id
-    `),
-    ctx.db.execute<ByDayRow>(sql`
+    `,
+    ),
+    rawAll<ByDayRow>(
+      ctx.db,
+      sql`
       ${cte}
-      select e.day::text as date,
+      select e.day as date,
              count(*) filter (where ad.outcome = 'present'
-                          and coalesce(ad.late_minutes, 0) = 0)::int as on_time,
-             count(*) filter (where coalesce(ad.late_minutes, 0) > 0)::int as late,
+                          and coalesce(ad.late_minutes, 0) = 0) as on_time,
+             count(*) filter (where coalesce(ad.late_minutes, 0) > 0) as late,
              count(*) filter (where ad.outcome = 'partial'
-                          and coalesce(ad.late_minutes, 0) = 0)::int as partial,
+                          and coalesce(ad.late_minutes, 0) = 0) as partial,
              count(*) filter (where (ad.outcome = 'absent'
                            or (ad.id is null and e.is_before_today))
-                          and coalesce(ad.late_minutes, 0) = 0)::int as absent,
+                          and coalesce(ad.late_minutes, 0) = 0) as absent,
              count(*) filter (where (ad.outcome = 'unknown'
                            or (ad.id is null and not e.is_before_today))
-                          and coalesce(ad.late_minutes, 0) = 0)::int as unrecorded
+                          and coalesce(ad.late_minutes, 0) = 0) as unrecorded
       from expected e
       left join attendance_days ad
         on ad.employee_id = e.employee_id
        and ad.attendance_date = e.day
       group by e.day
       order by e.day
-    `),
+    `,
+    ),
     ctx.db
       .select({
         period: employmentPeriods,

@@ -4,12 +4,13 @@ import {
   foreignKey,
   index,
   integer,
-  pgTable,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { organizations } from "./organization";
 import { employees } from "./employees";
@@ -24,10 +25,12 @@ import {
   clientDocumentKind,
 } from "./client-enums";
 
-export const clientDocuments = pgTable(
+export const clientDocuments = sqliteTable(
   "client_documents",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -36,7 +39,9 @@ export const clientDocuments = pgTable(
     opportunityId: uuid("opportunity_id"),
     projectId: uuid("project_id"),
     invoiceId: uuid("invoice_id"),
-    logicalDocumentId: uuid("logical_document_id").notNull().defaultRandom(),
+    logicalDocumentId: uuid("logical_document_id")
+      .notNull()
+      .$defaultFn(() => crypto.randomUUID()),
     kind: clientDocumentKind("kind").notNull(),
     version: integer("version").notNull().default(1),
     fileName: text("file_name").notNull(),
@@ -49,7 +54,7 @@ export const clientDocuments = pgTable(
     uploadedByEmployeeId: uuid("uploaded_by_employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
-    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).defaultNow().notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     uniqueIndex("client_documents_storage_key_idx").on(table.storageKey),
@@ -92,10 +97,10 @@ export const clientDocuments = pgTable(
     check("client_documents_length_nonnegative", sql`${table.contentLength} >= 0`),
     check(
       "client_documents_one_context",
-      sql`(${table.commercialContractId} is not null)::integer
-        + (${table.opportunityId} is not null)::integer
-        + (${table.projectId} is not null)::integer
-        + (${table.invoiceId} is not null)::integer <= 1`,
+      sql`(${table.commercialContractId} is not null)
+        + (${table.opportunityId} is not null)
+        + (${table.projectId} is not null)
+        + (${table.invoiceId} is not null) <= 1`,
     ),
   ],
 );

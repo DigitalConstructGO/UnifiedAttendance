@@ -5,13 +5,14 @@ import {
   date,
   index,
   integer,
-  pgEnum,
-  pgTable,
+  sqliteEnum,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { user } from "./auth";
 import { employees } from "./employees";
@@ -25,19 +26,21 @@ export const MANUAL_ATTENDANCE_ENTRY_KINDS = [
   "mark_absent",
 ] as const;
 
-export const attendanceDayType = pgEnum("attendance_day_type", ATTENDANCE_DAY_TYPES);
+export const attendanceDayType = sqliteEnum("attendance_day_type", ATTENDANCE_DAY_TYPES);
 
-export const attendanceOutcome = pgEnum("attendance_outcome", ATTENDANCE_OUTCOMES);
+export const attendanceOutcome = sqliteEnum("attendance_outcome", ATTENDANCE_OUTCOMES);
 
-export const manualAttendanceEntryKind = pgEnum(
+export const manualAttendanceEntryKind = sqliteEnum(
   "manual_attendance_entry_kind",
   MANUAL_ATTENDANCE_ENTRY_KINDS,
 );
 
-export const attendanceDays = pgTable(
+export const attendanceDays = sqliteTable(
   "attendance_days",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "cascade" }),
@@ -53,7 +56,7 @@ export const attendanceDays = pgTable(
     missingCheckOut: boolean("missing_check_out").notNull().default(false),
     hasCorrection: boolean("has_correction").notNull().default(false),
     calculatedAt: timestamp("calculated_at", { withTimezone: true })
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -73,11 +76,12 @@ export const attendanceDays = pgTable(
   ],
 );
 
-/** Manual entries are an auditable overlay, never a mutation of biometric data. */
-export const manualAttendanceEntries = pgTable(
+export const manualAttendanceEntries = sqliteTable(
   "manual_attendance_entries",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
@@ -88,7 +92,7 @@ export const manualAttendanceEntries = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     index("manual_attendance_entries_employee_date_idx").on(table.employeeId, table.attendanceDate),

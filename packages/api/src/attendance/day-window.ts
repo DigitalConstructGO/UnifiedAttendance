@@ -1,11 +1,9 @@
-import { sql } from "drizzle-orm";
-
 import type { Context } from "../context";
+import { addDays, zonedTimeToUtc } from "../modules/shared/zoned-time";
 
 export function minutesAfter(actual: Date, expected: Date) {
   return Math.max(0, Math.floor((actual.getTime() - expected.getTime()) / 60_000));
 }
-
 
 export function attendanceOutcome(
   firstIn: Date | null,
@@ -27,7 +25,7 @@ export type DayWindow = {
 };
 
 export async function branchDayWindow(
-  ctx: Context,
+  _ctx: Context,
   options: {
     attendanceDate: string;
     timezone: string;
@@ -37,33 +35,10 @@ export async function branchDayWindow(
 ): Promise<DayWindow> {
   const { attendanceDate, timezone, openingTime, closingTime } = options;
 
-  const { rows } = await ctx.db.execute<{
-    day_start: number;
-    day_end: number;
-    expected_start: number | null;
-    expected_end: number | null;
-  }>(sql`
-    select
-      extract(epoch from ((${attendanceDate}::date)::timestamp at time zone ${timezone}))::float8
-        as day_start,
-      extract(epoch from ((${attendanceDate}::date + 1)::timestamp at time zone ${timezone}))::float8
-        as day_end,
-      case when ${openingTime}::time is null then null
-           else extract(epoch from ((${attendanceDate}::date + ${openingTime}::time) at time zone ${timezone}))::float8
-      end as expected_start,
-      case when ${closingTime}::time is null then null
-           else extract(epoch from ((${attendanceDate}::date + ${closingTime}::time) at time zone ${timezone}))::float8
-      end as expected_end
-  `);
-
-  const row = rows[0];
-  if (!row) throw new Error(`Could not resolve ${attendanceDate} in ${timezone}`);
-
-  const instant = (seconds: number | null) => (seconds === null ? null : new Date(seconds * 1000));
   return {
-    dayStart: new Date(row.day_start * 1000),
-    dayEnd: new Date(row.day_end * 1000),
-    expectedStart: instant(row.expected_start),
-    expectedEnd: instant(row.expected_end),
+    dayStart: zonedTimeToUtc(attendanceDate, "00:00:00", timezone),
+    dayEnd: zonedTimeToUtc(addDays(attendanceDate, 1), "00:00:00", timezone),
+    expectedStart: openingTime ? zonedTimeToUtc(attendanceDate, openingTime, timezone) : null,
+    expectedEnd: closingTime ? zonedTimeToUtc(attendanceDate, closingTime, timezone) : null,
   };
 }

@@ -5,12 +5,13 @@ import {
   date,
   index,
   integer,
-  pgTable,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { user } from "./auth";
 import { branches, organizations } from "./organization";
@@ -23,18 +24,20 @@ import {
   pipelineStageOutcome,
 } from "./client-enums";
 
-export const industries = pgTable(
+export const industries = sqliteTable(
   "industries",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     status: activeStatus("status").notNull().default("active"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -44,18 +47,20 @@ export const industries = pgTable(
   ],
 );
 
-export const clientTypes = pgTable(
+export const clientTypes = sqliteTable(
   "client_types",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     status: activeStatus("status").notNull().default("active"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -65,18 +70,20 @@ export const clientTypes = pgTable(
   ],
 );
 
-export const companySizes = pgTable(
+export const companySizes = sqliteTable(
   "company_sizes",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     status: activeStatus("status").notNull().default("active"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -86,10 +93,12 @@ export const companySizes = pgTable(
   ],
 );
 
-export const pipelineStages = pgTable(
+export const pipelineStages = sqliteTable(
   "pipeline_stages",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -97,9 +106,9 @@ export const pipelineStages = pgTable(
     position: integer("position").notNull(),
     outcome: pipelineStageOutcome("outcome").notNull().default("open"),
     status: activeStatus("status").notNull().default("active"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -114,10 +123,12 @@ export const pipelineStages = pgTable(
   ],
 );
 
-export const clients = pgTable(
+export const clients = sqliteTable(
   "clients",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "restrict" }),
@@ -145,9 +156,9 @@ export const clients = pgTable(
     relationshipStartedOn: date("relationship_started_on").notNull(),
     priority: clientPriority("priority"),
     status: clientStatus("status").notNull().default(CLIENT_STATUSES[0]),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
     archivedAt: timestamp("archived_at"),
@@ -170,10 +181,12 @@ export const clients = pgTable(
   ],
 );
 
-export const clientContacts = pgTable(
+export const clientContacts = sqliteTable(
   "client_contacts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -187,9 +200,9 @@ export const clientContacts = pgTable(
     email: text("email"),
     isPrimary: boolean("is_primary").notNull().default(false),
     status: activeStatus("status").notNull().default("active"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -205,10 +218,12 @@ export const clientContacts = pgTable(
   ],
 );
 
-export const clientOwnerAssignments = pgTable(
+export const clientOwnerAssignments = sqliteTable(
   "client_owner_assignments",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -223,7 +238,7 @@ export const clientOwnerAssignments = pgTable(
       .references(() => user.id, { onDelete: "restrict" }),
     effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull(),
     effectiveTo: timestamp("effective_to", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     index("client_owner_assignments_client_dates_idx").on(

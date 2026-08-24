@@ -57,9 +57,9 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
       .select({
         outcome: attendanceDays.outcome,
         dayType: attendanceDays.dayType,
-        late: sql<number>`count(*) filter (where ${attendanceDays.lateMinutes} > 0)::int`,
-        missingPunch: sql<number>`count(*) filter (where ${attendanceDays.outcome} in ('partial', 'unknown'))::int`,
-        corrected: sql<number>`count(*) filter (where ${attendanceDays.hasCorrection})::int`,
+        late: sql<number>`count(*) filter (where ${attendanceDays.lateMinutes} > 0)`,
+        missingPunch: sql<number>`count(*) filter (where ${attendanceDays.outcome} in ('partial', 'unknown'))`,
+        corrected: sql<number>`count(*) filter (where ${attendanceDays.hasCorrection})`,
         value: count(),
       })
       .from(attendanceDays)
@@ -69,9 +69,9 @@ export async function getOperationsOverview(ctx: Context, input: OperationsOverv
     ctx.db
       .select({
         date: attendanceDays.attendanceDate,
-        present: sql<number>`count(*) filter (where ${attendanceDays.outcome} = 'present' and coalesce(${attendanceDays.lateMinutes}, 0) = 0)::int`,
-        late: sql<number>`count(*) filter (where ${attendanceDays.lateMinutes} > 0)::int`,
-        absent: sql<number>`count(*) filter (where ${attendanceDays.outcome} = 'absent' and ${attendanceDays.dayType} = 'working_day')::int`,
+        present: sql<number>`count(*) filter (where ${attendanceDays.outcome} = 'present' and coalesce(${attendanceDays.lateMinutes}, 0) = 0)`,
+        late: sql<number>`count(*) filter (where ${attendanceDays.lateMinutes} > 0)`,
+        absent: sql<number>`count(*) filter (where ${attendanceDays.outcome} = 'absent' and ${attendanceDays.dayType} = 'working_day')`,
       })
       .from(attendanceDays)
       .where(

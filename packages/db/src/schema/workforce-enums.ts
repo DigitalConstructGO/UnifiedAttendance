@@ -1,4 +1,4 @@
-import { pgEnum } from "drizzle-orm/pg-core";
+import { sqliteEnum } from "./columns";
 
 export const GENDERS = ["male", "female"] as const;
 export const EMPLOYMENT_TYPES = ["permanent", "contract", "part_time", "intern"] as const;
@@ -14,17 +14,20 @@ export const WORKFORCE_DOCUMENT_KINDS = [
   "employment_contract",
 ] as const;
 
-export const gender = pgEnum("gender", GENDERS);
+export const gender = sqliteEnum("gender", GENDERS);
 
-export const employmentType = pgEnum("employment_type", EMPLOYMENT_TYPES);
+export const employmentType = sqliteEnum("employment_type", EMPLOYMENT_TYPES);
 
-export const employeeStatus = pgEnum("employee_status", EMPLOYEE_STATUSES);
+export const employeeStatus = sqliteEnum("employee_status", EMPLOYEE_STATUSES);
 
-export const activeStatus = pgEnum("active_status", ACTIVE_STATUSES);
+export const activeStatus = sqliteEnum("active_status", ACTIVE_STATUSES);
 
-export const employmentContractStatus = pgEnum(
+export const employmentContractStatus = sqliteEnum(
   "employment_contract_status",
   EMPLOYMENT_CONTRACT_STATUSES,
 );
 
-export const workforceDocumentKind = pgEnum("workforce_document_kind", WORKFORCE_DOCUMENT_KINDS);
+export const workforceDocumentKind = sqliteEnum(
+  "workforce_document_kind",
+  WORKFORCE_DOCUMENT_KINDS,
+);

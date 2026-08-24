@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, like, isNull, ne, or, sql } from "drizzle-orm";
 
 import {
   branches,
@@ -134,7 +134,8 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
     input.relationshipStartedOn ?? localBusinessDate(organization.timezone);
 
   return withTransaction(ctx, async (ctx) => {
-    await ctx.db.execute(sql`select pg_advisory_xact_lock(hashtext(${organization.id}))`);
+    // Serialised by the database layer: every transaction holds the process-wide
+    // SQLite write lock, so no advisory lock is needed here.
 
     if (input.tin) {
       const [duplicate] = await ctx.db
@@ -150,10 +151,7 @@ export async function createClient(ctx: Context, input: CreateClientInput) {
       .select({ value: count() })
       .from(clients)
       .where(
-        and(
-          eq(clients.organizationId, organization.id),
-          ilike(clients.clientCode, `CLI-${year}-%`),
-        ),
+        and(eq(clients.organizationId, organization.id), like(clients.clientCode, `CLI-${year}-%`)),
       );
     const clientCode = `CLI-${year}-${String((row?.value ?? 0) + 1).padStart(6, "0")}`;
     const [client] = await ctx.db
@@ -226,10 +224,10 @@ export async function listClients(ctx: Context, input: ListClientsInput) {
   if (input.search) {
     const pattern = `%${input.search}%`;
     const search = or(
-      ilike(clients.legalName, pattern),
-      ilike(clients.tradingName, pattern),
-      ilike(clients.clientCode, pattern),
-      ilike(clients.email, pattern),
+      like(clients.legalName, pattern),
+      like(clients.tradingName, pattern),
+      like(clients.clientCode, pattern),
+      like(clients.email, pattern),
     );
     if (search) filters.push(search);
   }

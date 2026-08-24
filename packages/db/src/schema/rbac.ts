@@ -2,26 +2,29 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
-  pgTable,
+  sqliteTable,
   primaryKey,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { user } from "./auth";
 
-export const roles = pgTable(
+export const roles = sqliteTable(
   "roles",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     name: text("name").notNull(),
     code: text("code"),
     description: text("description"),
     isSystem: boolean("is_system").notNull().default(false),
     archivedAt: timestamp("archived_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
   },
 
   (table) => [
@@ -34,13 +37,15 @@ export const roles = pgTable(
   ],
 );
 
-export const permissions = pgTable("permissions", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const permissions = sqliteTable("permissions", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   code: text("code").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").default(now).notNull(),
 });
 
-export const rolePermissions = pgTable(
+export const rolePermissions = sqliteTable(
   "role_permissions",
   {
     roleId: uuid("role_id")
@@ -53,7 +58,7 @@ export const rolePermissions = pgTable(
   (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
 );
 
-export const userRoles = pgTable(
+export const userRoles = sqliteTable(
   "user_roles",
   {
     userId: text("user_id")
@@ -63,7 +68,7 @@ export const userRoles = pgTable(
     roleId: uuid("role_id")
       .notNull()
       .references(() => roles.id, { onDelete: "cascade" }),
-    assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+    assignedAt: timestamp("assigned_at").default(now).notNull(),
     assignedBy: text("assigned_by").references(() => user.id, { onDelete: "set null" }),
   },
   (table) => [index("user_roles_role_idx").on(table.roleId)],

@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import {
   attendanceDevices,
@@ -12,6 +12,7 @@ import { deriveAttendanceDay } from "../../attendance/derive-day";
 import { type AttendanceRecord, deviceOptionsResponse, parseAttlog } from "./adms-protocol";
 
 import type { Context } from "../../context";
+import { zoneOffsetMinutes, zonedTimeToUtc } from "../shared/zoned-time";
 
 /**
  * The device side of the system. None of it is authenticated, because the
@@ -22,7 +23,6 @@ import type { Context } from "../../context";
  * What that buys us is the only thing that matters — a punch reaches the
  * database seconds after the finger leaves the sensor.
  */
-
 type KnownDevice = {
   id: string;
   branchId: string;
@@ -70,35 +70,19 @@ export async function deviceHandshake(ctx: Context, input: { serialNumber: strin
   });
 }
 
-async function zoneOffsetHours(ctx: Context, timezone: string) {
-  const { rows } = await ctx.db.execute<{ offset_hours: number }>(
-    sql`select extract(epoch from (now() at time zone ${timezone}) - now())::float8 / 3600 as offset_hours`,
-  );
-  return Math.round(rows[0]?.offset_hours ?? 0);
+async function zoneOffsetHours(_ctx: Context, timezone: string) {
+  return Math.round(zoneOffsetMinutes(timezone) / 60);
 }
 
-/**
- * Turns each reader-local stamp into the instant it names in the branch's own
- * zone. Postgres does the conversion because it owns the tz database, which is
- * the only way an 08:05 punch on the morning a clock shifts lands correctly.
- */
-async function toInstants(ctx: Context, localTimes: string[], timezone: string) {
-  if (localTimes.length === 0) return [];
-  // Each stamp is bound as its own parameter. Handing drizzle a JS array here
-  // flattens it into separate placeholders and the query silently reads only
-  // the first one, so the list is built explicitly.
-  const stamps = sql.join(
-    localTimes.map((localTime) => sql`${localTime}`),
-    sql`, `,
-  );
-  const { rows } = await ctx.db.execute<{ ordinality: number; instant: number }>(sql`
-    select t.ordinality::int as ordinality,
-           extract(epoch from (t.local::timestamp at time zone ${timezone}))::float8 as instant
-      from unnest(array[${stamps}]::text[]) with ordinality as t(local, ordinality)
-  `);
-  const instants: Date[] = [];
-  for (const row of rows) instants[row.ordinality - 1] = new Date(row.instant * 1000);
-  return instants;
+const LOCAL_STAMP = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)/;
+
+/** Turns each reader-local timestamp into the instant it names in the branch's zone. */
+async function toInstants(_ctx: Context, localTimes: string[], timezone: string) {
+  return localTimes.map((localTime) => {
+    const match = LOCAL_STAMP.exec(localTime.trim());
+    if (!match) throw new Error(`Unparseable device timestamp: ${localTime}`);
+    return zonedTimeToUtc(match[1]!, match[2]!, timezone);
+  });
 }
 
 async function resolveEmployees(
@@ -243,10 +227,9 @@ export async function receivePush(
 
 /**
  * How many days are derived at once. Each derivation is several round trips, so
- * doing them strictly in sequence made a batch cost (employees × latency) —
- * on a remote database a reader catching up after an outage took minutes.
+ * doing them strictly in sequence made a batch cost (employees × latency).
  * Different (employee, day) pairs never touch the same row, so overlapping them
- * is safe; the cap is there to leave connections for everyone else.
+ * is safe; the cap is there to leave capacity for everyone else.
  */
 const DERIVE_CONCURRENCY = 8;
 

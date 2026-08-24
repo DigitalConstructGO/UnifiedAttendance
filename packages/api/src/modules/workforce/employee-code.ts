@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 
 import {
   branches,
@@ -58,23 +58,29 @@ export async function nextEmployeeCode(
     .filter(Boolean)
     .join("-");
 
+  const candidates = await ctx.db
+    .select({ code: employees.employeeCode })
+    .from(employees)
+    .where(like(employees.employeeCode, `${prefix}-%`));
   // Anchored on both sides, so DCG-HQ never counts DCG-HQ-SOF numbers.
-  const { rows } = await ctx.db.execute<{ next: number }>(sql`
-    select coalesce(max(substring(${employees.employeeCode} from '[0-9]+$')::int), 0) + 1 as next
-    from ${employees}
-    where ${employees.employeeCode} ~ ${`^${prefix}-[0-9]+$`}
-  `);
-  const next = rows[0]?.next ?? 1;
-  return `${prefix}-${String(next).padStart(4, "0")}`;
+  const anchored = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-([0-9]+)$`);
+  let highest = 0;
+  for (const { code } of candidates) {
+    const match = anchored.exec(code);
+    if (match) highest = Math.max(highest, Number(match[1]));
+  }
+  return `${prefix}-${String(highest + 1).padStart(4, "0")}`;
 }
 
 /** True when an insert lost the race for a code that was free moments ago. */
 export function isDuplicateEmployeeCode(error: unknown) {
   for (let cause = error; cause; cause = (cause as { cause?: unknown }).cause) {
-    const candidate = cause as { code?: string; constraint?: string };
+    const candidate = cause as { code?: string; constraint?: string; message?: string };
     if (
-      candidate.code === "23505" &&
-      String(candidate.constraint ?? "").includes("employee_code")
+      (candidate.code === "23505" &&
+        String(candidate.constraint ?? "").includes("employee_code")) ||
+      (String(candidate.code ?? "").startsWith("SQLITE_CONSTRAINT") &&
+        String(candidate.message ?? "").includes("employee_code"))
     ) {
       return true;
     }

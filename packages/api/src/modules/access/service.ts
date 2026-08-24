@@ -54,8 +54,8 @@ export async function listRoles(ctx: Context) {
       description: roles.description,
       isSystem: roles.isSystem,
       createdAt: roles.createdAt,
-      permissionCount: sql<number>`count(distinct ${rolePermissions.permissionId})::int`,
-      userCount: sql<number>`count(distinct ${userRoles.userId})::int`,
+      permissionCount: sql<number>`count(distinct ${rolePermissions.permissionId})`,
+      userCount: sql<number>`count(distinct ${userRoles.userId})`,
     })
     .from(roles)
     .leftJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))

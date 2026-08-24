@@ -4,12 +4,13 @@ import {
   check,
   date,
   index,
-  pgTable,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { branches } from "./organization";
 import { departments, people, positions } from "./people";
@@ -20,10 +21,12 @@ import {
   employmentType,
 } from "./workforce-enums";
 
-export const employees = pgTable(
+export const employees = sqliteTable(
   "employees",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     personId: uuid("person_id")
       .notNull()
       .unique()
@@ -45,7 +48,7 @@ export const employees = pgTable(
     status: employeeStatus("status").notNull().default(EMPLOYEE_STATUSES[0]),
     /** Set = in the archive; delete-for-good is only offered from there. */
     archivedAt: timestamp("archived_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
   },
   (table) => [
     index("employees_branch_idx").on(table.branchId),
@@ -53,11 +56,12 @@ export const employees = pgTable(
   ],
 );
 
-
-export const employmentPeriods = pgTable(
+export const employmentPeriods = sqliteTable(
   "employment_periods",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "cascade" }),
@@ -72,7 +76,7 @@ export const employmentPeriods = pgTable(
     status: employeeStatus("status").notNull().default(EMPLOYEE_STATUSES[0]),
     effectiveFrom: date("effective_from").notNull(),
     effectiveTo: date("effective_to"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
   },
   (table) => [
     index("employment_periods_employee_dates_idx").on(

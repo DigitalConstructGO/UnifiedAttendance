@@ -5,24 +5,27 @@ import {
   date,
   index,
   integer,
-  pgEnum,
-  pgTable,
+  sqliteEnum,
+  sqliteTable,
   text,
   time,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 export const DEFAULT_TIME_ZONE = "Africa/Addis_Ababa";
 export const ORGANIZATION_STATUSES = ["active", "suspended"] as const;
 export const BRANCH_STATUSES = ["active", "closed"] as const;
 
-export const organizationStatus = pgEnum("organization_status", ORGANIZATION_STATUSES);
-export const branchStatus = pgEnum("branch_status", BRANCH_STATUSES);
+export const organizationStatus = sqliteEnum("organization_status", ORGANIZATION_STATUSES);
+export const branchStatus = sqliteEnum("branch_status", BRANCH_STATUSES);
 
-export const organizations = pgTable("organizations", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const organizations = sqliteTable("organizations", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   timezone: text("timezone").notNull().default(DEFAULT_TIME_ZONE),
@@ -31,15 +34,17 @@ export const organizations = pgTable("organizations", {
   tin: text("tin"),
   address: text("address"),
   status: organizationStatus("status").notNull().default(ORGANIZATION_STATUSES[0]),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").default(now).notNull(),
   updatedAt: timestamp("updated_at")
-    .defaultNow()
+    .default(now)
     .$onUpdate(() => new Date())
     .notNull(),
 });
 
-export const branches = pgTable("branches", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const branches = sqliteTable("branches", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   address: text("address"),
@@ -48,13 +53,15 @@ export const branches = pgTable("branches", {
   /** Minutes after the scheduled start still counted as on time, not late. */
   graceMinutes: integer("grace_minutes").notNull().default(0),
   archivedAt: timestamp("archived_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").default(now).notNull(),
 });
 
-export const branchWorkingDays = pgTable(
+export const branchWorkingDays = sqliteTable(
   "branch_working_days",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     branchId: uuid("branch_id")
       .notNull()
       .references(() => branches.id, { onDelete: "cascade" }),
@@ -72,10 +79,12 @@ export const branchWorkingDays = pgTable(
   ],
 );
 
-export const holidays = pgTable(
+export const holidays = sqliteTable(
   "holidays",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     /** Null means the holiday applies to every branch. */
     branchId: uuid("branch_id").references(() => branches.id, { onDelete: "cascade" }),
     name: text("name").notNull(),

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, index, jsonb, sqliteTable, text, timestamp, uuid, now } from "./columns";
 
 import { user } from "./auth";
 import { organizations } from "./organization";
@@ -7,10 +7,12 @@ import { employees } from "./employees";
 import { clients, clientContacts } from "./clients";
 import { AUDIT_ACTOR_TYPES, auditActorType } from "./client-enums";
 
-export const clientNotes = pgTable(
+export const clientNotes = sqliteTable(
   "client_notes",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -22,9 +24,9 @@ export const clientNotes = pgTable(
       .references(() => employees.id, { onDelete: "restrict" }),
     body: text("body").notNull(),
     isPinned: boolean("is_pinned").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").default(now).notNull(),
     updatedAt: timestamp("updated_at")
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
     archivedAt: timestamp("archived_at"),
@@ -36,10 +38,12 @@ export const clientNotes = pgTable(
   ],
 );
 
-export const crmActivities = pgTable(
+export const crmActivities = sqliteTable(
   "crm_activities",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -54,9 +58,9 @@ export const crmActivities = pgTable(
       .references(() => employees.id, { onDelete: "restrict" }),
     note: text("note").notNull(),
     contactDate: timestamp("contact_date", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
-      .defaultNow()
+      .default(now)
       .$onUpdate(() => new Date())
       .notNull(),
   },
@@ -67,10 +71,12 @@ export const crmActivities = pgTable(
   ],
 );
 
-export const clientAuditEntries = pgTable(
+export const clientAuditEntries = sqliteTable(
   "client_audit_entries",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -83,7 +89,7 @@ export const clientAuditEntries = pgTable(
     entityType: text("entity_type").notNull(),
     entityId: text("entity_id").notNull(),
     changeSummary: jsonb("change_summary"),
-    occurredAt: timestamp("occurred_at", { withTimezone: true }).defaultNow().notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     index("client_audit_entries_client_date_idx").on(table.clientId, table.occurredAt),

@@ -34,7 +34,7 @@ export async function loadBranchToday(ctx: Context) {
 
 export function expectedDaysCte(params: ExpectedDaysParams): SQL {
   const branchToday = sql.join(
-    [...params.branchToday].map(([id, today]) => sql`(${id}::uuid, ${today}::date)`),
+    [...params.branchToday].map(([id, today]) => sql`(${id}, ${today})`),
     sql`, `,
   );
   const periodFilters: SQL[] = [];
@@ -46,19 +46,19 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
     with branch_today (branch_id, today) as (
       values ${branchToday}
     ),
-    days as (
-      select d::date as day
-      from generate_series(${params.from}::date, ${params.to}::date, interval '1 day') d
+    days (day) as (
+      select ${params.from}
+      union all
+      select date(day, '+1 day') from days where day < ${params.to}
     ),
     expected as (
-      select distinct on (ep.employee_id, d.day)
-             ep.employee_id,
+
+      select ep.employee_id,
              ep.branch_id,
              ep.department_id,
              d.day,
              (d.day < bt.today) as is_before_today
       from employment_periods ep
-      -- No fixed schedule means no expected days: silence is never absence.
       join employees emp
         on emp.id = ep.employee_id
        and emp.has_fixed_schedule
@@ -68,12 +68,12 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
        and (ep.effective_to is null or d.day <= ep.effective_to)
       join branches b
         on b.id = ep.branch_id
-       and d.day >= b.created_at::date
+       and d.day >= date(b.created_at / 1000, 'unixepoch')
       join branch_today bt
         on bt.branch_id = ep.branch_id
       join branch_working_days w
         on w.branch_id = ep.branch_id
-       and w.weekday = extract(isodow from d.day)::int - 1
+       and w.weekday = (cast(strftime('%w', d.day) as integer) + 6) % 7
        and w.is_working_day
       where ep.status = 'active'
         and d.day <= bt.today
@@ -83,11 +83,11 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
             and (h.branch_id = ep.branch_id or h.branch_id is null)
         )
         ${sql.join(periodFilters, sql` `)}
+      group by ep.employee_id, d.day
       union all
       -- People without a fixed schedule owe no days, so only the days they
       -- actually came count: never absent, never unrecorded.
-      select distinct on (ep.employee_id, ad.attendance_date)
-             ep.employee_id,
+      select ep.employee_id,
              ep.branch_id,
              ep.department_id,
              ad.attendance_date as day,
@@ -99,8 +99,8 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
        and emp.archived_at is null
       join attendance_days ad
         on ad.employee_id = ep.employee_id
-       and ad.attendance_date >= ${params.from}::date
-       and ad.attendance_date <= ${params.to}::date
+       and ad.attendance_date >= ${params.from}
+       and ad.attendance_date <= ${params.to}
        and ad.attendance_date >= ep.effective_from
        and (ep.effective_to is null or ad.attendance_date <= ep.effective_to)
       join branch_today bt
@@ -108,6 +108,7 @@ export function expectedDaysCte(params: ExpectedDaysParams): SQL {
       where ep.status = 'active'
         and ad.attendance_date <= bt.today
         ${sql.join(periodFilters, sql` `)}
+      group by ep.employee_id, ad.attendance_date
     )
   `;
 }

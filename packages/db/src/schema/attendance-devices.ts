@@ -4,29 +4,32 @@ import {
   date,
   index,
   integer,
-  pgEnum,
-  pgTable,
+  sqliteEnum,
+  sqliteTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-} from "drizzle-orm/pg-core";
+  now,
+} from "./columns";
 
 import { employees } from "./employees";
 import { branches } from "./organization";
 
 export const ATTENDANCE_DEVICE_STATUSES = ["active", "inactive"] as const;
 
-export const attendanceDeviceStatus = pgEnum(
+export const attendanceDeviceStatus = sqliteEnum(
   "attendance_device_status",
   ATTENDANCE_DEVICE_STATUSES,
 );
 
 // A ZKTeco biometric installed at a branch
-export const attendanceDevices = pgTable(
+export const attendanceDevices = sqliteTable(
   "attendance_devices",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     branchId: uuid("branch_id")
       .notNull()
       .references(() => branches.id, { onDelete: "restrict" }),
@@ -39,22 +42,24 @@ export const attendanceDevices = pgTable(
     firmwareVersion: text("firmware_version"),
     status: attendanceDeviceStatus("status").notNull().default(ATTENDANCE_DEVICE_STATUSES[0]),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [index("attendance_devices_branch_idx").on(table.branchId)],
 );
 
-export const employeeDeviceIdentities = pgTable(
+export const employeeDeviceIdentities = sqliteTable(
   "employee_device_identities",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "cascade" }),
     deviceIdentityNumber: text("device_identity_number").notNull(),
     validFrom: date("valid_from").notNull(),
     validTo: date("valid_to"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(now).notNull(),
   },
   (table) => [
     uniqueIndex("employee_device_identities_active_number_idx")
@@ -68,16 +73,18 @@ export const employeeDeviceIdentities = pgTable(
   ],
 );
 
-export const attendancePushBatches = pgTable(
+export const attendancePushBatches = sqliteTable(
   "attendance_push_batches",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     deviceSerialNumber: text("device_serial_number").notNull(),
     deviceId: uuid("device_id").references(() => attendanceDevices.id, { onDelete: "set null" }),
     /** The ADMS path the device posted to. */
     endpoint: text("endpoint").notNull(),
     rawBody: text("raw_body").notNull(),
-    receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).default(now).notNull(),
     processedAt: timestamp("processed_at", { withTimezone: true }),
     /** Number of events extracted, once parsed. */
     eventCount: integer("event_count"),
