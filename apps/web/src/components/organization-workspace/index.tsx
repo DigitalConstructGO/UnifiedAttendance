@@ -66,6 +66,10 @@ export function OrganizationWorkspace() {
           onTinChange={workspace.setTin}
           onAddressChange={workspace.setAddress}
           onSave={workspace.saveOrganization}
+          logoUrl={workspace.logoUrl}
+          logoProgress={workspace.logoProgress}
+          onLogoUpload={workspace.uploadLogo}
+          onLogoRemove={workspace.removeLogo}
         />
       ) : null}
       {workspace.tab === "branches" ? (

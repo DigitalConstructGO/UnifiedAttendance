@@ -76,6 +76,23 @@ export const updateOrganizationInput = z.object({
   address: nullableText,
 });
 
+export const ORGANIZATION_LOGO_CONTENT_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+] as const;
+export const ORGANIZATION_LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+/** Asks for permission (and signed upload parameters) to replace the organization's logo. */
+export const organizationLogoUploadInput = z.object({
+  id,
+  contentType: z.enum(ORGANIZATION_LOGO_CONTENT_TYPES),
+  contentLength: z.number().int().positive().max(ORGANIZATION_LOGO_MAX_BYTES, {
+    message: "Logo must be 2 MB or smaller",
+  }),
+});
+
 export const branchIdInput = z.object({ branchId: id });
 
 export const listBranchesInput = z.object({ archived: z.stringbool().optional() });
@@ -134,6 +151,7 @@ export const holidayIdInput = z.object({ id });
 export type CreateOrganizationInput = z.output<typeof createOrganizationInput>;
 export type BootstrapOrganizationInput = z.output<typeof bootstrapOrganizationInput>;
 export type UpdateOrganizationInput = z.output<typeof updateOrganizationInput>;
+export type OrganizationLogoUploadInput = z.output<typeof organizationLogoUploadInput>;
 export type BranchIdInput = z.output<typeof branchIdInput>;
 export type ListBranchesInput = z.output<typeof listBranchesInput>;
 export type CreateBranchInput = z.output<typeof createBranchInput>;

@@ -173,7 +173,7 @@ export async function uploadToStorage(
   uploadFields: Record<string, string>,
   file: File,
   onProgress?: (fraction: number) => void,
-): Promise<void> {
+): Promise<{ secureUrl: string | null }> {
   const form = new FormData();
   for (const [name, value] of Object.entries(uploadFields)) form.append(name, value);
   form.append("file", file);
@@ -187,4 +187,6 @@ export async function uploadToStorage(
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`The storage service rejected ${file.name}.`);
   }
+  const secureUrl = (response.data as { secure_url?: unknown } | null)?.secure_url;
+  return { secureUrl: typeof secureUrl === "string" ? secureUrl : null };
 }

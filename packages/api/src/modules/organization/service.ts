@@ -26,6 +26,7 @@ import type {
   ReplaceWorkingDaysInput,
   UpdateBranchInput,
   UpdateHolidayInput,
+  OrganizationLogoUploadInput,
   UpdateOrganizationInput,
   WorkingDaysInput,
 } from "../../validations/organization";
@@ -131,6 +132,38 @@ export async function updateOrganization(ctx: Context, input: UpdateOrganization
     .where(eq(organizations.id, organizationId))
     .returning();
   return organization ?? null;
+}
+
+/**
+ * Where the organization's logo lives in object storage. One fixed key per
+ * organization: re-uploading replaces the previous logo in place, and the
+ * stored `logoUrl` (which carries the asset version) is what changes.
+ */
+export function organizationLogoStorageKey(organizationId: string) {
+  return `organization/${organizationId}/logo`;
+}
+
+/**
+ * Checks that the caller may replace the logo and that the organization
+ * exists, and hands back the storage key the upload must target. The HTTP
+ * layer turns that into signed upload parameters; the public URL Cloudinary
+ * returns is then saved with `updateOrganization({ logoUrl })`.
+ */
+export async function authorizeOrganizationLogoUpload(
+  ctx: Context,
+  input: OrganizationLogoUploadInput,
+) {
+  await requirePermission(ctx, "organization.update");
+  const [organization] = await ctx.db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.id, input.id))
+    .limit(1);
+  if (!organization) notFound("Organization not found");
+  return {
+    storageKey: organizationLogoStorageKey(organization.id),
+    contentType: input.contentType,
+  };
 }
 
 export async function listBranches(ctx: Context, input: ListBranchesInput = {}) {

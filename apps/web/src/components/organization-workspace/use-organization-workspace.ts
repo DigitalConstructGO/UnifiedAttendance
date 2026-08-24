@@ -2,10 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Dispatch, SetStateAction } from "react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type React from "react";
 
 import { organizationApi, organizationKeys, organizationQueries } from "@/lib/api";
+import { uploadToStorage } from "@/lib/api/client";
 import type { WorkingDay } from "@/lib/api/organization";
 import { presentRequestError } from "@/lib/errors";
 import { firstQueryFailure } from "@/lib/query-errors";
@@ -13,7 +15,9 @@ import { emptyBranchDraft, type BranchDraft, type WorkspaceTab } from "./workspa
 
 export function useOrganizationWorkspace() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [tab, setTab] = useState<WorkspaceTab>("overview");
+  const [logoProgress, setLogoProgress] = useState<number | null>(null);
   const [chosenBranch, setChosenBranch] = useState("");
   const [orgDraft, setOrgDraft] = useState<{
     name: string;
@@ -72,6 +76,47 @@ export function useOrganizationWorkspace() {
       setNotice("Organization details saved.");
       await queryClient.invalidateQueries({ queryKey: organizationKeys.organization });
     },
+  });
+
+  /**
+   * The logo is shown by server-rendered chrome (sidebar, login page, tab
+   * title) as well as by this page's query, so a change must refresh both.
+   */
+  async function logoChanged(message: string) {
+    setNotice(message);
+    await queryClient.invalidateQueries({ queryKey: organizationKeys.organization });
+    await queryClient.invalidateQueries({ queryKey: organizationKeys.letterhead });
+    router.refresh();
+  }
+
+  const uploadLogo = useMutation({
+    mutationFn: async (file: File) => {
+      if (!organization) throw new Error("No organization to update");
+      setLogoProgress(0);
+      const prepared = await organizationApi.logoUploadParams({
+        id: organization.id,
+        contentType: file.type as "image/png",
+        contentLength: file.size,
+      });
+      const { secureUrl } = await uploadToStorage(
+        prepared.uploadUrl,
+        prepared.uploadFields,
+        file,
+        setLogoProgress,
+      );
+      if (!secureUrl) throw new Error("The storage service did not return the logo's address.");
+      return organizationApi.update({ id: organization.id, logoUrl: secureUrl });
+    },
+    onSuccess: () => logoChanged("Logo updated."),
+    onSettled: () => setLogoProgress(null),
+  });
+
+  const removeLogo = useMutation({
+    mutationFn: async () => {
+      if (!organization) throw new Error("No organization to update");
+      return organizationApi.update({ id: organization.id, logoUrl: null });
+    },
+    onSuccess: () => logoChanged("Logo removed."),
   });
 
   const saveDays = useMutation({
@@ -146,6 +191,8 @@ export function useOrganizationWorkspace() {
 
   const writes = [
     [saveOrganization, "Could not save changes."],
+    [uploadLogo, "Could not upload the logo."],
+    [removeLogo, "Could not remove the logo."],
     [saveDays, "Could not save schedule."],
     [saveBranch, "Could not save branch."],
     [archiveBranch, "Could not archive the branch."],
@@ -201,6 +248,16 @@ export function useOrganizationWorkspace() {
     setTimezone: (value: string) => patchOrganization({ timezone: value }),
     setTin: (value: string) => patchOrganization({ tin: value }),
     setAddress: (value: string) => patchOrganization({ address: value }),
+    logoUrl: organization?.logoUrl ?? null,
+    logoProgress,
+    uploadLogo: (file: File) => {
+      clearFeedback();
+      uploadLogo.mutate(file);
+    },
+    removeLogo: () => {
+      clearFeedback();
+      removeLogo.mutate();
+    },
     setBranchDraft,
     saveOrganization: () => {
       if (!organization) return;
