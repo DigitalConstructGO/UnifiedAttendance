@@ -13,6 +13,8 @@ export const env = createEnv({
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASS: z.string().min(1).optional(),
     SMTP_FROM: z.string().min(1).optional(),
+    // Bearer token for the /api/cron endpoints; unset disables them entirely.
+    CRON_SECRET: z.string().min(32).optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
