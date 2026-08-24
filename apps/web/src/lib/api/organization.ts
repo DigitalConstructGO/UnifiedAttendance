@@ -36,6 +36,11 @@ export const organizationApi = {
     apiFetch<Organization>("/organization", { method: "POST", body: input }),
   update: ({ id, ...values }: z.input<typeof validations.updateOrganizationInput>) =>
     apiFetch<Organization>(`/organization/${id}`, { method: "PATCH", body: values }),
+  logoUploadParams: ({ id, ...values }: z.input<typeof validations.organizationLogoUploadInput>) =>
+    apiFetch<{ uploadUrl: string; uploadFields: Record<string, string> }>(
+      `/organization/${id}/logo`,
+      { method: "POST", body: values },
+    ),
 
   branches: (archived?: boolean, signal?: AbortSignal) =>
     apiFetch<Branch[]>("/branches", { query: { archived }, signal }),
