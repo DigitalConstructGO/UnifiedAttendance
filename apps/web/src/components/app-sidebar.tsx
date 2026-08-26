@@ -2,7 +2,6 @@
 
 import {
   BellRing,
-  BookOpen,
   Building,
   Building2,
   CalendarCheck2,
@@ -98,7 +97,7 @@ export function AppSidebar({ brand }: { brand: Brand }) {
       .map((part) => part[0])
       .join("")
       .slice(0, 2)
-      .toUpperCase() || "DC";
+      .toUpperCase() || "UA";
 
   return (
     <Sidebar collapsible="icon" className="bg-sidebar-gradient border-sidebar-border">
@@ -139,19 +138,6 @@ export function AppSidebar({ brand }: { brand: Brand }) {
                   <Link href="/dashboard" prefetch={false}>
                     <Gauge aria-hidden="true" />
                     <span>Overview</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip="Guide"
-                  isActive={pathname.startsWith("/dashboard/guide")}
-                  className={menuButtonClass}
-                >
-                  <Link href="/dashboard/guide" prefetch={false}>
-                    <BookOpen aria-hidden="true" />
-                    <span>Guide</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
