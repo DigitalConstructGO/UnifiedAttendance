@@ -31,6 +31,9 @@ export function ContractTable({
   onEdit: (row: EmploymentContractRow) => void;
   onDelete: (row: EmploymentContractRow) => void;
 }) {
+  // The table instance keeps one identity for its whole life, so the React Compiler
+  // would cache everything read off it and never show rows that arrive later.
+  "use no memo";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | ContractStatus>("all");
 

@@ -13,6 +13,9 @@ export function DataTable<T>({
   minWidth: string;
   cellClassName?: string;
 }) {
+  // The table instance keeps one identity for its whole life, so the React Compiler
+  // would cache everything read off it and never show rows that arrive later.
+  "use no memo";
   const firstHeaderGroup = table.getHeaderGroups()[0];
   const detailValueClassName = cellClassName || "text-strong font-semibold";
 
@@ -23,9 +26,7 @@ export function DataTable<T>({
           const cells = row.getVisibleCells();
           const titleCell = cells[0];
           const actionsCell = cells.find((cell) => cell.column.id === "actions");
-          const detailCells = cells.filter(
-            (cell) => cell !== titleCell && cell !== actionsCell,
-          );
+          const detailCells = cells.filter((cell) => cell !== titleCell && cell !== actionsCell);
           return (
             <li key={row.id} className="border-b border-border px-5 py-4 last:border-b-0">
               <div className="flex items-start justify-between gap-3">
@@ -114,6 +115,7 @@ export function TableEmptyState({
 }
 
 export function TableFooter<T>({ table, itemLabel }: { table: Table<T>; itemLabel: string }) {
+  "use no memo";
   return (
     <footer className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3">
       <p className="text-xs text-muted-foreground">

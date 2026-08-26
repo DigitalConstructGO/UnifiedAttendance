@@ -28,6 +28,9 @@ export function CosignerDirectory({
   items: Cosigner[];
   manageable: boolean;
 }) {
+  // See ContractTable: the table instance never changes identity, so opt out of
+  // the React Compiler or rows that load after mount are never shown.
+  "use no memo";
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Cosigner | null>(null);
