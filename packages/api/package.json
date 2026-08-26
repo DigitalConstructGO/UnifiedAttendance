@@ -18,6 +18,7 @@
     "@UnifiedAttendance/auth": "workspace:*",
     "@UnifiedAttendance/db": "workspace:*",
     "@UnifiedAttendance/env": "workspace:*",
+    "@UnifiedAttendance/mailer": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.2",
     "next": "catalog:",

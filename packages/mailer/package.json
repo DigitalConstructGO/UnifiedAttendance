@@ -1,0 +1,24 @@
+{
+  "name": "@UnifiedAttendance/mailer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@UnifiedAttendance/env": "workspace:*",
+    "nodemailer": "^9.0.5"
+  },
+  "devDependencies": {
+    "@UnifiedAttendance/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "^6.0.3",
+    "@types/nodemailer": "^8.0.1"
+  }
+}
