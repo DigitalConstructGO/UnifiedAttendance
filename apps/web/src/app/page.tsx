@@ -55,8 +55,8 @@ export default async function Home() {
             Attendance you can trust.
           </h1>
           <p className="mt-7 max-w-xl text-[clamp(0.9375rem,1.4vw,1.125rem)] leading-8 text-sidebar-foreground/68">
-            {brand.name} turns biometric events into clear attendance records—without losing the
-            source data behind every decision.
+            Turns biometric events into clear attendance records without losing the source data
+            behind every decision.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link
@@ -83,9 +83,6 @@ export default async function Home() {
                 </span>
                 Attendance event path
               </div>
-              <span className="font-numeric text-[0.625rem] tracking-[0.08em] text-sidebar-foreground/65 uppercase">
-                Illustrated flow
-              </span>
             </div>
 
             <div className="relative px-5 py-8 sm:px-8 sm:py-10">
@@ -158,9 +155,6 @@ export default async function Home() {
               ))}
             </div>
           </div>
-          <p className="mt-4 text-center text-xs text-sidebar-foreground/65">
-            One connected foundation for people, branches, attendance, and the work around them.
-          </p>
         </figure>
       </section>
     </main>
