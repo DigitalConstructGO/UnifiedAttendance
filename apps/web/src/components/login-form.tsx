@@ -2,6 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import z from "zod";
@@ -100,9 +101,17 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
               <form.Field name="password">
                 {(field) => (
                   <Field data-invalid={field.state.meta.errors.length > 0}>
-                    <FieldLabel className="text-strong text-xs font-bold" htmlFor={field.name}>
-                      Password
-                    </FieldLabel>
+                    <div className="flex items-center justify-between">
+                      <FieldLabel className="text-strong text-xs font-bold" htmlFor={field.name}>
+                        Password
+                      </FieldLabel>
+                      <Link
+                        href="/forgot-password"
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
                     <div className="relative">
                       <Input
                         id={field.name}
