@@ -1,6 +1,6 @@
 # UnifiedAttendance
 
-**Digital Construct** — an all-in-one office attendance and business operations platform. It
+An all-in-one office attendance and business operations platform. It
 connects biometric attendance, employee management, schedules, supervised corrections,
 reporting, client management, sales, contracts, and invoicing in one modular full-stack
 application, for HR/attendance staff, branch managers, and company owners.

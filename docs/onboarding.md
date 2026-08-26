@@ -1,6 +1,6 @@
 # Onboarding Guide
 
-Welcome to UnifiedAttendance (Digital Construct). This walks through getting the app running
+Welcome to UnifiedAttendance. This walks through getting the app running
 locally, the systems it's built from, and the workflows you'll use day to day.
 
 ## 1. Prerequisites

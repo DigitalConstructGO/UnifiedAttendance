@@ -9,7 +9,7 @@ export type Brand = {
 };
 
 const fallbackBrand: Brand = {
-  name: process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Digital Construct",
+  name: process.env.NEXT_PUBLIC_APP_NAME?.trim() || "UnifiedAttendance",
   logoUrl: process.env.NEXT_PUBLIC_APP_LOGO_URL?.trim() || null,
   tagline: process.env.NEXT_PUBLIC_APP_TAGLINE?.trim() || "Operations platform",
 };

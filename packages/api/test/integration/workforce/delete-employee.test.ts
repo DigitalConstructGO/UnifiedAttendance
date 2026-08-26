@@ -109,7 +109,7 @@ describe("archiving and deleting employees", () => {
     const employeeId = await seedEmployee();
     const [organization] = await db
       .insert(organizations)
-      .values({ name: "Digital Construct", code: "DC" })
+      .values({ name: "Example Company", code: "EX" })
       .returning();
     const [industry] = await db
       .insert(industries)

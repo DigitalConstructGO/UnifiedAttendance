@@ -31,7 +31,7 @@ describe("generated employee IDs", () => {
     });
     const [adminRole] = await db.select().from(roles).where(eq(roles.name, "Admin")).limit(1);
     await db.insert(userRoles).values({ userId: "admin", roleId: adminRole!.id });
-    await db.insert(organizations).values({ name: "Digital Construct", code: "DCG" });
+    await db.insert(organizations).values({ name: "Example Company", code: "EXC" });
     const [branch] = await db
       .insert(branches)
       .values({ name: "Head Office", code: "HQ" })
@@ -58,21 +58,21 @@ describe("generated employee IDs", () => {
 
   it("reads the ID off the organization, branch and department", async () => {
     const first = await hire(softwareId);
-    expect(first.employee.employeeCode).toBe("DCG-HQ-SOF-0001");
+    expect(first.employee.employeeCode).toBe("EXC-HQ-SOF-0001");
   });
 
   it("numbers each department on its own", async () => {
     await hire(softwareId);
     const second = await hire(softwareId);
     const finance = await hire(financeId);
-    expect(second.employee.employeeCode).toBe("DCG-HQ-SOF-0002");
-    expect(finance.employee.employeeCode).toBe("DCG-HQ-FIN-0001");
+    expect(second.employee.employeeCode).toBe("EXC-HQ-SOF-0002");
+    expect(finance.employee.employeeCode).toBe("EXC-HQ-FIN-0001");
   });
 
   it("skips the department segment when there is none", async () => {
     await hire(softwareId);
     const unassigned = await hire(null);
-    expect(unassigned.employee.employeeCode).toBe("DCG-HQ-0001");
+    expect(unassigned.employee.employeeCode).toBe("EXC-HQ-0001");
   });
 
   it("still honors a hand-written ID, once", async () => {

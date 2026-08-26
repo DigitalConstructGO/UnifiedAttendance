@@ -27,7 +27,7 @@ describe("organization logo", () => {
     await seedUser("viewer", "Manager");
     const [organization] = await db
       .insert(organizations)
-      .values({ name: "Digital Construct", code: "DC" })
+      .values({ name: "Example Company", code: "EX" })
       .returning();
     organizationId = organization!.id;
   });
