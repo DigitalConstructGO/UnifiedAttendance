@@ -49,16 +49,6 @@ export default async function LoginPage() {
             employee and branch.
           </p>
           <LoginTimeSignal />
-          <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold text-sidebar-foreground/80">
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-              Role-secured access
-            </span>
-            <span className="flex items-center gap-2">
-              <BadgeCheck className="size-4 text-primary" aria-hidden="true" />
-              Auditable records
-            </span>
-          </div>
         </div>
 
         <p className="relative text-xs text-sidebar-foreground/45">

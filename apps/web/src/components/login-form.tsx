@@ -173,9 +173,6 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           </form>
         </CardContent>
       </Card>
-      <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">
-        Access is managed by your organization administrator.
-      </p>
     </div>
   );
 }
