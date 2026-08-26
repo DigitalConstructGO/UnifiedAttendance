@@ -1,4 +1,4 @@
-import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 
 import {
   branches,
@@ -9,19 +9,41 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 
 import { notFound } from "../errors";
-import { branchDayWindow, type DayWindow } from "./day-window";
+import { dayExpectation, type DayExpectation, type DayType } from "./day-expectation";
 
 import type { Context } from "../context";
 
 export type DayContext = {
-  dayType: "working_day" | "weekend" | "holiday";
-  dayWindow: DayWindow;
+  dayType: DayType;
+  dayWindow: Pick<DayExpectation, "dayStart" | "dayEnd" | "expectedStart" | "expectedEnd">;
   graceMinutes: number;
 };
 
-
 export function mondayFirstWeekday(attendanceDate: string) {
   return (new Date(`${attendanceDate}T00:00:00Z`).getUTCDay() + 6) % 7;
+}
+
+export async function loadBranchesOnHoliday(
+  ctx: Context,
+  branchDates: Map<string, string>,
+): Promise<Map<string, { name: string }>> {
+  const dates = [...new Set(branchDates.values())];
+  if (dates.length === 0) return new Map();
+
+  const rows = await ctx.db
+    .select({ branchId: holidays.branchId, holidayDate: holidays.holidayDate, name: holidays.name })
+    .from(holidays)
+    .where(inArray(holidays.holidayDate, dates));
+
+  const onHoliday = new Map<string, { name: string }>();
+  for (const [branchId, attendanceDate] of branchDates) {
+    const matched = rows.find(
+      (row) =>
+        row.holidayDate === attendanceDate && (row.branchId === null || row.branchId === branchId),
+    );
+    if (matched) onHoliday.set(branchId, { name: matched.name });
+  }
+  return onHoliday;
 }
 
 export async function loadDayContext(
@@ -70,15 +92,8 @@ export async function loadDayContext(
     .where(and(eq(branchWorkingDays.branchId, branchId), eq(branchWorkingDays.weekday, weekday)))
     .limit(1);
 
-  const dayWindow = await branchDayWindow(ctx, {
-    attendanceDate,
-    timezone: branch.timezone,
-    openingTime: workingDay?.openingTime ?? null,
-    closingTime: workingDay?.closingTime ?? null,
-  });
-
   const [holiday] = await ctx.db
-    .select({ id: holidays.id })
+    .select({ name: holidays.name })
     .from(holidays)
     .where(
       and(
@@ -88,9 +103,21 @@ export async function loadDayContext(
     )
     .limit(1);
 
+  const expectation = dayExpectation({
+    attendanceDate,
+    timezone: branch.timezone,
+    workingDay: workingDay ?? null,
+    holiday: holiday ?? null,
+  });
+
   return {
-    dayType: holiday ? "holiday" : workingDay?.isWorkingDay ? "working_day" : "weekend",
-    dayWindow,
+    dayType: expectation.dayType,
+    dayWindow: {
+      dayStart: expectation.dayStart,
+      dayEnd: expectation.dayEnd,
+      expectedStart: expectation.expectedStart,
+      expectedEnd: expectation.expectedEnd,
+    },
     graceMinutes: branch.graceMinutes,
   };
 }

@@ -8,6 +8,7 @@ import {
   branches,
   branchWorkingDays,
   employees,
+  holidays,
   notificationLog,
   notificationTiers,
   people,
@@ -43,10 +44,16 @@ function contextWith(mailer: Mailer): Context {
   return createInnerContext({ session: null, mailer });
 }
 
-async function seedBranchAndEmployee(options: { email?: string | null } = {}) {
+async function seedBranchAndEmployee(
+  options: { email?: string | null; name?: string; code?: string; employeeCode?: string } = {},
+) {
   const [branch] = await db
     .insert(branches)
-    .values({ name: "Head Office", code: "HQ", timezone: "Africa/Addis_Ababa" })
+    .values({
+      name: options.name ?? "Head Office",
+      code: options.code ?? "HQ",
+      timezone: "Africa/Addis_Ababa",
+    })
     .returning();
   const branchId = branch!.id;
 
@@ -71,7 +78,12 @@ async function seedBranchAndEmployee(options: { email?: string | null } = {}) {
 
   const [employee] = await db
     .insert(employees)
-    .values({ personId: person!.id, branchId, employeeCode: "EMP-1", hireDate: "2024-01-01" })
+    .values({
+      personId: person!.id,
+      branchId,
+      employeeCode: options.employeeCode ?? "EMP-1",
+      hireDate: "2024-01-01",
+    })
     .returning();
 
   return { branchId, employeeId: employee!.id };
@@ -86,7 +98,11 @@ async function seedHrUser(id = "hr-user") {
 }
 
 /** `lateMinutes` must stay under 60 — it's used verbatim as the check-in minute. */
-async function addLateAttendanceDay(employeeId: string, attendanceDate: string, lateMinutes: number) {
+async function addLateAttendanceDay(
+  employeeId: string,
+  attendanceDate: string,
+  lateMinutes: number,
+) {
   await db.insert(attendanceDays).values({
     employeeId,
     attendanceDate,
@@ -94,6 +110,14 @@ async function addLateAttendanceDay(employeeId: string, attendanceDate: string, 
     outcome: "present",
     firstIn: new Date(`${attendanceDate}T09:${String(lateMinutes).padStart(2, "0")}:00+03:00`),
     lateMinutes,
+  });
+}
+
+async function seedHoliday(options: { holidayDate: string; branchId?: string; name?: string }) {
+  await db.insert(holidays).values({
+    branchId: options.branchId ?? null,
+    name: options.name ?? "NewYear",
+    holidayDate: options.holidayDate,
   });
 }
 
@@ -147,6 +171,52 @@ describe("runLateArrivalScan", () => {
     expect(secondSummary).toEqual({ candidates: 0, notified: 0, skippedNoTier: 0, failed: 0 });
     expect(sent).toHaveLength(2); // only the first pass's sends
     expect(await db.select().from(notificationLog)).toHaveLength(1);
+  });
+
+  it("sends no late notice on an organisation-wide holiday", async () => {
+    // The day is recorded as a working day with real lateness — the scan must
+    // still stay silent, because the holiday says nobody was expected at all.
+    const { employeeId } = await seedBranchAndEmployee();
+    await seedHrUser();
+    await addLateAttendanceDay(employeeId, TODAY, 15);
+    await seedHoliday({ holidayDate: TODAY });
+    const { mailer, sent } = fakeMailer();
+
+    const summary = await runLateArrivalScan(contextWith(mailer));
+
+    expect(summary).toEqual({ candidates: 0, notified: 0, skippedNoTier: 0, failed: 0 });
+    expect(sent).toHaveLength(0);
+    expect(await db.select().from(notificationLog)).toHaveLength(0);
+  });
+
+  it("silences only the branch a branch-scoped holiday names", async () => {
+    // Both employees are late; only the branch named by the holiday stays quiet.
+    const head = await seedBranchAndEmployee();
+    const regional = await seedBranchAndEmployee({
+      name: "Bahir Dar",
+      code: "BDR",
+      email: "sara@example.test",
+      employeeCode: "EMP-2",
+    });
+    await seedHrUser();
+    await addLateAttendanceDay(head.employeeId, TODAY, 15);
+    await addLateAttendanceDay(regional.employeeId, TODAY, 15);
+    await seedHoliday({
+      holidayDate: TODAY,
+      branchId: regional.branchId,
+      name: "Branch Rest Day",
+    });
+    const { mailer, sent } = fakeMailer();
+
+    const summary = await runLateArrivalScan(contextWith(mailer));
+
+    expect(summary).toEqual({ candidates: 1, notified: 1, skippedNoTier: 0, failed: 0 });
+    expect(sent.map((email) => email.to)).toContain("abel@example.test");
+    expect(sent.map((email) => email.to)).not.toContain("sara@example.test");
+
+    const logRows = await db.select().from(notificationLog);
+    expect(logRows).toHaveLength(1);
+    expect(logRows[0]).toMatchObject({ employeeId: head.employeeId, condition: "late" });
   });
 
   it("skips an employee already notified before the scan runs", async () => {

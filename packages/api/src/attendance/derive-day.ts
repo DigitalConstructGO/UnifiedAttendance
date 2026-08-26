@@ -9,7 +9,7 @@ import {
 
 import { conflict } from "../errors";
 import { loadDayContext } from "./day-context";
-import { attendanceOutcome, minutesAfter } from "./day-window";
+import { attendanceOutcome, minutesAfter } from "./day-expectation";
 import { applyCorrections, applyManualEntries, type PunchTimes } from "./overlays";
 
 import type { Context } from "../context";
@@ -109,7 +109,6 @@ export async function deriveAttendanceDay(
     missingCheckOut: !lastOut,
     hasCorrection: corrections.length > 0,
   } as const;
-
 
   if (events.length === 0 && manualEntries.length === 0 && corrections.length === 0) {
     await ctx.db

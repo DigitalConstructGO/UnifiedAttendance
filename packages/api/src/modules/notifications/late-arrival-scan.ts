@@ -13,6 +13,7 @@ import {
   userRoles,
 } from "@UnifiedAttendance/db/schema/index";
 
+import { loadBranchesOnHoliday } from "../../attendance/day-context";
 import { ROLES } from "../../rbac/permissions";
 import { loadBranchToday } from "../reports/expected-days";
 import { renderTemplate, type TemplateValues } from "./render-template";
@@ -79,8 +80,11 @@ async function findLateArrivalCandidates(
   ctx: Context,
   branchToday: Map<string, string>,
 ): Promise<LateArrivalCandidate[]> {
+  const branchesOnHoliday = await loadBranchesOnHoliday(ctx, branchToday);
+
   const branchIdsByDate = new Map<string, string[]>();
   for (const [branchId, today] of branchToday) {
+    if (branchesOnHoliday.has(branchId)) continue;
     const branchIds = branchIdsByDate.get(today) ?? [];
     branchIds.push(branchId);
     branchIdsByDate.set(today, branchIds);

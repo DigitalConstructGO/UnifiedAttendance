@@ -11,6 +11,7 @@ import {
   branchWorkingDays,
   employees,
   employmentPeriods,
+  holidays,
   manualAttendanceEntries,
   notificationLog,
   notificationTiers,
@@ -55,12 +56,17 @@ function contextWith(mailer: Mailer): Context {
   return createInnerContext({ session: null, mailer });
 }
 
-/** weekday: Monday-first (0=Monday..6=Sunday), matching `branchWorkingDays.weekday`. */
-async function seedBranch(options: { closedWeekdays?: number[] } = {}) {
+async function seedBranch(
+  options: { closedWeekdays?: number[]; name?: string; code?: string } = {},
+) {
   const closed = new Set(options.closedWeekdays ?? [5, 6]); // default: Saturday+Sunday off
   const [branch] = await db
     .insert(branches)
-    .values({ name: "Head Office", code: "HQ", timezone: TIMEZONE })
+    .values({
+      name: options.name ?? "Head Office",
+      code: options.code ?? "HQ",
+      timezone: TIMEZONE,
+    })
     .returning();
   const branchId = branch!.id;
 
@@ -182,6 +188,14 @@ async function seedAbsentLog(employeeId: string, attendanceDate: string) {
   });
 }
 
+async function seedHoliday(options: { holidayDate: string; branchId?: string; name?: string }) {
+  await db.insert(holidays).values({
+    branchId: options.branchId ?? null,
+    name: options.name ?? "NewYear",
+    holidayDate: options.holidayDate,
+  });
+}
+
 describe("runAbsenceScan", () => {
   beforeEach(async () => {
     await resetDatabase();
@@ -284,6 +298,40 @@ describe("runAbsenceScan", () => {
     expect(sent).toHaveLength(0);
   });
 
+  it("skips a branch entirely on an organisation-wide holiday", async () => {
+    const branchId = await seedBranch();
+    await seedEmployee(branchId);
+    await seedHrUser();
+    await seedHoliday({ holidayDate: TODAY });
+    const { mailer, sent } = fakeMailer();
+
+    const summary = await runAbsenceScan(contextWith(mailer));
+
+    expect(summary).toEqual({ candidates: 0, notified: 0, skippedNoTier: 0, failed: 0 });
+    expect(sent).toHaveLength(0);
+    expect(await db.select().from(notificationLog)).toHaveLength(0);
+  });
+
+  it("silences only the branch a branch-scoped holiday names", async () => {
+    const headOfficeId = await seedBranch();
+    const regionalId = await seedBranch({ name: "Bahir Dar", code: "BDR" });
+    await seedEmployee(headOfficeId, { email: "abel@example.test", code: "EMP-1" });
+    await seedEmployee(regionalId, { email: "sara@example.test", code: "EMP-2" });
+    await seedHrUser();
+    await seedHoliday({ holidayDate: TODAY, branchId: regionalId, name: "Branch Rest Day" });
+    const { mailer, sent } = fakeMailer();
+
+    const summary = await runAbsenceScan(contextWith(mailer));
+
+    expect(summary).toEqual({ candidates: 1, notified: 1, skippedNoTier: 0, failed: 0 });
+    expect(sent.map((email) => email.to)).toContain("abel@example.test");
+    expect(sent.map((email) => email.to)).not.toContain("sara@example.test");
+
+    const logRows = await db.select().from(notificationLog);
+    expect(logRows).toHaveLength(1);
+    expect(logRows[0]).toMatchObject({ attendanceDate: TODAY, condition: "absent" });
+  });
+
   it("does not re-notify on a second scan pass (idempotent via notification_log)", async () => {
     const branchId = await seedBranch();
     await seedEmployee(branchId);
@@ -310,7 +358,8 @@ describe("runAbsenceScan", () => {
       condition: "absent",
       threshold: 3,
       subjectTemplate: "Third Absence Notice",
-      bodyTemplate: "{{employeeName}} at {{branchName}} was absent on {{date}} (#{{occurrenceCount}} this week).",
+      bodyTemplate:
+        "{{employeeName}} at {{branchName}} was absent on {{date}} (#{{occurrenceCount}} this week).",
     });
     const { mailer, sent } = fakeMailer();
 

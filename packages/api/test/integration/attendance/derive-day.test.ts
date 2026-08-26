@@ -5,6 +5,7 @@ import { attendanceDays, holidays } from "@UnifiedAttendance/db/schema/index";
 
 import {
   type DeriveDayFixture,
+  MONDAY,
   SATURDAY,
   setUpDeriveDayFixture,
   TUESDAY,
@@ -133,6 +134,22 @@ describe("deriveAttendanceDay", () => {
     await fixture.addEvent("2026-03-03T00:00:00+03:00", "out");
 
     await expect(fixture.derive()).resolves.toMatchObject({ outcome: "absent" });
+  });
+
+  it("owes no shift on a holiday, so a late-looking punch carries no lateness", async () => {
+    // Monday is normally worked from 09:00; a holiday on it means no expected
+    // start exists, so arriving at 09:20 is not late.
+    await db
+      .insert(holidays)
+      .values({ branchId: fixture.branchId, name: "Mewulid", holidayDate: MONDAY });
+    await fixture.addEvent("2026-03-02T09:20:00+03:00", "in");
+    await fixture.addEvent("2026-03-02T17:00:00+03:00", "out");
+
+    await expect(fixture.derive(MONDAY)).resolves.toMatchObject({
+      dayType: "holiday",
+      lateMinutes: null,
+      earlyDepartureMinutes: null,
+    });
   });
 
   it("derives weekend and holiday Day Types independently from Outcome", async () => {

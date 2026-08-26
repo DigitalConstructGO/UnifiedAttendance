@@ -4,12 +4,11 @@ import { branches } from "@UnifiedAttendance/db/schema/index";
 
 import { forbidden, notFound } from "../errors";
 import { isAdministrator } from "../modules/shared/guards";
-import { branchDayWindow } from "./day-window";
+import { localDayBounds } from "./day-expectation";
 
 import type { Context } from "../context";
 
 const EDIT_GRACE_MS = 24 * 60 * 60 * 1000;
-
 
 export async function assertAttendanceDayEditable(
   ctx: Context,
@@ -24,12 +23,7 @@ export async function assertAttendanceDayEditable(
     .limit(1);
   if (!branch) notFound("Branch");
 
-  const { dayEnd } = await branchDayWindow(ctx, {
-    attendanceDate: options.attendanceDate,
-    timezone: branch.timezone,
-    openingTime: null,
-    closingTime: null,
-  });
+  const { dayEnd } = localDayBounds(options.attendanceDate, branch.timezone);
 
   const lockedAt = dayEnd.getTime() + EDIT_GRACE_MS;
   if (Date.now() >= lockedAt) {

@@ -14,8 +14,8 @@ import {
 } from "@UnifiedAttendance/db/schema/index";
 import { EMPLOYEE_STATUSES } from "@UnifiedAttendance/db/schema/workforce-enums";
 
-import { mondayFirstWeekday } from "../../attendance/day-context";
-import { branchDayWindow } from "../../attendance/day-window";
+import { loadBranchesOnHoliday, mondayFirstWeekday } from "../../attendance/day-context";
+import { dayExpectation } from "../../attendance/day-expectation";
 import { loadBranchToday } from "../reports/expected-days";
 import { loadHrEmails, resolveNotificationRecipients } from "./recipients";
 import { renderTemplate, type TemplateValues } from "./render-template";
@@ -91,6 +91,7 @@ export async function runAbsenceScan(ctx: Context): Promise<AbsenceScanSummary> 
 
 async function loadQualifyingBranches(ctx: Context): Promise<QualifyingBranch[]> {
   const branchToday = await loadBranchToday(ctx);
+  const branchesOnHoliday = await loadBranchesOnHoliday(ctx, branchToday);
 
   const activeBranches = await ctx.db
     .select({ id: branches.id, name: branches.name, timezone: branches.timezone })
@@ -114,26 +115,24 @@ async function loadQualifyingBranches(ctx: Context): Promise<QualifyingBranch[]>
       .from(branchWorkingDays)
       .where(eq(branchWorkingDays.branchId, branch.id));
 
+    // Nobody can be absent from a day nothing was owed on — a rest day or a
+    // holiday — and a working day only settles once its shift has closed.
     const weekday = mondayFirstWeekday(attendanceDate);
-    const todayRow = workingDays.find((day) => day.weekday === weekday);
-    if (!todayRow?.isWorkingDay) continue;
-    if (!todayRow.closingTime) continue;
-
-    const dayWindow = await branchDayWindow(ctx, {
+    const expectation = dayExpectation({
       attendanceDate,
       timezone: branch.timezone,
-      openingTime: todayRow.openingTime,
-      closingTime: todayRow.closingTime,
+      workingDay: workingDays.find((day) => day.weekday === weekday) ?? null,
+      holiday: branchesOnHoliday.get(branch.id) ?? null,
     });
-    if (!dayWindow.expectedEnd) continue;
-    if (now < dayWindow.expectedEnd.getTime() + ABSENCE_CONFIRMATION_BUFFER_MS) continue;
+    if (expectation.dayType !== "working_day" || !expectation.expectedEnd) continue;
+    if (now < expectation.expectedEnd.getTime() + ABSENCE_CONFIRMATION_BUFFER_MS) continue;
 
     qualifying.push({
       branchId: branch.id,
       branchName: branch.name,
       attendanceDate,
-      dayStart: dayWindow.dayStart,
-      dayEnd: dayWindow.dayEnd,
+      dayStart: expectation.dayStart,
+      dayEnd: expectation.dayEnd,
       workingDays,
     });
   }
