@@ -1,5 +1,6 @@
 import { organizations } from "@UnifiedAttendance/db/schema/index";
 import { db } from "@UnifiedAttendance/db";
+import { connection } from "next/server";
 import { cache } from "react";
 
 export type Brand = {
@@ -14,8 +15,9 @@ const fallbackBrand: Brand = {
   tagline: process.env.NEXT_PUBLIC_APP_TAGLINE?.trim() || "Operations platform",
 };
 
-/** Resolves the single configured organization, with a local-development fallback. */
+
 export const getBrand = cache(async (): Promise<Brand> => {
+  await connection();
   const [organization] = await db
     .select({ name: organizations.name, logoUrl: organizations.logoUrl })
     .from(organizations)
