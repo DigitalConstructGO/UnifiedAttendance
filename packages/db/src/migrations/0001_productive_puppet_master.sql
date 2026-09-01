@@ -1,0 +1,1 @@
+ALTER TABLE `invoice_payments` ADD `archived_at` integer;

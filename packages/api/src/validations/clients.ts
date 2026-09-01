@@ -259,6 +259,13 @@ export const recordInvoicePaymentInput = z.object({
   reference: nullableText,
   recordedByEmployeeId: id,
 });
+export const updateInvoicePaymentInput = z.object({
+  id,
+  amount: positiveMoney.optional(),
+  paidOn: date.optional(),
+  method: nullableText,
+  reference: nullableText,
+});
 
 export const createClientNoteInput = z.object({
   clientId: id,
@@ -371,6 +378,7 @@ export type UpdateInvoiceInput = z.output<typeof updateInvoiceInput>;
 export type IssueInvoiceInput = z.output<typeof issueInvoiceInput>;
 export type ListInvoicesInput = z.output<typeof listInvoicesInput>;
 export type RecordInvoicePaymentInput = z.output<typeof recordInvoicePaymentInput>;
+export type UpdateInvoicePaymentInput = z.output<typeof updateInvoicePaymentInput>;
 export type CreateClientNoteInput = z.output<typeof createClientNoteInput>;
 export type UpdateClientNoteInput = z.output<typeof updateClientNoteInput>;
 export type ListClientNotesInput = z.output<typeof listClientNotesInput>;

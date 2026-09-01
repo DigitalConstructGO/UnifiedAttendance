@@ -8,6 +8,13 @@
       "when": 1787383143608,
       "tag": "0000_initial_sqlite",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788257895198,
+      "tag": "0001_productive_puppet_master",
+      "breakpoints": true
     }
   ]
 }

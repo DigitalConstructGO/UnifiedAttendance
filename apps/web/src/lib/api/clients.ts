@@ -232,6 +232,22 @@ export const clientsApi = {
       method: "POST",
       body: input,
     }),
+  updateInvoicePayment: ({
+    id,
+    ...values
+  }: z.input<typeof validations.updateInvoicePaymentInput>) =>
+    apiFetch<Returned<typeof service.updateInvoicePayment>>(`/invoice-payments/${id}`, {
+      method: "PATCH",
+      body: values,
+    }),
+  archiveInvoicePayment: (id: string) =>
+    apiFetch<Returned<typeof service.archiveInvoicePayment>>(`/invoice-payments/${id}/archive`, {
+      method: "POST",
+    }),
+  deleteInvoicePayment: (id: string) =>
+    apiFetch<Returned<typeof service.deleteInvoicePayment>>(`/invoice-payments/${id}`, {
+      method: "DELETE",
+    }),
 
   notes: (query: z.input<typeof validations.listClientNotesInput>, signal?: AbortSignal) =>
     apiFetch<ClientNoteRow[]>("/client-notes", {
