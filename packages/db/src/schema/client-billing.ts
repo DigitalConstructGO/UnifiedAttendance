@@ -114,6 +114,7 @@ export const invoicePayments = sqliteTable(
     recordedByEmployeeId: uuid("recorded_by_employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),
+    archivedAt: timestamp("archived_at"),
     createdAt: timestamp("created_at").default(now).notNull(),
   },
   (table) => [

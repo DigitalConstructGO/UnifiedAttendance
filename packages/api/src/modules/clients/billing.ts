@@ -26,6 +26,7 @@ import type {
   ListInvoicesInput,
   RecordInvoicePaymentInput,
   UpdateInvoiceInput,
+  UpdateInvoicePaymentInput,
 } from "../../validations/clients";
 
 const invoiceSelection = {
@@ -103,11 +104,15 @@ async function validateInvoiceReferences(
 }
 
 async function paymentSummary(ctx: Context, invoice: typeof invoices.$inferSelect, asOf: string) {
-  const payments = await ctx.db
+  const rows = await ctx.db
     .select()
     .from(invoicePayments)
     .where(eq(invoicePayments.invoiceId, invoice.id))
     .orderBy(asc(invoicePayments.paidOn), asc(invoicePayments.createdAt));
+  // Archived payments stay visible for the audit trail but no longer count
+  // toward the invoice — archiving is how a mistaken payment is retracted.
+  const payments = rows.filter((payment) => payment.archivedAt === null);
+  const archivedPayments = rows.filter((payment) => payment.archivedAt !== null);
   const paidMinor = payments.reduce(
     (sum, payment) => sum + moneyToMinor(payment.amount),
     BigInt(0),
@@ -129,6 +134,7 @@ async function paymentSummary(ctx: Context, invoice: typeof invoices.$inferSelec
     outstandingAmount: minorToMoney(outstandingMinor),
     presentationStatus,
     payments,
+    archivedPayments,
   };
 }
 
@@ -399,4 +405,97 @@ export async function recordInvoicePayment(ctx: Context, input: RecordInvoicePay
     return result;
   });
   return payment!;
+}
+
+async function paymentOrThrow(ctx: Context, paymentId: string) {
+  const [payment] = await ctx.db
+    .select()
+    .from(invoicePayments)
+    .where(eq(invoicePayments.id, paymentId))
+    .limit(1);
+  if (!payment) notFound("Payment");
+  return payment;
+}
+
+export async function updateInvoicePayment(ctx: Context, input: UpdateInvoicePaymentInput) {
+  const current = await paymentOrThrow(ctx, input.id);
+  const invoice = await invoiceOrThrow(ctx, current.invoiceId);
+  const client = await clientOrThrow(ctx, invoice.clientId);
+  await requirePermission(ctx, "payments.update", client.branchId);
+  if (current.archivedAt) conflict("An archived Payment cannot be edited");
+  if (input.amount !== undefined) {
+    const summary = await paymentSummary(ctx, invoice, input.paidOn ?? current.paidOn);
+    const ceilingMinor = moneyToMinor(summary.outstandingAmount) + moneyToMinor(current.amount);
+    if (moneyToMinor(input.amount) > ceilingMinor) {
+      badRequest("Payment cannot exceed the outstanding Invoice balance");
+    }
+  }
+  const actorUserId = requireSessionUser(ctx);
+  const { id: paymentId, ...values } = input;
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.update(invoicePayments).set(values).where(eq(invoicePayments.id, paymentId));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: invoice.organizationId,
+      clientId: invoice.clientId,
+      actorUserId,
+      action: "invoice.payment_updated",
+      entityType: "invoice_payment",
+      entityId: current.id,
+      changeSummary: { changedFields: Object.keys(values) },
+    });
+  });
+  return paymentOrThrow(ctx, current.id);
+}
+
+export async function archiveInvoicePayment(ctx: Context, input: ClientResourceIdInput) {
+  const current = await paymentOrThrow(ctx, input.id);
+  const invoice = await invoiceOrThrow(ctx, current.invoiceId);
+  const client = await clientOrThrow(ctx, invoice.clientId);
+  await requirePermission(ctx, "payments.archive", client.branchId);
+  if (current.archivedAt) conflict("This Payment is already archived");
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db
+      .update(invoicePayments)
+      .set({ archivedAt: new Date() })
+      .where(eq(invoicePayments.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: invoice.organizationId,
+      clientId: invoice.clientId,
+      actorUserId,
+      action: "invoice.payment_archived",
+      entityType: "invoice_payment",
+      entityId: current.id,
+      changeSummary: { amount: current.amount, currency: current.currency },
+    });
+  });
+  return paymentOrThrow(ctx, current.id);
+}
+
+export async function deleteInvoicePayment(ctx: Context, input: ClientResourceIdInput) {
+  const current = await paymentOrThrow(ctx, input.id);
+  const invoice = await invoiceOrThrow(ctx, current.invoiceId);
+  const client = await clientOrThrow(ctx, invoice.clientId);
+  await requirePermission(ctx, "payments.delete", client.branchId);
+  if (!current.archivedAt) {
+    conflict("Archive this Payment first — only an archived Payment can be deleted");
+  }
+  const actorUserId = requireSessionUser(ctx);
+  await withTransaction(ctx, async (ctx) => {
+    await ctx.db.delete(invoicePayments).where(eq(invoicePayments.id, current.id));
+    await ctx.db.insert(clientAuditEntries).values({
+      organizationId: invoice.organizationId,
+      clientId: invoice.clientId,
+      actorUserId,
+      action: "invoice.payment_deleted",
+      entityType: "invoice_payment",
+      entityId: current.id,
+      changeSummary: {
+        amount: current.amount,
+        currency: current.currency,
+        paidOn: current.paidOn,
+      },
+    });
+  });
+  return { id: current.id };
 }
