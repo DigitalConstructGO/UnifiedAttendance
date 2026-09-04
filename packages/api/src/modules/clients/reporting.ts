@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   branches,
@@ -167,6 +167,7 @@ export async function getClientOverview(ctx: Context, input: ClientOverviewInput
       .where(
         and(
           eq(invoicePayments.organizationId, organization.id),
+          isNull(invoicePayments.archivedAt),
           ...(branchFilter ? [eq(invoices.branchId, branchFilter)] : []),
         ),
       ),
