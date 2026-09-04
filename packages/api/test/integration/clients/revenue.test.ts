@@ -20,6 +20,7 @@ import {
   createInvoice,
   getRevenueReport,
   issueInvoice,
+  voidInvoice,
   recordInvoicePayment,
 } from "../../../src/index";
 import { resetDatabase, testContext } from "../../fixtures";
@@ -375,5 +376,29 @@ describe("Client revenue by period", () => {
     });
 
     expect(report.previous).toBeNull();
+  });
+
+  it("drops a voided invoice from invoiced revenue", async () => {
+    const invoiceId = await issuedInvoice("9000.00", "2026-05-06", "2026-06-06");
+    await issuedInvoice("1000.00", "2026-05-07", "2026-06-07");
+
+    const before = await getRevenueReport(context, {
+      grain: "month",
+      from: "2026-05-01",
+      to: "2026-05-31",
+    });
+    expect(before.totals.invoiced.amount).toBe("10000.00");
+
+    await voidInvoice(context, { id: invoiceId });
+
+    // A voided invoice is cancelled billing — nobody owes it, so it is not
+    // revenue. The client dashboard and directory rows already read it this way.
+    const after = await getRevenueReport(context, {
+      grain: "month",
+      from: "2026-05-01",
+      to: "2026-05-31",
+    });
+    expect(after.totals.invoiced.amount).toBe("1000.00");
+    expect(bucket(after, "2026-05")?.invoiced.amount).toBe("1000.00");
   });
 });
