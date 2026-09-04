@@ -11,7 +11,6 @@ import {
   CLIENT_PRIORITY_META,
   money,
   personName,
-  PROJECT_PROGRESS_TONE,
   PROJECT_STATUS_META,
 } from "@/lib/client-presentation";
 import { formatDate, relativeTime } from "@/lib/format-date";
