@@ -136,12 +136,8 @@
           "name": "attendance_corrections_employee_id_employees_id_fk",
           "tableFrom": "attendance_corrections",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -149,12 +145,8 @@
           "name": "attendance_corrections_disputed_event_id_attendance_events_id_fk",
           "tableFrom": "attendance_corrections",
           "tableTo": "attendance_events",
-          "columnsFrom": [
-            "disputed_event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["disputed_event_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -162,12 +154,8 @@
           "name": "attendance_corrections_requested_by_user_id_fk",
           "tableFrom": "attendance_corrections",
           "tableTo": "user",
-          "columnsFrom": [
-            "requested_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -175,12 +163,8 @@
           "name": "attendance_corrections_reviewed_by_user_id_fk",
           "tableFrom": "attendance_corrections",
           "tableTo": "user",
-          "columnsFrom": [
-            "reviewed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reviewed_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -345,12 +329,8 @@
           "name": "attendance_days_employee_id_employees_id_fk",
           "tableFrom": "attendance_days",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -461,12 +441,8 @@
           "name": "attendance_devices_branch_id_branches_id_fk",
           "tableFrom": "attendance_devices",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -476,9 +452,7 @@
         "attendance_devices_serial_number_unique": {
           "name": "attendance_devices_serial_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "serial_number"
-          ]
+          "columns": ["serial_number"]
         }
       },
       "policies": {},
@@ -625,12 +599,8 @@
           "name": "attendance_events_device_id_attendance_devices_id_fk",
           "tableFrom": "attendance_events",
           "tableTo": "attendance_devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -638,12 +608,8 @@
           "name": "attendance_events_employee_id_employees_id_fk",
           "tableFrom": "attendance_events",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -759,12 +725,8 @@
           "name": "attendance_push_batches_device_id_attendance_devices_id_fk",
           "tableFrom": "attendance_push_batches",
           "tableTo": "attendance_devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["device_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -856,12 +818,8 @@
           "name": "employee_device_identities_employee_id_employees_id_fk",
           "tableFrom": "employee_device_identities",
           "tableTo": "employees",
-          "columnsFrom": [
-            "employee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -983,12 +941,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1075,12 +1029,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1090,9 +1040,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1156,9 +1104,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1339,12 +1285,8 @@
           "name": "departments_branch_id_branches_id_fk",
           "tableFrom": "departments",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1463,12 +1405,8 @@
           "name": "employees_person_id_people_id_fk",
           "tableFrom": "employees",
           "tableTo": "people",
-          "columnsFrom": [
-            "person_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["person_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1476,12 +1414,8 @@
           "name": "employees_branch_id_branches_id_fk",
           "tableFrom": "employees",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1489,12 +1423,8 @@
           "name": "employees_department_id_departments_id_fk",
           "tableFrom": "employees",
           "tableTo": "departments",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1502,12 +1432,8 @@
           "name": "employees_position_id_positions_id_fk",
           "tableFrom": "employees",
           "tableTo": "positions",
-          "columnsFrom": [
-            "position_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["position_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1517,16 +1443,12 @@
         "employees_person_id_unique": {
           "name": "employees_person_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "person_id"
-          ]
+          "columns": ["person_id"]
         },
         "employees_employee_code_unique": {
           "name": "employees_employee_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "employee_code"
-          ]
+          "columns": ["employee_code"]
         }
       },
       "policies": {},
@@ -1631,12 +1553,8 @@
           "name": "people_cosigner_id_cosigners_id_fk",
           "tableFrom": "people",
           "tableTo": "cosigners",
-          "columnsFrom": [
-            "cosigner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cosigner_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1719,9 +1637,7 @@
         "permissions_code_unique": {
           "name": "permissions_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -1751,12 +1667,8 @@
           "name": "role_permissions_role_id_roles_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1764,12 +1676,8 @@
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "permissions",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1777,10 +1685,7 @@
       "compositePrimaryKeys": {
         "role_permissions_role_id_permission_id_pk": {
           "name": "role_permissions_role_id_permission_id_pk",
-          "columns": [
-            "role_id",
-            "permission_id"
-          ]
+          "columns": ["role_id", "permission_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1820,9 +1725,7 @@
         "roles_name_unique": {
           "name": "roles_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -1881,12 +1784,8 @@
           "name": "user_roles_user_id_user_id_fk",
           "tableFrom": "user_roles",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1894,12 +1793,8 @@
           "name": "user_roles_role_id_roles_id_fk",
           "tableFrom": "user_roles",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1907,12 +1802,8 @@
           "name": "user_roles_assigned_by_user_id_fk",
           "tableFrom": "user_roles",
           "tableTo": "user",
-          "columnsFrom": [
-            "assigned_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1994,12 +1885,8 @@
           "name": "branch_working_days_branch_id_branches_id_fk",
           "tableFrom": "branch_working_days",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2068,9 +1955,7 @@
         "branches_code_unique": {
           "name": "branches_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -2129,12 +2014,8 @@
           "name": "holidays_branch_id_branches_id_fk",
           "tableFrom": "holidays",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2211,9 +2092,7 @@
         "organizations_code_unique": {
           "name": "organizations_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -2225,11 +2104,7 @@
     "public.attendance_correction_status": {
       "name": "attendance_correction_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.attendance_correction_type": {
       "name": "attendance_correction_type",
@@ -2247,89 +2122,52 @@
     "public.attendance_day_type": {
       "name": "attendance_day_type",
       "schema": "public",
-      "values": [
-        "working_day",
-        "weekend",
-        "holiday"
-      ]
+      "values": ["working_day", "weekend", "holiday"]
     },
     "public.attendance_device_status": {
       "name": "attendance_device_status",
       "schema": "public",
-      "values": [
-        "active",
-        "inactive"
-      ]
+      "values": ["active", "inactive"]
     },
     "public.attendance_event_direction": {
       "name": "attendance_event_direction",
       "schema": "public",
-      "values": [
-        "in",
-        "out",
-        "unknown"
-      ]
+      "values": ["in", "out", "unknown"]
     },
     "public.attendance_outcome": {
       "name": "attendance_outcome",
       "schema": "public",
-      "values": [
-        "present",
-        "partial",
-        "absent",
-        "unknown"
-      ]
+      "values": ["present", "partial", "absent", "unknown"]
     },
     "public.active_status": {
       "name": "active_status",
       "schema": "public",
-      "values": [
-        "active",
-        "inactive"
-      ]
+      "values": ["active", "inactive"]
     },
     "public.employee_status": {
       "name": "employee_status",
       "schema": "public",
-      "values": [
-        "active",
-        "suspended",
-        "terminated"
-      ]
+      "values": ["active", "suspended", "terminated"]
     },
     "public.employment_type": {
       "name": "employment_type",
       "schema": "public",
-      "values": [
-        "permanent",
-        "contract",
-        "part_time",
-        "intern"
-      ]
+      "values": ["permanent", "contract", "part_time", "intern"]
     },
     "public.gender": {
       "name": "gender",
       "schema": "public",
-      "values": [
-        "male",
-        "female"
-      ]
+      "values": ["male", "female"]
     },
     "public.branch_status": {
       "name": "branch_status",
       "schema": "public",
-      "values": [
-        "active",
-        "closed"
-      ]
+      "values": ["active", "closed"]
     },
     "public.organization_status": {
       "name": "organization_status",
       "schema": "public",
-      "values": [
-        "active",
-        "suspended"
-      ]
+      "values": ["active", "suspended"]
     }
   },
   "schemas": {},

@@ -140,7 +140,6 @@ describe("corrections", () => {
       },
     ]);
 
-
     await expect(
       createCorrection(officer, {
         employeeId,
@@ -196,10 +195,7 @@ describe("corrections", () => {
       .select()
       .from(attendanceDays)
       .where(
-        and(
-          eq(attendanceDays.employeeId, employeeId),
-          eq(attendanceDays.attendanceDate, TUESDAY),
-        ),
+        and(eq(attendanceDays.employeeId, employeeId), eq(attendanceDays.attendanceDate, TUESDAY)),
       )
       .limit(1);
     expect(moved).toMatchObject({ outcome: "present", hasCorrection: true });

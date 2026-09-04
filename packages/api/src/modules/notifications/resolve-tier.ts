@@ -1,6 +1,5 @@
 export type ResolvableTier = { threshold: number };
 
-
 export function resolveNotificationTier<T extends ResolvableTier>(
   tiers: readonly T[],
   occurrenceCount: number,

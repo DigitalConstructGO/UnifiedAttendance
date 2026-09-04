@@ -71,9 +71,7 @@ function RegisterCard({
             <p className="text-[0.625rem] font-bold tracking-[0.06em] text-muted-foreground uppercase">
               Check-in
             </p>
-            <p
-              className={`font-numeric text-sm font-bold ${checkInClass(row, status === "late")}`}
-            >
+            <p className={`font-numeric text-sm font-bold ${checkInClass(row, status === "late")}`}>
               {formatTime(row.day.firstIn, timeZone)}
             </p>
           </div>

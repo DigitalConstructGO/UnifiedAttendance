@@ -49,7 +49,6 @@ function normaliseTime(value: string) {
   return null;
 }
 
-
 export function parseAttlog(body: string): ParsedAttlog {
   const records: AttendanceRecord[] = [];
   const rejected: string[] = [];

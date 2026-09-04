@@ -11,7 +11,6 @@ type Preview = {
   employmentType: EmployeeRow["employee"]["employmentType"];
 };
 
-
 export function previewFor(
   selectedEmployee: EmployeeRow | null,
   editing: EmploymentContractRow | null,

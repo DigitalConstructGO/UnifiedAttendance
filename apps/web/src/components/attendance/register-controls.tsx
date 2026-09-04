@@ -59,7 +59,7 @@ export function RegisterControls({
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
-        className="flex h-10 items-center justify-center gap-1.5 rounded-[11px] border border-input bg-background px-3 text-xs font-bold text-primary hover:bg-primary/8 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:justify-start"
+        className="flex h-10 items-center justify-center gap-1.5 rounded-[11px] border border-input bg-background px-3 text-xs font-bold text-primary hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60 sm:justify-start"
       >
         <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
         {refreshing ? "Refreshing…" : "Refresh"}

@@ -10,7 +10,6 @@ function pageOptions(current: number, total: number) {
   return [current - 1, current, current + 1];
 }
 
-
 export function TablePagination({
   noun,
   shown,

@@ -74,7 +74,7 @@ request crosses:
 3. Read input — JSON body for `POST`/`PUT`/`PATCH`, query string otherwise — and merge in any
    dynamic path segments (`[employeeId]` etc.) over the top.
 4. Validate against the route's zod schema. A failure returns `422 UNPROCESSABLE_CONTENT` with
-   a treeified zod error — deliberately *after* the auth check, so bad input from an anonymous
+   a treeified zod error — deliberately _after_ the auth check, so bad input from an anonymous
    caller still gets `401`, not `422`, keeping validation detail behind the session.
 5. Call the handler, which is almost always a one-line call into a `packages/api` service
    function.
@@ -92,13 +92,13 @@ Services never build a `Response` themselves; they throw. That is what keeps
 
 RBAC is layered, and only the last two layers are actually enforced:
 
-| Layer | File | What it does | Trustworthy? |
-|---|---|---|---|
-| Session-cookie redirect | `apps/web/src/proxy.ts` | Optimistic check so a logged-out user is bounced to `/login` before a page even renders | No — cosmetic, Next 16's `proxy.ts` (not `middleware.ts`) |
-| Dashboard pages | server components | Re-checks permission, redirects to `/no-access` | No — UX only |
-| Sidebar | client component | Hides links the user can't use | No — cosmetic |
-| `route()` | `apps/web/src/lib/route.ts` | Rejects anonymous callers | **Yes** |
-| `requirePermission` | `packages/api/src/modules/shared/guards.ts` | Checks the caller's granted permissions against the permission the endpoint requires | **Yes** — the final authority |
+| Layer                   | File                                        | What it does                                                                            | Trustworthy?                                              |
+| ----------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Session-cookie redirect | `apps/web/src/proxy.ts`                     | Optimistic check so a logged-out user is bounced to `/login` before a page even renders | No — cosmetic, Next 16's `proxy.ts` (not `middleware.ts`) |
+| Dashboard pages         | server components                           | Re-checks permission, redirects to `/no-access`                                         | No — UX only                                              |
+| Sidebar                 | client component                            | Hides links the user can't use                                                          | No — cosmetic                                             |
+| `route()`               | `apps/web/src/lib/route.ts`                 | Rejects anonymous callers                                                               | **Yes**                                                   |
+| `requirePermission`     | `packages/api/src/modules/shared/guards.ts` | Checks the caller's granted permissions against the permission the endpoint requires    | **Yes** — the final authority                             |
 
 Permissions are a fixed catalog (`packages/api/src/rbac/permissions.ts`): one
 `PERMISSION_GROUPS` map produces codes like `employees.create` or `invoices.void` for every
@@ -128,7 +128,7 @@ Two domain clusters share the organization/branch/person/RBAC foundation:
 - **Client / CRM** — Client ← Opportunity (moving through ordered Pipeline Stages, with an
   immutable Opportunity Stage Transition history) → conversion into a Client relationship →
   Project / Commercial Contract → Invoice → Invoice Payment. Client Health, Client Directory
-  Status, Invoiced/Collected Revenue, and Client Timeline are all *derived* projections, not
+  Status, Invoiced/Collected Revenue, and Client Timeline are all _derived_ projections, not
   stored fields — see [CONTEXT.md](../CONTEXT.md) for the full, precise vocabulary (it
   explicitly calls out terms to avoid, like using "Lead" as the aggregate name instead of a
   pipeline stage).
@@ -143,19 +143,19 @@ per domain, each with a `service.ts` (or a set of files re-exported through one,
 does). There is no per-module prose documentation; the service files and their tests under
 `packages/api/test/` are the reference for invariants, transactions, and edge cases.
 
-| Module folder | Covers |
-|---|---|
-| `access/` | RBAC administration — roles, permission grants, users, assignments |
-| `attendance/` | Events, derived days, the daily register, manual entries, push batches |
-| `clients/` | The full CRM/sales/billing domain — clients, opportunities, projects, contracts, invoices |
-| `corrections/` | Attendance corrections — applied immediately, no approval queue |
-| `devices/` | Device registry, badge enrollment, the ADMS protocol, device health |
-| `notifications/` | Escalation tiers and the late-arrival/absence scans |
-| `organization/` | Org record, branches, working-day schedules, holidays, `/setup` |
-| `overview/` | The operations dashboard aggregator |
-| `reports/` | The attendance summary report and the "expected days" algorithm |
-| `shared/` | Guards (`requirePermission`, `requireSuperAdmin`) and the transaction helper |
-| `workforce/` | Employees, employment periods, contracts, cosigners, documents |
+| Module folder    | Covers                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `access/`        | RBAC administration — roles, permission grants, users, assignments                        |
+| `attendance/`    | Events, derived days, the daily register, manual entries, push batches                    |
+| `clients/`       | The full CRM/sales/billing domain — clients, opportunities, projects, contracts, invoices |
+| `corrections/`   | Attendance corrections — applied immediately, no approval queue                           |
+| `devices/`       | Device registry, badge enrollment, the ADMS protocol, device health                       |
+| `notifications/` | Escalation tiers and the late-arrival/absence scans                                       |
+| `organization/`  | Org record, branches, working-day schedules, holidays, `/setup`                           |
+| `overview/`      | The operations dashboard aggregator                                                       |
+| `reports/`       | The attendance summary report and the "expected days" algorithm                           |
+| `shared/`        | Guards (`requirePermission`, `requireSuperAdmin`) and the transaction helper              |
+| `workforce/`     | Employees, employment periods, contracts, cosigners, documents                            |
 
 ## Attendance derivation pipeline
 
@@ -170,7 +170,7 @@ report — it's a judgment that depends on several things that can each change i
 - **Corrections** — a reviewed dispute over a specific punch, applied only once approved.
 - **Manual entries** — a staff-authored punch for when the device missed one.
 
-Corrections and manual entries can be added or edited *after* the original punches came in, so
+Corrections and manual entries can be added or edited _after_ the original punches came in, so
 there's no single moment when a day's status becomes final. If attendance status were written
 once at punch time, every later correction or manual entry would require going back and
 patching whatever record already exists — easy to miss, hard to trust. Instead, the day's
@@ -186,7 +186,7 @@ overlays go in; one derived row comes out. That keeps "what was recorded"
 date:
 
 1. **Resolve the day's context** (`day-context.ts`) — find which branch the employee was
-   assigned to *on that date* (from employment period history, not just their current branch),
+   assigned to _on that date_ (from employment period history, not just their current branch),
    that branch's timezone and weekly schedule for the weekday, and whether it's a holiday.
    Produces `dayType` (`working_day` / `weekend` / `holiday`) and a `dayWindow`: the day's actual
    start/end instants in the branch's timezone, plus `expectedStart`/`expectedEnd` from the
@@ -197,8 +197,8 @@ date:
    corrects for that explicitly.
 2. **Load the three raw inputs** for that window: every `attendanceEvents` row, every
    `attendanceCorrections` row, every `manualAttendanceEntries` row for that employee and date.
-3. **Reduce events to `firstIn`/`lastOut`** — the *first* event with `direction: "in"` and the
-   *last* event with `direction: "out"`. Punches in between are kept in `attendanceEvents` but
+3. **Reduce events to `firstIn`/`lastOut`** — the _first_ event with `direction: "in"` and the
+   _last_ event with `direction: "out"`. Punches in between are kept in `attendanceEvents` but
    don't affect the outcome.
 4. **Fold in overlays, oldest first** (`overlays.ts`) — manual entries apply, then corrections on
    top, each a small state machine over `{ firstIn, lastOut, outcomeOverride, latenessExcused }`:
@@ -283,8 +283,6 @@ that only attendance devices can reach, never exposed the way `/api/v1` is.
   appears in any application code. Note the shape the scans already assume: they build a
   session-less `Context` and call a service function directly, bypassing the RBAC/HTTP layer
   entirely — appropriate only for trusted background code with no user session to check.
-
-
 
 ## Related docs
 

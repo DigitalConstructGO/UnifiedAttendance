@@ -332,7 +332,11 @@ describe("clients", () => {
 
   it("archives a lead off the pipeline, restores it, and deletes only from the archive", async () => {
     const industry = await createIndustry(context, { name: "Technology" });
-    const stage = await createPipelineStage(context, { name: "Lead", position: 1, outcome: "open" });
+    const stage = await createPipelineStage(context, {
+      name: "Lead",
+      position: 1,
+      outcome: "open",
+    });
     const created = await createOpportunity(context, {
       branchId,
       name: "Sunrise Farms",

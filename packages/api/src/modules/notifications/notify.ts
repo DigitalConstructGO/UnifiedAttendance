@@ -27,7 +27,6 @@ export type NotifyAndLogInput = {
   logPrefix: string;
 };
 
-
 export async function notifyAndLog(ctx: Context, input: NotifyAndLogInput): Promise<void> {
   const {
     condition,
@@ -56,7 +55,6 @@ export async function notifyAndLog(ctx: Context, input: NotifyAndLogInput): Prom
     }
   }
 
-
   await ctx.db.insert(notificationLog).values({
     employeeId,
     attendanceDate,
@@ -72,7 +70,6 @@ export type ScanSummary = {
   skippedNoTier: number;
   failed: number;
 };
-
 
 export async function runScan<C>(
   candidates: C[],

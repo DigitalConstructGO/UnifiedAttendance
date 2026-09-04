@@ -41,8 +41,7 @@ export function AuditTab({ entries, timeZone }: { entries: ClientAuditEntry[]; t
                 <span className="capitalize">{actionLabel(entry.action)}</span>
               </p>
               <time className="shrink-0 text-xs text-muted-foreground">
-                {formatDate(entry.occurredAt, timeZone)} ·{" "}
-                {clockTime(entry.occurredAt, timeZone)}
+                {formatDate(entry.occurredAt, timeZone)} · {clockTime(entry.occurredAt, timeZone)}
               </time>
             </li>
           );

@@ -15,7 +15,6 @@ const fallbackBrand: Brand = {
   tagline: process.env.NEXT_PUBLIC_APP_TAGLINE?.trim() || "Operations platform",
 };
 
-
 export const getBrand = cache(async (): Promise<Brand> => {
   await connection();
   const [organization] = await db

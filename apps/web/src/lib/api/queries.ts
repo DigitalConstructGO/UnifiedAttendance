@@ -197,7 +197,6 @@ export const attendanceQueries = {
     }),
 };
 
-
 function overviewRefetchInterval() {
   const now = new Date();
   const minuteOfDay = now.getHours() * 60 + now.getMinutes();

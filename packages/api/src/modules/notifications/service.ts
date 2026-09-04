@@ -39,10 +39,7 @@ async function assertNoThresholdConflict(
   }
 }
 
-export async function listNotificationTiers(
-  ctx: Context,
-  input: ListNotificationTiersInput = {},
-) {
+export async function listNotificationTiers(ctx: Context, input: ListNotificationTiersInput = {}) {
   await requirePermission(ctx, "notifications.manage");
   return ctx.db
     .select()
@@ -85,7 +82,6 @@ export async function updateNotificationTier(ctx: Context, input: UpdateNotifica
   return tier;
 }
 
-
 export async function deleteNotificationTier(ctx: Context, input: NotificationTierIdInput) {
   await requirePermission(ctx, "notifications.manage");
   const [existing] = await ctx.db
@@ -116,7 +112,6 @@ const DEFAULT_TIERS = [
     bodyTemplate: "Hi {{employeeName}}, you were marked absent on {{date}}.",
   },
 ];
-
 
 export async function seedDefaultNotificationTiers(ctx: Pick<Context, "db"> = { db }) {
   await ctx.db.insert(notificationTiers).values(DEFAULT_TIERS).onConflictDoNothing();

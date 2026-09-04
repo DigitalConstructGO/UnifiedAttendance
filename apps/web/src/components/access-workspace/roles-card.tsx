@@ -73,9 +73,7 @@ export function RolesCard({
                 size="sm"
                 disabled={busy || role.userCount > 0}
                 title={
-                  role.userCount > 0
-                    ? "Move its people to another role first"
-                    : "Archive this role"
+                  role.userCount > 0 ? "Move its people to another role first" : "Archive this role"
                 }
                 className="mt-2 h-8 rounded-[9px] px-0 text-destructive hover:text-destructive"
                 onClick={() => onArchive(role)}

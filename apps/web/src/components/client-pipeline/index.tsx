@@ -1,7 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Clock3, Columns3, GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Clock3,
+  Columns3,
+  GripVertical,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -388,89 +396,91 @@ export function ClientPipeline({ createOpen = false }: { createOpen?: boolean })
           ) : null}
         </section>
       ) : (
-      <div className="relative">
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max items-start gap-4">
-          {stages.map((stage, stageIndex) => {
-            const cards = opportunities.filter(
-              (row) => row.opportunity.pipelineStageId === stage.id,
-            );
-            const isDropTarget = overStageId === stage.id && draggingId !== null;
-            return (
-              <section
-                key={stage.id}
-                aria-label={stage.name}
-                onDragOver={(event) => {
-                  if (!manageable || !event.dataTransfer.types.includes(DRAG_MIME)) return;
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                  setOverStageId(stage.id);
-                }}
-                onDragLeave={() =>
-                  setOverStageId((current) => (current === stage.id ? null : current))
-                }
-                onDrop={(event) => {
-                  event.preventDefault();
-                  const id = event.dataTransfer.getData(DRAG_MIME);
-                  setOverStageId(null);
-                  setDraggingId(null);
-                  if (id) moveTo(id, stage.id);
-                }}
-                className={`w-72 shrink-0 rounded-[15px] p-3 transition-colors ${
-                  isDropTarget
-                    ? "bg-primary/8 ring-2 ring-primary/40"
-                    : "bg-[var(--surface-subtle)] ring-2 ring-transparent"
-                }`}
-              >
-                <header className="flex items-center justify-between gap-2 px-1 pb-3">
-                  <h2 className="text-strong flex items-center gap-2 text-xs font-bold">
-                    <span
-                      aria-hidden="true"
-                      className={`size-2 rounded-full ${STAGE_DOT_TONES[stageIndex % STAGE_DOT_TONES.length]}`}
-                    />
-                    {stage.name}
-                  </h2>
-                  <span className="rounded-full bg-card px-2 py-0.5 text-[0.6875rem] font-bold text-muted-foreground">
-                    {cards.length}
-                  </span>
-                </header>
-                <div className="grid gap-2.5">
-                  {cards.map((row) => (
-                    <OpportunityCard
-                      key={row.opportunity.id}
-                      row={row}
-                      stages={stages}
-                      movable={manageable}
-                      archivable={archivable}
-                      onArchive={() => archiveLead.mutate(row.opportunity.id)}
-                      dragging={draggingId === row.opportunity.id}
-                      onDragStart={() => setDraggingId(row.opportunity.id)}
-                      onDragEnd={() => {
-                        setDraggingId(null);
-                        setOverStageId(null);
-                      }}
-                      onMove={(toPipelineStageId) => moveTo(row.opportunity.id, toPipelineStageId)}
-                    />
-                  ))}
-                  {cards.length === 0 ? (
-                    <p className="px-1 py-6 text-center text-[0.6875rem] text-muted-foreground">
-                      {isDropTarget ? "Drop to move here." : "Nothing at this stage."}
-                    </p>
-                  ) : null}
-                </div>
-              </section>
-            );
-          })}
-          {stages.length === 0 && !stagesQuery.isPending ? (
-            <p className="text-sm text-muted-foreground">No pipeline stages configured yet.</p>
-          ) : null}
+        <div className="relative">
+          <div className="overflow-x-auto pb-2">
+            <div className="flex min-w-max items-start gap-4">
+              {stages.map((stage, stageIndex) => {
+                const cards = opportunities.filter(
+                  (row) => row.opportunity.pipelineStageId === stage.id,
+                );
+                const isDropTarget = overStageId === stage.id && draggingId !== null;
+                return (
+                  <section
+                    key={stage.id}
+                    aria-label={stage.name}
+                    onDragOver={(event) => {
+                      if (!manageable || !event.dataTransfer.types.includes(DRAG_MIME)) return;
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setOverStageId(stage.id);
+                    }}
+                    onDragLeave={() =>
+                      setOverStageId((current) => (current === stage.id ? null : current))
+                    }
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const id = event.dataTransfer.getData(DRAG_MIME);
+                      setOverStageId(null);
+                      setDraggingId(null);
+                      if (id) moveTo(id, stage.id);
+                    }}
+                    className={`w-72 shrink-0 rounded-[15px] p-3 transition-colors ${
+                      isDropTarget
+                        ? "bg-primary/8 ring-2 ring-primary/40"
+                        : "bg-[var(--surface-subtle)] ring-2 ring-transparent"
+                    }`}
+                  >
+                    <header className="flex items-center justify-between gap-2 px-1 pb-3">
+                      <h2 className="text-strong flex items-center gap-2 text-xs font-bold">
+                        <span
+                          aria-hidden="true"
+                          className={`size-2 rounded-full ${STAGE_DOT_TONES[stageIndex % STAGE_DOT_TONES.length]}`}
+                        />
+                        {stage.name}
+                      </h2>
+                      <span className="rounded-full bg-card px-2 py-0.5 text-[0.6875rem] font-bold text-muted-foreground">
+                        {cards.length}
+                      </span>
+                    </header>
+                    <div className="grid gap-2.5">
+                      {cards.map((row) => (
+                        <OpportunityCard
+                          key={row.opportunity.id}
+                          row={row}
+                          stages={stages}
+                          movable={manageable}
+                          archivable={archivable}
+                          onArchive={() => archiveLead.mutate(row.opportunity.id)}
+                          dragging={draggingId === row.opportunity.id}
+                          onDragStart={() => setDraggingId(row.opportunity.id)}
+                          onDragEnd={() => {
+                            setDraggingId(null);
+                            setOverStageId(null);
+                          }}
+                          onMove={(toPipelineStageId) =>
+                            moveTo(row.opportunity.id, toPipelineStageId)
+                          }
+                        />
+                      ))}
+                      {cards.length === 0 ? (
+                        <p className="px-1 py-6 text-center text-[0.6875rem] text-muted-foreground">
+                          {isDropTarget ? "Drop to move here." : "Nothing at this stage."}
+                        </p>
+                      ) : null}
+                    </div>
+                  </section>
+                );
+              })}
+              {stages.length === 0 && !stagesQuery.isPending ? (
+                <p className="text-sm text-muted-foreground">No pipeline stages configured yet.</p>
+              ) : null}
+            </div>
           </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
+          />
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
-        />
-      </div>
       )}
 
       {deleting ? (

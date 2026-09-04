@@ -10,7 +10,6 @@ import {
 
 import { Defs, Fields, Note, P, Section, Steps, Strong, Term } from "./prose";
 
-
 export const CHAPTERS = [
   { id: "start", label: "Start here", icon: BookOpen },
   { id: "day", label: "How a day is counted", icon: CalendarCheck2 },

@@ -27,9 +27,9 @@ describe("renderTemplate", () => {
   });
 
   it("leaves an unmatched token untouched", () => {
-    expect(
-      renderTemplate("Hi {{employeeName}}, {{unknownToken}}", { employeeName: "Abel" }),
-    ).toBe("Hi Abel, {{unknownToken}}");
+    expect(renderTemplate("Hi {{employeeName}}, {{unknownToken}}", { employeeName: "Abel" })).toBe(
+      "Hi Abel, {{unknownToken}}",
+    );
   });
 
   it("leaves a template with no tokens unchanged", () => {

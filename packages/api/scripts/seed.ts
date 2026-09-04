@@ -28,8 +28,14 @@ export async function seedRbac() {
     await tx.delete(permissions).where(notInArray(permissions.code, [...PERMISSIONS]));
 
     for (const [name, meta] of Object.entries(SYSTEM_ROLES)) {
-      await tx.insert(roles).values({ name, ...meta, isSystem: true }).onConflictDoNothing();
-      await tx.update(roles).set({ ...meta, isSystem: true }).where(eq(roles.name, name));
+      await tx
+        .insert(roles)
+        .values({ name, ...meta, isSystem: true })
+        .onConflictDoNothing();
+      await tx
+        .update(roles)
+        .set({ ...meta, isSystem: true })
+        .where(eq(roles.name, name));
     }
 
     const roleId = new Map(

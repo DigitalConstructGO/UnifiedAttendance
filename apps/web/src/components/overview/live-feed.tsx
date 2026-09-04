@@ -40,7 +40,7 @@ export function LiveFeed({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 rounded-[7px] px-2 py-1 text-xs font-bold text-primary hover:bg-primary/8 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="flex items-center gap-1.5 rounded-[7px] px-2 py-1 text-xs font-bold text-primary hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60"
           >
             <RefreshCw
               className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}

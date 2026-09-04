@@ -117,9 +117,9 @@ describe("notification tiers", () => {
       bodyTemplate: "Body",
     });
 
-    await expect(
-      updateNotificationTier(admin, { id: tier!.id, threshold: 1 }),
-    ).rejects.toThrow(/already exists/i);
+    await expect(updateNotificationTier(admin, { id: tier!.id, threshold: 1 })).rejects.toThrow(
+      /already exists/i,
+    );
   });
 
   it("allows a tier to keep its own threshold when updating other fields", async () => {

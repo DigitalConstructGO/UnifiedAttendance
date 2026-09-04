@@ -19,7 +19,10 @@ export function StatTile({
     <TabPanel className="p-5">
       <div className="flex items-start justify-between gap-3">
         <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-        <span aria-hidden="true" className={`grid size-9 place-items-center rounded-[11px] ${tone}`}>
+        <span
+          aria-hidden="true"
+          className={`grid size-9 place-items-center rounded-[11px] ${tone}`}
+        >
           {icon}
         </span>
       </div>

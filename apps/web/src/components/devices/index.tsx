@@ -44,7 +44,6 @@ export function DevicesWorkspace({ section }: { section: DeviceSection }) {
   const devicesQuery = useQuery(devicesQueries.list(branchId));
   const devices = devicesQuery.data ?? [];
 
-
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["devices"] });
   }
