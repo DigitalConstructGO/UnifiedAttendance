@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { clients, invoicePayments, invoices } from "@UnifiedAttendance/db/schema/index";
 
@@ -108,8 +108,10 @@ export async function getRevenueReport(ctx: Context, input: RevenueReportInput) 
       .where(
         and(
           eq(invoices.organizationId, organization.id),
-          // Drafts carry no `issuedOn` at all, so they have no period to fall in.
-          ne(invoices.lifecycleStatus, "draft"),
+          // Only issued invoices are revenue: a draft was never billed and has
+          // no `issuedOn` to bucket by, and a void one has been cancelled. This
+          // matches the client dashboard and the directory rows.
+          eq(invoices.lifecycleStatus, "issued"),
           ...(branchFilter ? [eq(invoices.branchId, branchFilter)] : []),
         ),
       ),
