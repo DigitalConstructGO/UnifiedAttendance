@@ -67,7 +67,16 @@ export function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <ResponsiveContainer>{children}</ResponsiveContainer>
+        {/*
+          recharts defaults `initialDimension` to -1x-1 and warns about it during
+          the first render — before its ResizeObserver has measured anything — so
+          every chart logs "width(-1) and height(-1) should be greater than 0" on
+          mount. A 1x1 placeholder is replaced on the very next frame by the real
+          measurement, and is no more visible than the -1 it replaces.
+        */}
+        <ResponsiveContainer initialDimension={{ width: 1, height: 1 }}>
+          {children}
+        </ResponsiveContainer>
       </div>
     </ChartContextProvider>
   );
