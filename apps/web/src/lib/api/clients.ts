@@ -22,6 +22,7 @@ export type ClientType = Returned<typeof service.listClientTypes>[number];
 export type PipelineStage = Returned<typeof service.listPipelineStages>[number];
 export type ClientOverview = Returned<typeof service.getClientOverview>;
 export type ClientProfile = Returned<typeof service.getClientProfile>;
+export type RevenueReport = Returned<typeof service.getRevenueReport>;
 export type ClientTimeline = Returned<typeof service.getClientTimeline>;
 export type ClientAuditEntry = Returned<typeof service.listClientAuditEntries>[number];
 export type InvoiceRow = Returned<typeof service.getInvoice>;
@@ -35,6 +36,7 @@ type ListProjectsQuery = z.input<typeof validations.listProjectsInput>;
 type ListCommercialContractsQuery = z.input<typeof validations.listCommercialContractsInput>;
 type ListInvoicesQuery = z.input<typeof validations.listInvoicesInput>;
 type ClientOverviewQuery = z.input<typeof validations.clientOverviewInput>;
+type RevenueReportQuery = z.input<typeof validations.revenueReportInput>;
 type ClientDocumentMetadata = Omit<
   z.input<typeof validations.createClientDocumentInput>,
   "fileName" | "contentType" | "contentLength"
@@ -51,6 +53,7 @@ export const clientKeys = {
   overview: (query: ClientOverviewQuery) => ["clients", "overview", query] as const,
   profile: (id: string, asOf?: string) => ["clients", id, "profile", { asOf }] as const,
   timeline: (id: string, asOf?: string) => ["clients", id, "timeline", { asOf }] as const,
+  revenue: (query: RevenueReportQuery = {}) => ["clients", "revenue", query] as const,
   audit: (id: string) => ["clients", id, "audit"] as const,
   ownerAssignments: (id: string) => ["clients", id, "owner-assignments"] as const,
   contacts: (clientId: string) => ["client-contacts", { clientId }] as const,
@@ -114,6 +117,8 @@ export const clientsApi = {
     apiFetch<ClientProfile>(`/clients/${id}/profile`, { query: { asOf }, signal }),
   timeline: (id: string, asOf?: string, signal?: AbortSignal) =>
     apiFetch<ClientTimeline>(`/clients/${id}/timeline`, { query: { asOf }, signal }),
+  revenue: (query: RevenueReportQuery = {}, signal?: AbortSignal) =>
+    apiFetch<RevenueReport>("/clients/revenue", { query: query as QueryParams, signal }),
   audit: (id: string, signal?: AbortSignal) =>
     apiFetch<ClientAuditEntry[]>(`/clients/${id}/audit`, { signal }),
 

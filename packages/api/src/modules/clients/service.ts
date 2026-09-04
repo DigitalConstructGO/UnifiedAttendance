@@ -10,3 +10,4 @@ export * from "./engagement";
 export * from "./documents";
 export * from "./projections";
 export * from "./reporting";
+export * from "./revenue";
