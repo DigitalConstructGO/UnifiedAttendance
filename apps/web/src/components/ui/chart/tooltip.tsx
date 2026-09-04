@@ -56,7 +56,9 @@ export function ChartTooltipContent({
         </div>
       );
     }
-    return value ? <div className={cn("text-strong font-medium", labelClassName)}>{value}</div> : null;
+    return value ? (
+      <div className={cn("text-strong font-medium", labelClassName)}>{value}</div>
+    ) : null;
   };
 
   return (

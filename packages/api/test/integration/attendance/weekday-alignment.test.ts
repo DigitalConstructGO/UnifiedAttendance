@@ -6,7 +6,6 @@ import { branchWorkingDays } from "@UnifiedAttendance/db/schema/index";
 import { mondayFirstWeekday } from "../../../src/attendance/day-context";
 import { setUpDeriveDayFixture, type DeriveDayFixture } from "./derive-day-fixture";
 
-
 describe("weekday alignment", () => {
   it("maps each date onto the row the organization screen wrote", () => {
     // 2026-03-02 is a Monday.

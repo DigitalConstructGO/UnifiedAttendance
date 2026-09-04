@@ -164,9 +164,7 @@ export function InvoiceDocument({ invoiceId }: { invoiceId: string }) {
                   {data.invoice.rows.map((line, index) => (
                     <tr key={index}>
                       <td className="border border-foreground/60 px-3 py-4">{line.name}</td>
-                      <td className="border border-foreground/60 px-3 py-4">
-                        {line.description}
-                      </td>
+                      <td className="border border-foreground/60 px-3 py-4">{line.description}</td>
                       <td className="border border-foreground/60 px-3 py-4 font-numeric font-bold">
                         {line.amount}
                       </td>

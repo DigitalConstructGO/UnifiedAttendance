@@ -1,6 +1,5 @@
 import { Fingerprint } from "lucide-react";
 
-
 export default function Loading() {
   return (
     <div
@@ -14,7 +13,6 @@ export default function Loading() {
         </span>
 
         <div className="flex flex-col items-center gap-3">
-          
           <p className="font-heading text-sm font-bold tracking-[-0.02em] text-[var(--text-strong)]">
             Loading your workspace
           </p>

@@ -246,7 +246,10 @@ export function ClientInvoices() {
                               size="sm"
                               className="h-8 rounded-[9px] px-3 font-bold text-destructive hover:text-destructive"
                               onClick={() =>
-                                setDeleting({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
+                                setDeleting({
+                                  id: invoice.id,
+                                  invoiceNumber: invoice.invoiceNumber,
+                                })
                               }
                             >
                               Delete

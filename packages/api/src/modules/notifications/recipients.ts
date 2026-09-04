@@ -6,7 +6,6 @@ import { ROLES } from "../../rbac/permissions";
 
 import type { Context } from "../../context";
 
-
 export async function loadHrEmails(ctx: Context): Promise<string[]> {
   const rows = await ctx.db
     .select({ email: user.email })
@@ -17,7 +16,6 @@ export async function loadHrEmails(ctx: Context): Promise<string[]> {
   return rows.map((row) => row.email).filter((email): email is string => Boolean(email));
 }
 
-
 export function formatEmployeeName(
   firstName: string,
   middleName: string | null,
@@ -27,7 +25,6 @@ export function formatEmployeeName(
     .filter((part): part is string => Boolean(part))
     .join(" ");
 }
-
 
 export function resolveNotificationRecipients(
   hrEmails: readonly string[],

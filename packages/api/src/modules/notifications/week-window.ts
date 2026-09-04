@@ -2,7 +2,6 @@ import { mondayFirstWeekday } from "../../attendance/day-context";
 
 export type WorkingDayFlag = { weekday: number; isWorkingDay: boolean };
 
-
 export function deriveWeekStartWeekday(workingDays: WorkingDayFlag[]): number {
   const working = Array.from({ length: 7 }, (_, weekday) => {
     const row = workingDays.find((day) => day.weekday === weekday);
@@ -42,7 +41,6 @@ export type WeekWindow = {
   /** Exclusive — the window is `[start, end)`. */
   end: string;
 };
-
 
 export function weekWindowFor(attendanceDate: string, weekStartWeekday: number): WeekWindow {
   const currentWeekday = mondayFirstWeekday(attendanceDate);

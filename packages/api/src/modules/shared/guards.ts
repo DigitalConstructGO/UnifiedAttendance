@@ -31,7 +31,6 @@ async function loadGrantedPermissions(ctx: Context) {
   return rows.map((row) => row.code);
 }
 
-
 const GRANT_CACHE_TTL_MS = 60_000;
 const grantCache = new Map<string, { permissions: string[]; expiresAt: number }>();
 

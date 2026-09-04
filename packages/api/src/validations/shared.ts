@@ -8,7 +8,6 @@ export const time = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Expected HH:MM")
 export const text = z.string().trim().min(1);
 export const minutes = z.coerce.number().int().min(0);
 
-
 export function limit(max: number, fallback: number) {
   return z.coerce.number().int().min(1).max(max).default(fallback);
 }

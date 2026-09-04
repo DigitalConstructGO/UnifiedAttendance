@@ -1,6 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-
 export default function DashboardLoading() {
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-7">

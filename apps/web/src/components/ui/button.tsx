@@ -28,9 +28,9 @@ const buttonVariants = cva(
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         icon: "max-sm:size-11 sm:size-8",
         "icon-xs":
-          "max-sm:size-11 sm:size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+          "rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg max-sm:size-11 sm:size-6 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "max-sm:size-11 sm:size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+          "rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg max-sm:size-11 sm:size-7",
         "icon-lg": "max-sm:size-11 sm:size-9",
       },
     },

@@ -1,10 +1,8 @@
 import { createInnerContext } from "@UnifiedAttendance/api/context";
 
-
 export function deviceContext() {
   return createInnerContext({ session: null });
 }
-
 
 export function textResponse(body: string, status = 200) {
   return new Response(body, {
@@ -15,7 +13,6 @@ export function textResponse(body: string, status = 200) {
     },
   });
 }
-
 
 export function serialNumber(request: Request) {
   const params = new URL(request.url).searchParams;

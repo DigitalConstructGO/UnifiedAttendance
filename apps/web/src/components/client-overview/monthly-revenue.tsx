@@ -21,10 +21,7 @@ const CHART_CONFIG = {
   collected: { label: "Collected", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
-export function MonthlyRevenue({
-  byMonth,
-  period,
-}: Pick<ClientOverview, "byMonth" | "period">) {
+export function MonthlyRevenue({ byMonth, period }: Pick<ClientOverview, "byMonth" | "period">) {
   const rows = byMonth.map((row) => ({
     label: monthLabel(row.period),
     invoiced: measureNumber(row.invoiced),

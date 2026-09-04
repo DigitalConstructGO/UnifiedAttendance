@@ -40,7 +40,6 @@ function trimmed(value: FormDataEntryValue | null) {
   return text.length > 0 ? text : null;
 }
 
-
 export function DeviceForm({
   branches,
   branchId,

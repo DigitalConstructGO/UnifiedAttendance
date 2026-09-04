@@ -19,9 +19,9 @@ export function NotificationTiersWorkspace() {
           Notification tiers
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Configure the escalation emails sent when someone is late or absent. Each tier fires
-          once an employee reaches its occurrence count for the week; the highest tier that still
-          applies wins.
+          Configure the escalation emails sent when someone is late or absent. Each tier fires once
+          an employee reaches its occurrence count for the week; the highest tier that still applies
+          wins.
         </p>
       </header>
 

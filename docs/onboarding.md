@@ -28,24 +28,24 @@ There is currently no `.env.example` checked into the repo, so create `apps/web/
 These are validated by `packages/env/src/server.ts` (via `@t3-oss/env-core`) and are required
 for the app to boot at all:
 
-| Variable | Required | Notes |
-|---|---|---|
-| `DATABASE_URL` | yes | Postgres connection string |
-| `BETTER_AUTH_SECRET` | yes | ≥ 32 characters |
-| `BETTER_AUTH_URL` | yes | Must be a valid URL, e.g. `http://localhost:3001` |
-| `CORS_ORIGIN` | yes | Must be a valid URL — better-auth's `trustedOrigins` |
-| `NODE_ENV` | no | `development` \| `production` \| `test`, defaults to `development` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | no | Optional in the schema, but **all five** must be set for email to work — `createMailer()` throws if any is missing. Port 465 turns on implicit TLS |
+| Variable                                                        | Required | Notes                                                                                                                                              |
+| --------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                  | yes      | Postgres connection string                                                                                                                         |
+| `BETTER_AUTH_SECRET`                                            | yes      | ≥ 32 characters                                                                                                                                    |
+| `BETTER_AUTH_URL`                                               | yes      | Must be a valid URL, e.g. `http://localhost:3001`                                                                                                  |
+| `CORS_ORIGIN`                                                   | yes      | Must be a valid URL — better-auth's `trustedOrigins`                                                                                               |
+| `NODE_ENV`                                                      | no       | `development` \| `production` \| `test`, defaults to `development`                                                                                 |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | no       | Optional in the schema, but **all five** must be set for email to work — `createMailer()` throws if any is missing. Port 465 turns on implicit TLS |
 
 A few more are read directly (`process.env.X`, not schema-validated) by specific features —
 missing ones won't stop the app from starting, but will break the feature that needs them:
 
-| Variable | Used for |
-|---|---|
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Document/photo upload and signed URLs (`apps/web/src/lib/storage/`) — required for the workforce-documents and client-documents endpoints to work |
-| `LOG_LEVEL`, `PINO_PRETTY` | Logging verbosity/formatting (`apps/web/src/lib/logger.ts`) |
-| `METRICS_PREFIX`, `METRICS_PATH`, `METRICS_PORT` | Read by `apps/web/src/lib/metrics.ts` — but nothing imports that module and no `/metrics` route exists, so these have no effect today |
-| `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_LOGO_URL`, `NEXT_PUBLIC_APP_TAGLINE` | Client-visible branding overrides |
+| Variable                                                                      | Used for                                                                                                                                          |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`        | Document/photo upload and signed URLs (`apps/web/src/lib/storage/`) — required for the workforce-documents and client-documents endpoints to work |
+| `LOG_LEVEL`, `PINO_PRETTY`                                                    | Logging verbosity/formatting (`apps/web/src/lib/logger.ts`)                                                                                       |
+| `METRICS_PREFIX`, `METRICS_PATH`, `METRICS_PORT`                              | Read by `apps/web/src/lib/metrics.ts` — but nothing imports that module and no `/metrics` route exists, so these have no effect today             |
+| `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_LOGO_URL`, `NEXT_PUBLIC_APP_TAGLINE` | Client-visible branding overrides                                                                                                                 |
 
 A minimal local `apps/web/.env` to get the app running (without document uploads or email):
 
@@ -117,7 +117,7 @@ ON CONFLICT (user_id) DO UPDATE SET role_id = EXCLUDED.role_id;
 ```
 
 `user_roles` is keyed on `user_id` alone — one role per user — which is why that upsert also
-works to *change* someone's role. Once you have one Super Administrator, every further user can
+works to _change_ someone's role. Once you have one Super Administrator, every further user can
 be created from the UI (`/dashboard/access`, backed by `POST /api/v1/access/users`).
 
 > `requirePermission` caches a user's grants for 60 seconds, so a role change made in SQL can
@@ -163,6 +163,7 @@ Read [architecture.md](./architecture.md) for the full picture; the short versio
 ## 8. Common tasks
 
 **Add a new API endpoint** — three files, in this order:
+
 1. `packages/api/src/validations/<domain>.ts` — the zod input schema
 2. `packages/api/src/modules/<domain>/service.ts` — the `(ctx, input)` function, exported from
    `packages/api/src/index.ts`
@@ -192,7 +193,7 @@ pnpm test    # pnpm --filter web test && pnpm --filter @UnifiedAttendance/api te
 
 - **`apps/web`** tests are plain Vitest + Testing Library (jsdom environment), under
   `apps/web/test/unit/` — no database involved.
-- **`packages/api`** tests run against a *real* Postgres, spun up automatically by Testcontainers
+- **`packages/api`** tests run against a _real_ Postgres, spun up automatically by Testcontainers
   (`packages/api/test/setup.ts`, a Vitest `globalSetup`): it brings up `docker-compose.test.yml`,
   points `DATABASE_URL` at the container's randomly-assigned host port, and applies every
   Drizzle migration from `packages/db/src/migrations` — so the test schema can never drift from

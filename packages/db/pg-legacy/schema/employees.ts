@@ -53,7 +53,6 @@ export const employees = pgTable(
   ],
 );
 
-
 export const employmentPeriods = pgTable(
   "employment_periods",
   {

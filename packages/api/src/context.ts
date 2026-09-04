@@ -43,7 +43,6 @@ export async function createContext(req: Request) {
 
 export type Context = ReturnType<typeof createInnerContext>;
 
-
 export function withTransaction<T>(ctx: Context, work: (ctx: Context) => Promise<T>): Promise<T> {
   if (isTransaction(ctx.db)) return work(ctx);
   return ctx.db.transaction((tx) => work({ ...ctx, db: tx }));

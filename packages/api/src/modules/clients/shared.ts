@@ -33,7 +33,6 @@ export async function validateClientReferences(
     ownerEmployeeId: string;
     industryId: string;
     clientTypeId: string;
-
   },
 ) {
   const [[branch], [owner], [industry], [clientType]] = await Promise.all([
