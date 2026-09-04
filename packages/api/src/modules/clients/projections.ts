@@ -36,7 +36,7 @@ async function invoiceBalances(ctx: Context, clientId: string) {
     .select({ invoiceId: invoicePayments.invoiceId, amount: invoicePayments.amount })
     .from(invoicePayments)
     .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
-    .where(eq(invoices.clientId, clientId));
+    .where(and(eq(invoices.clientId, clientId), isNull(invoicePayments.archivedAt)));
   const paidByInvoice = new Map<string, bigint>();
   for (const payment of payments) {
     paidByInvoice.set(
@@ -195,7 +195,7 @@ export async function getClientTimeline(ctx: Context, input: ClientProjectionInp
         .select({ payment: invoicePayments, invoice: invoices })
         .from(invoicePayments)
         .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
-        .where(eq(invoices.clientId, client.id)),
+        .where(and(eq(invoices.clientId, client.id), isNull(invoicePayments.archivedAt))),
       ctx.db.select().from(crmActivities).where(eq(crmActivities.clientId, client.id)),
       invoiceBalances(ctx, client.id),
     ]);

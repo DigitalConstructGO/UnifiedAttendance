@@ -333,6 +333,25 @@ export const listClientDocumentsInput = z.object({
   kind: z.enum(CLIENT_DOCUMENT_KINDS).optional(),
 });
 export const clientProjectionInput = z.object({ id, asOf: date.optional() });
+export const revenueReportInput = z
+  .object({
+    branchId: id.optional(),
+    grain: z.enum(["week", "month", "year"]).optional(),
+    revenueMeasure: z.enum(["invoiced", "collected"]).optional(),
+    asOf: date.optional(),
+    from: date.optional(),
+    to: date.optional(),
+    compareFrom: date.optional(),
+    compareTo: date.optional(),
+  })
+  .refine((input) => !input.from || !input.to || input.from <= input.to, {
+    message: "Reporting start date cannot be after end date",
+    path: ["to"],
+  })
+  .refine((input) => !input.compareFrom === !input.compareTo, {
+    message: "A comparison window needs both a start and an end date",
+    path: ["compareTo"],
+  });
 export const clientOverviewInput = z
   .object({
     branchId: id.optional(),
@@ -390,3 +409,4 @@ export type CreateClientDocumentVersionInput = z.output<typeof createClientDocum
 export type ListClientDocumentsInput = z.output<typeof listClientDocumentsInput>;
 export type ClientProjectionInput = z.output<typeof clientProjectionInput>;
 export type ClientOverviewInput = z.output<typeof clientOverviewInput>;
+export type RevenueReportInput = z.output<typeof revenueReportInput>;

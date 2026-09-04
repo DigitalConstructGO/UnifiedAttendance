@@ -6,6 +6,7 @@ import {
   ChartColumnBig,
   Laptop2,
   ShieldCheck,
+  TrendingUp,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -64,6 +65,11 @@ const moduleMeta: Record<NavLabel, { icon: typeof Building2; description: string
       description: "Issued amounts, payments and outstanding balances.",
       tone: "text-success bg-success/10",
     },
+    Revenue: {
+      icon: TrendingUp,
+      description: "What each client brought in, by week, month or year.",
+      tone: "text-success bg-success/10",
+    },
     Notifications: {
       icon: BellRing,
       description: "Escalation tiers for late-arrival and absence emails.",
@@ -80,7 +86,7 @@ export function ModuleDirectory({ access, name }: { access: Access; name: string
   const modules = visibleNavItems(access);
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] space-y-5">
+    <div className="mx-auto w-full max-w-310 space-y-5">
       <header>
         <p className="text-xs font-semibold text-muted-foreground">Welcome back, {name}</p>
         <h1 className="text-strong mt-1 font-heading text-2xl font-bold tracking-[-0.03em]">
@@ -102,11 +108,11 @@ export function ModuleDirectory({ access, name }: { access: Access; name: string
               href={module.href}
 
               prefetch={false}
-              className="group flex min-h-36 flex-col rounded-[18px] bg-card p-5 text-foreground shadow-[var(--shadow-card)] ring-1 ring-border/80 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:text-foreground hover:shadow-[var(--shadow-menu)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="group flex min-h-36 flex-col rounded-[18px] bg-card p-5 text-foreground shadow-(--shadow-card) ring-1 ring-border/80 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:text-foreground hover:shadow-(--shadow-menu) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <div className="flex items-start justify-between">
                 <span className={`grid size-9 place-items-center rounded-[11px] ${meta.tone}`}>
-                  <Icon className="size-[18px]" aria-hidden="true" />
+                  <Icon className="size-4.5" aria-hidden="true" />
                 </span>
                 <ArrowRight
                   className="group-hover:text-strong size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"

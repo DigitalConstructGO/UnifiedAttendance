@@ -35,6 +35,7 @@ export const DASHBOARD_NAV = [
   { href: "/dashboard/clients/pipeline", label: "Leads & pipeline", permission: "clients.read" },
   { href: "/dashboard/clients/contracts", label: "Contracts", permission: "clients.read" },
   { href: "/dashboard/clients/invoices", label: "Invoices", permission: "clients.read" },
+  { href: "/dashboard/clients/revenue", label: "Revenue", permission: "clients.read" },
   { href: "/dashboard/devices", label: "Devices", permission: "devices.read" },
   { href: "/dashboard/organization", label: "Organization", permission: "organization.update" },
   {
@@ -52,10 +53,20 @@ export const NAV_SECTIONS = [
   { label: "Office", items: ["Attendance", "Employees", "Reports"] },
   {
     label: "Clients",
-    items: ["Dashboard", "All clients", "Leads & pipeline", "Contracts", "Invoices"],
+    items: ["Dashboard", "All clients", "Leads & pipeline", "Contracts", "Invoices", "Revenue"],
   },
   { label: "Platform", items: ["Devices", "Organization", "Notifications", "Users & access"] },
 ] as const satisfies readonly { label: string; items: readonly NavLabel[] }[];
+
+/**
+ * Every nav item must be placed in a section. `visibleNavSections` builds the
+ * sidebar from NAV_SECTIONS, so an item added to DASHBOARD_NAV but not named
+ * here is silently dropped — the route works, the link never appears. This
+ * fails the build instead.
+ */
+type SectionedLabel = (typeof NAV_SECTIONS)[number]["items"][number];
+type UnplacedNavLabel = Exclude<NavLabel, SectionedLabel>;
+const _everyNavItemIsInASection: UnplacedNavLabel extends never ? true : never = true;
 
 export function visibleNavItems(access: Access) {
   return DASHBOARD_NAV.filter((item) => {

@@ -39,7 +39,6 @@ function selectDirectoryStatus(
   metrics: ReturnType<typeof emptyMetrics>,
   recurring: boolean,
 ): DirectoryStatus {
-
   if (client.status === "archived") return { kind: "archived", label: "Archived" };
 
   if (metrics.projects.some((project) => project.status === "in_progress")) {
@@ -112,7 +111,13 @@ export async function getClientDirectoryMetrics(ctx: Context, clientRows: Client
       })
       .from(invoicePayments)
       .innerJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
-      .where(and(inArray(invoices.clientId, clientIds), eq(invoices.lifecycleStatus, "issued"))),
+      .where(
+        and(
+          inArray(invoices.clientId, clientIds),
+          eq(invoices.lifecycleStatus, "issued"),
+          isNull(invoicePayments.archivedAt),
+        ),
+      ),
     ctx.db
       .select({ clientId: crmActivities.clientId, contactDate: crmActivities.contactDate })
       .from(crmActivities)

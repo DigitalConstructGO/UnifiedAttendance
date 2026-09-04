@@ -88,3 +88,33 @@ describe("visibleNavItems", () => {
     expect(visibleNavItems(toAccess([]))).toEqual([]);
   });
 });
+
+describe("nav sections", () => {
+  const superAdmin = toAccess(
+    DASHBOARD_NAV.map((item) => ({
+      roleName: "Super Administrator",
+      permission: item.permission,
+    })),
+  );
+
+  it("places every visible module in a section", () => {
+    // visibleNavSections builds the sidebar from NAV_SECTIONS, so a module
+    // missing from that list is silently dropped: the route works and the link
+    // never appears. Revenue shipped that way once.
+    const sectioned = visibleNavSections(superAdmin).flatMap((section) =>
+      section.items.map((item) => item.label),
+    );
+
+    expect(sectioned.toSorted()).toEqual(
+      visibleNavItems(superAdmin)
+        .map((i) => i.label)
+        .toSorted(),
+    );
+  });
+
+  it("lists Revenue under Clients", () => {
+    const clients = visibleNavSections(superAdmin).find((section) => section.label === "Clients");
+
+    expect(clients?.items.map((item) => item.label)).toContain("Revenue");
+  });
+});
