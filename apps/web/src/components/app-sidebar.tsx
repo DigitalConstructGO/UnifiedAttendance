@@ -13,6 +13,7 @@ import {
   type LucideIcon,
   PieChart,
   ReceiptText,
+  TrendingUp,
   ShieldCheck,
   UserRoundPlus,
   UsersRound,
@@ -50,6 +51,7 @@ const moduleIcons = {
   "Leads & pipeline": UserRoundPlus,
   Contracts: FileSignature,
   Invoices: ReceiptText,
+  Revenue: TrendingUp,
   "Users & access": ShieldCheck,
   Notifications: BellRing,
 } satisfies Record<NavLabel, LucideIcon>;
@@ -109,8 +111,8 @@ export function AppSidebar({ brand }: { brand: Brand }) {
         >
           <BrandMark
             brand={brand}
-            className="size-9 rounded-[11px] shadow-[var(--shadow-action)]"
-            iconClassName="size-[18px]"
+            className="size-9 rounded-[11px] shadow-(--shadow-action)"
+            iconClassName="size-4.5"
           />
           <span className="min-w-0 group-data-[collapsible=icon]:hidden">
             <span className="block truncate font-heading text-sm font-bold tracking-[-0.02em] text-white">
