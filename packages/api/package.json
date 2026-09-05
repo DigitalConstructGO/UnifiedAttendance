@@ -21,6 +21,7 @@
     "@UnifiedAttendance/mailer": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.2",
+    "kenat": "4.0.0",
     "next": "catalog:",
     "nodemailer": "^9.0.5",
     "zod": "catalog:"
