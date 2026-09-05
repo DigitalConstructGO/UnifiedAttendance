@@ -72,4 +72,9 @@ export const organizationApi = {
   updateHoliday: ({ id, ...values }: z.input<typeof validations.updateHolidayInput>) =>
     apiFetch<Holiday>(`/holidays/${id}`, { method: "PATCH", body: values }),
   deleteHoliday: (id: string) => apiFetch<Holiday>(`/holidays/${id}`, { method: "DELETE" }),
+  syncHolidays: () =>
+    apiFetch<{ years: number[]; inserted: number; updated: number }>("/holidays/sync", {
+      method: "POST",
+      body: {},
+    }),
 };
