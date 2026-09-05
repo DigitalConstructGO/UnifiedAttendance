@@ -148,6 +148,8 @@ export const updateHolidayInput = z.object({
 
 export const holidayIdInput = z.object({ id });
 
+export const syncHolidaysInput = z.object({});
+
 export type CreateOrganizationInput = z.output<typeof createOrganizationInput>;
 export type BootstrapOrganizationInput = z.output<typeof bootstrapOrganizationInput>;
 export type UpdateOrganizationInput = z.output<typeof updateOrganizationInput>;
