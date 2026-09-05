@@ -15,6 +15,13 @@
       "when": 1788257895198,
       "tag": "0001_productive_puppet_master",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788587996683,
+      "tag": "0002_ethiopian_holidays",
+      "breakpoints": true
     }
   ]
 }

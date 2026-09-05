@@ -79,6 +79,9 @@ export const branchWorkingDays = sqliteTable(
   ],
 );
 
+export const HOLIDAY_SOURCES = ["manual", "auto"] as const;
+export const holidaySource = sqliteEnum("holiday_source", HOLIDAY_SOURCES);
+
 export const holidays = sqliteTable(
   "holidays",
   {
@@ -89,8 +92,21 @@ export const holidays = sqliteTable(
     branchId: uuid("branch_id").references(() => branches.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     holidayDate: date("holiday_date").notNull(),
+    /**
+     * `auto` rows are generated from the Ethiopian calendar (kenat) and refreshed by
+     * the holiday sync; `manual` rows were typed in — or were `auto` rows an admin
+     * corrected, which the sync then leaves alone.
+     */
+    source: holidaySource("source").notNull().default(HOLIDAY_SOURCES[0]),
+    /** `<kenatKey>:<ethiopianYear>`, e.g. `eidFitr:2019`. Null for manual rows. */
+    holidayKey: text("holiday_key"),
+    /** Ethiopian-calendar date `YYYY-MM-DD` for display. Null for manual rows. */
+    ethiopianDate: date("ethiopian_date"),
   },
-  (table) => [index("holidays_date_idx").on(table.holidayDate)],
+  (table) => [
+    index("holidays_date_idx").on(table.holidayDate),
+    uniqueIndex("holidays_key_uidx").on(table.holidayKey),
+  ],
 );
 
 export const branchesRelations = relations(branches, ({ many }) => ({
