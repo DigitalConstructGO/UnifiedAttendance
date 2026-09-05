@@ -37,4 +37,5 @@ export * from "./modules/reports/service";
 export * from "./modules/clients/service";
 export * from "./modules/devices/service";
 export * from "./modules/organization/service";
+export * from "./modules/holidays/ethiopian";
 export * from "./modules/workforce/service";
