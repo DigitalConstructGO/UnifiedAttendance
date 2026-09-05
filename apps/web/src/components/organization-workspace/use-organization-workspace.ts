@@ -189,6 +189,26 @@ export function useOrganizationWorkspace() {
     },
   });
 
+  const updateHoliday = useMutation({
+    mutationFn: organizationApi.updateHoliday,
+    onSuccess: async () => {
+      setNotice("Holiday updated.");
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.holidays() });
+    },
+  });
+
+  const syncHolidays = useMutation({
+    mutationFn: organizationApi.syncHolidays,
+    onSuccess: async (result) => {
+      setNotice(
+        result.inserted || result.updated
+          ? `Ethiopian holidays synced: ${result.inserted} added, ${result.updated} updated.`
+          : "Ethiopian holidays are already up to date.",
+      );
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.holidays() });
+    },
+  });
+
   const writes = [
     [saveOrganization, "Could not save changes."],
     [uploadLogo, "Could not upload the logo."],
@@ -200,6 +220,8 @@ export function useOrganizationWorkspace() {
     [deleteBranch, "Could not delete the branch."],
     [addHoliday, "Could not add holiday."],
     [deleteHoliday, "Could not remove holiday."],
+    [updateHoliday, "Could not update holiday."],
+    [syncHolidays, "Could not sync Ethiopian holidays."],
   ] as const;
 
   const failedWrite = writes.find(([mutation]) => mutation.error !== null);
@@ -310,6 +332,14 @@ export function useOrganizationWorkspace() {
     deleteHoliday: (id: string) => {
       clearFeedback();
       deleteHoliday.mutate(id);
+    },
+    updateHolidayDate: (id: string, holidayDate: string) => {
+      clearFeedback();
+      updateHoliday.mutate({ id, holidayDate });
+    },
+    syncHolidays: () => {
+      clearFeedback();
+      syncHolidays.mutate();
     },
     retry: loadFailure?.retry,
   };

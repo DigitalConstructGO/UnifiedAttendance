@@ -12,6 +12,7 @@ import {
 
 import { badRequest, conflict, notFound } from "../../errors";
 import { withTransaction } from "../../context";
+import { ensureEthiopianHolidays, syncEthiopianHolidays } from "../holidays/ethiopian";
 import { requireAdministrator, requirePermission, requireSuperAdmin } from "../shared/guards";
 
 import type {
@@ -344,6 +345,8 @@ export async function replaceWorkingDays(ctx: Context, input: ReplaceWorkingDays
 
 export async function listHolidays(ctx: Context, input: ListHolidaysInput) {
   await requirePermission(ctx, "holidays.read", input.branchId ?? undefined);
+  // Self-heal: the Ethiopian public holidays appear even if the cron sync never ran.
+  await ensureEthiopianHolidays(ctx);
   return input.branchId
     ? ctx.db
         .select()
@@ -367,9 +370,18 @@ export async function updateHoliday(ctx: Context, input: UpdateHolidayInput) {
   if (!existing) notFound("Holiday");
   await requirePermission(ctx, "holidays.update", existing.branchId ?? undefined);
   const { id: holidayId, ...values } = input;
+  const generated = existing.source === "auto";
+  if (generated && input.branchId !== undefined && input.branchId !== null) {
+    badRequest("Ethiopian public holidays apply to every branch");
+  }
+  const corrected =
+    generated &&
+    ((values.holidayDate !== undefined && values.holidayDate !== existing.holidayDate) ||
+      (values.name !== undefined && values.name !== existing.name));
   const [holiday] = await ctx.db
     .update(holidays)
-    .set(values)
+    // A corrected generated holiday becomes manual so the next sync leaves it alone.
+    .set(corrected ? { ...values, source: "manual" } : values)
     .where(eq(holidays.id, holidayId))
     .returning();
   return holiday;
@@ -379,9 +391,18 @@ export async function deleteHoliday(ctx: Context, input: HolidayIdInput) {
   const [existing] = await ctx.db.select().from(holidays).where(eq(holidays.id, input.id)).limit(1);
   if (!existing) notFound("Holiday");
   await requirePermission(ctx, "holidays.delete", existing.branchId ?? undefined);
+  if (existing.source === "auto") {
+    badRequest("Ethiopian public holidays are generated automatically; edit the date instead");
+  }
   const [holiday] = await ctx.db
     .delete(holidays)
     .where(and(eq(holidays.id, input.id)))
     .returning();
   return holiday;
+}
+
+/** Regenerates the Ethiopian public holidays for this year and next. */
+export async function syncHolidays(ctx: Context) {
+  await requirePermission(ctx, "holidays.create");
+  return syncEthiopianHolidays(ctx);
 }

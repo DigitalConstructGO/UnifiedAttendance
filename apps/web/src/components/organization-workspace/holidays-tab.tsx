@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 
@@ -13,19 +13,49 @@ type Props = {
   busy: boolean;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onDelete: (id: string) => void;
+  onChangeDate: (id: string, holidayDate: string) => void;
+  onSync: () => void;
 };
 
-export function HolidaysTab({ branches, holidays, busy, onSubmit, onDelete }: Props) {
+export function HolidaysTab({
+  branches,
+  holidays,
+  busy,
+  onSubmit,
+  onDelete,
+  onChangeDate,
+  onSync,
+}: Props) {
   const [deleting, setDeleting] = useState<Holiday | null>(null);
+  const [editing, setEditing] = useState<{ id: string; date: string } | null>(null);
   return (
     <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border">
+        <div>
+          <p className="text-strong text-sm font-semibold">Ethiopian public holidays</p>
+          <p className="text-xs text-muted-foreground">
+            Ethiopian holidays are added automatically for this year and the next. Edit dates if
+            observed days change.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-8 rounded-[9px] font-bold"
+          onClick={onSync}
+          disabled={busy}
+        >
+          <RefreshCw className="size-4" />
+          Sync now
+        </Button>
+      </div>
       <form
         onSubmit={onSubmit}
         className="grid gap-3 rounded-[18px] bg-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border sm:grid-cols-[1fr_10rem_12rem_auto] sm:items-end"
       >
         <label className="text-strong space-y-2 text-xs font-bold">
           Holiday name
-          <Input name="name" required placeholder="Public holiday" />
+          <Input name="name" required placeholder="Company holiday" />
         </label>
         <label className="text-strong space-y-2 text-xs font-bold">
           Date
@@ -52,29 +82,87 @@ export function HolidaysTab({ branches, holidays, busy, onSubmit, onDelete }: Pr
       </form>
       <div className="divide-y divide-border rounded-[18px] bg-card px-5 shadow-[var(--shadow-card)] ring-1 ring-border">
         {holidays.length ? (
-          holidays.map((holiday) => (
-            <div key={holiday.id} className="flex items-center justify-between gap-3 py-4">
-              <div>
-                <p className="text-strong text-sm font-semibold">{holiday.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {holiday.holidayDate}
-                  {holiday.branchId ? " · Branch holiday" : " · All branches"}
-                </p>
+          holidays.map((holiday) => {
+            const generated = holiday.source === "auto";
+            const isEditing = editing?.id === holiday.id;
+            return (
+              <div key={holiday.id} className="flex items-center justify-between gap-3 py-4">
+                <div>
+                  <p className="text-strong flex items-center gap-2 text-sm font-semibold">
+                    {holiday.name}
+                    {generated ? (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                        Auto · Ethiopian calendar
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {holiday.holidayDate}
+                    {holiday.ethiopianDate ? ` · ${holiday.ethiopianDate} E.C.` : ""}
+                    {holiday.branchId ? " · Branch holiday" : " · All branches"}
+                  </p>
+                </div>
+                {generated ? (
+                  isEditing ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="date"
+                        aria-label={`New date for ${holiday.name}`}
+                        className="h-8 w-40"
+                        value={editing.date}
+                        onChange={(event) =>
+                          setEditing({ id: holiday.id, date: event.target.value })
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Save date for ${holiday.name}`}
+                        disabled={busy || !editing.date}
+                        onClick={() => {
+                          onChangeDate(holiday.id, editing.date);
+                          setEditing(null);
+                        }}
+                      >
+                        <Check className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Cancel"
+                        onClick={() => setEditing(null)}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Edit date of ${holiday.name}`}
+                      onClick={() => setEditing({ id: holiday.id, date: holiday.holidayDate })}
+                      disabled={busy}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remove ${holiday.name}`}
+                    onClick={() => setDeleting(holiday)}
+                    disabled={busy}
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Remove ${holiday.name}`}
-                onClick={() => setDeleting(holiday)}
-                disabled={busy}
-              >
-                <Trash2 className="size-4 text-destructive" />
-              </Button>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No holidays configured yet.
+            Ethiopian public holidays are added automatically; add company-specific days here.
           </p>
         )}
       </div>
