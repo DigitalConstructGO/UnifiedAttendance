@@ -107,6 +107,8 @@ export function OrganizationWorkspace() {
           busy={workspace.busy}
           onSubmit={workspace.addHoliday}
           onDelete={workspace.deleteHoliday}
+          onChangeDate={workspace.updateHolidayDate}
+          onSync={workspace.syncHolidays}
         />
       ) : null}
     </div>
